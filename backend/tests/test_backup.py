@@ -15,7 +15,9 @@ from app.core.config import Settings, get_settings
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     """Cartella dati temporanea: chiave e backup dei test non toccano quelli veri."""
-    return get_settings().model_copy(update={"data_dir": tmp_path, "backup_keep": 3})
+    return get_settings().model_copy(
+        update={"data_dir": tmp_path, "backup_keep": 3, "backup_hours": 24}
+    )
 
 
 def test_encryption_round_trip_and_tampering() -> None:
