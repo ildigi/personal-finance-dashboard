@@ -1,0 +1,73 @@
+[project]
+name = "finance-dashboard-backend"
+version = "0.1.0"
+description = "Backend della dashboard finanziaria personale (solo lettura)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "argon2-cffi>=23.1",
+    "fastapi>=0.142.2",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "pyjwt[crypto]>=2.15.1",
+    "pyotp>=2.9",
+    "pyyaml>=6.0.3",
+    "segno>=1.6",
+    "sqlalchemy>=2.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+    "types-pyyaml>=6.0.12.20260906",
+]
+
+[tool.uv]
+package = false
+
+# --- ruff ---------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "N", "S", "DTZ", "PT", "RET", "C4"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # caratteri accentati nei testi italiani
+]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "E402"]
+# Usa la fixture `t212_db` importata da test_trading212.
+"tests/test_investments_live.py" = ["F401", "F811"]
+"alembic/versions/**" = ["E501"]
+# Scenario dei dati di prova: righe di dati, più leggibili non spezzate.
+"app/integrations/mock/scenario.py" = ["E501"]
+
+# --- mypy ---------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+exclude = ["^alembic/versions/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+
+# --- pytest -------------------------------------------------------------
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error::DeprecationWarning:app.*"]

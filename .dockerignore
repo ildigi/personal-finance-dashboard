@@ -1,0 +1,25 @@
+# Nell'immagine va solo il codice: mai segreti, dati, backup o file locali.
+**/.env
+**/.env.*
+!**/.env.example
+**/*.env
+**/*.pem
+**/*.key
+**/*secret*
+**/*credentials*
+**/*.fdbk
+**/data/
+deploy/
+
+.git/
+.github/
+.vscode/
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+frontend/dist/
+frontend/.screenshots/
+frontend/coverage/

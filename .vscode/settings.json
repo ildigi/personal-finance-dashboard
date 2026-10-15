@@ -1,0 +1,62 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.exclude": {
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/.pytest_cache": true,
+    "**/dist": true
+  },
+  "search.exclude": {
+    "**/uv.lock": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "files.associations": {
+    "*.env.example": "dotenv"
+  },
+
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}/backend",
+  "python.testing.pytestArgs": ["tests"],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.tabSize": 4
+  },
+  "mypy-type-checker.args": ["--config-file=backend/pyproject.toml"],
+
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "eslint.workingDirectories": ["frontend"],
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[markdown]": { "files.trimTrailingWhitespace": false },
+
+  "sqltools.connections": [
+    {
+      "name": "finance (locale)",
+      "driver": "PostgreSQL",
+      "server": "127.0.0.1",
+      "port": 5432,
+      "database": "finance",
+      "username": "finance_app",
+      "askForPassword": true,
+      "previewLimit": 50
+    }
+  ]
+}

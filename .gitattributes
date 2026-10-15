@@ -1,0 +1,13 @@
+# Fine riga LF ovunque, anche su Windows
+* text=auto eol=lf
+
+# Script Windows: CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binari
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

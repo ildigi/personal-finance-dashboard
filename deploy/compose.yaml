@@ -1,0 +1,50 @@
+# Server di casa: database + dashboard. Guida completa: docs/DEPLOY.md
+#
+#   cd deploy && cp .env.example .env   (e compila i valori)
+#   docker compose up -d --build
+#
+# La dashboard ascolta solo su 127.0.0.1:8000 del server: dall'esterno (telefono, PC)
+# si raggiunge con Tailscale (`tailscale serve`), mai aprendo porte sul router.
+name: finance
+
+services:
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?imposta POSTGRES_PASSWORD in deploy/.env}
+      APP_DB_PASSWORD: ${DB_PASSWORD:?imposta DB_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finance"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Nessuna porta pubblicata: il database lo vede solo la dashboard.
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: finance-dashboard:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # La password di amministratore del database resta al database.
+      POSTGRES_PASSWORD: ""
+      DATABASE_URL: postgresql+psycopg://finance_app:${DB_PASSWORD}@db:5432/finance
+      BACKUP_VERIFY_DB: finance_restore
+      PG_BIN_DIR: /usr/lib/postgresql/18/bin
+    volumes:
+      # Segreti (chiavi, credenziali dei provider), backup e log: fuori dall'immagine.
+      - ${DATA_PATH:-./data}:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  pgdata:

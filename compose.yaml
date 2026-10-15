@@ -1,0 +1,54 @@
+# Demo in un comando: PostgreSQL + dashboard con dati inventati (nessuna credenziale).
+#
+#   docker compose up --build        → http://localhost:8000
+#
+# Solo il database, per sviluppare con uv e pnpm (vedi README):
+#
+#   docker compose up -d db
+#
+# Le porte ascoltano solo su 127.0.0.1. Le password qui sotto vanno bene per una demo in
+# locale; per i dati veri usa deploy/compose.yaml (server di casa, docs/DEPLOY.md).
+name: finance-dashboard
+
+services:
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      APP_DB_PASSWORD: ${DB_PASSWORD:-finance}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./database/initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finance-dashboard:demo
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # All'avvio: migrazioni, seed e 15+ mesi di movimenti inventati (backend/app/demo.py).
+      DEMO_MODE: "true"
+      DATABASE_URL: postgresql+psycopg://finance_app:${DB_PASSWORD:-finance}@db:5432/finance
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      AUTH_ENABLED: "false"
+      BACKUP_HOURS: "0"
+    volumes:
+      - appdata:/data
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+
+volumes:
+  pgdata:
+  appdata:

@@ -1,0 +1,86 @@
+# =====================================================================
+# Finance Dashboard — .gitignore
+# Regola d'oro: nel repository c'è solo codice. Dati, segreti e backup
+# vivono in D:\FinanceData (DATA_DIR) e non devono MAI finire in Git.
+# =====================================================================
+
+# --- Segreti e configurazione locale -------------------------------
+.env
+.env.*
+*.env
+!.env.example
+!config/.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.jks
+*credentials*
+*secret*
+!scripts/check-secrets.ps1
+
+# --- Dati finanziari, export e backup ------------------------------
+data/
+FinanceData/
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.ods
+*.ofx
+*.qif
+*.qfx
+*.mt940
+*.camt
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.7z
+*.zip
+*.age
+pgdata/
+
+# --- Python ----------------------------------------------------------
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+
+# --- Node / frontend -------------------------------------------------
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# --- Log -------------------------------------------------------------
+logs/
+*.log
+
+# --- Editor e sistema ------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Screenshot di verifica dell'interfaccia (scripts/screenshot.mjs)
+.screenshots/
+
+# Backup cifrati della dashboard
+*.fdbk

@@ -1,0 +1,198 @@
+# Regole di sistema (SPEC §11, passo 4 della pipeline: dopo le tue regole).
+# `code` è la chiave stabile: il seed inserisce solo le regole mancanti e non tocca
+# quelle esistenti (puoi disattivarle o cambiarne la priorità dalla pagina Regole).
+#
+# Condizioni (tutte in AND): description_contains, description_regex, merchant (key),
+# counterparty_iban, amount_min / amount_max / amounts (importi in EUR senza segno),
+# direction (in | out), mcc.
+# Azioni: category / subcategory (codici del seed), kind, income_type (codice).
+
+rules:
+  # --- Apple: la sottocategoria dipende dall'importo ----------------------------------
+  - code: apple_icloud
+    name: Apple · iCloud (0,99 / 2,99 / 9,99 €)
+    priority: 10
+    conditions: { merchant: apple, direction: out, amounts: [0.99, 2.99, 9.99] }
+    actions: { category: abbonamenti, subcategory: cloud }
+
+  - code: apple_music
+    name: Apple · Apple Music (5,99 / 10,99 / 16,99 €)
+    priority: 20
+    conditions: { merchant: apple, direction: out, amounts: [5.99, 10.99, 16.99] }
+    actions: { category: abbonamenti, subcategory: musica }
+
+  # --- Investimenti: mai spese reali --------------------------------------------------
+  - code: trading212_deposit
+    name: Versamenti verso Trading 212
+    priority: 30
+    conditions: { description_regex: "trading ?212", direction: out }
+    actions: { kind: investment_transfer, category: investimenti }
+
+  - code: trading212_withdrawal
+    name: Prelievi da Trading 212
+    priority: 31
+    conditions: { description_regex: "trading ?212", direction: in }
+    actions: { kind: investment_transfer, category: investimenti }
+
+  # --- Commissioni e imposte bancarie --------------------------------------------------
+  - code: bank_fees
+    name: Canoni, commissioni e imposta di bollo
+    priority: 40
+    conditions:
+      description_regex: "\\b(canone|commission[ei]|imposta di bollo|spese (tenuta|di gestione) conto)\\b"
+      direction: out
+    actions: { kind: fee, category: altro }
+
+  # --- Istruzione ------------------------------------------------------------------------
+  - code: university_fees
+    name: Tasse universitarie
+    priority: 50
+    conditions: { description_regex: "\\b(tasse universitarie|universit[aà] degli studi)\\b", direction: out }
+    actions: { category: istruzione, subcategory: tasse_corsi }
+
+  # --- Casa ------------------------------------------------------------------------------
+  - code: rent
+    name: Affitto
+    priority: 55
+    conditions: { description_regex: "\\b(affitto|canone di locazione|locazione)\\b", direction: out }
+    actions: { category: casa }
+
+  # --- Entrate ------------------------------------------------------------------------------
+  - code: salary_keyword
+    name: Stipendio (parola chiave)
+    priority: 60
+    conditions: { description_regex: "\\b(stipendio|emolumenti|tredicesima|quattordicesima|cedolino)\\b", direction: in }
+    actions: { kind: income, income_type: salary }
+
+  - code: cashback
+    name: Cashback e premi
+    priority: 61
+    conditions: { description_regex: "\\b(cashback|cash back|reward|rewards)\\b", direction: in }
+    actions: { kind: income, income_type: cashback }
+
+  - code: interest
+    name: Interessi
+    priority: 62
+    conditions: { description_regex: "\\b(interessi|interest)\\b", direction: in }
+    actions: { kind: income, income_type: interest }
+
+  # --- Giroconti, cambi valuta, canoni ---------------------------------------------------
+  # Soldi che restano tuoi: ricariche di Revolut (Apple Pay da un'altra tua carta), la
+  # stessa ricarica vista dal conto che paga (AFT = account funding), cambi valuta.
+  - code: revolut_topup
+    name: Ricarica Revolut (Apple Pay / carta)
+    priority: 20
+    conditions: { description_regex: "\\btop-?up by\\b", direction: in }
+    actions: { kind: internal_transfer }
+
+  - code: card_funding_revolut
+    name: Ricarica di Revolut pagata con la carta
+    priority: 21
+    conditions: { description_regex: "^AFT\\b.*\\brevolut", direction: out }
+    actions: { kind: internal_transfer }
+
+  - code: currency_exchange
+    name: Cambio valuta
+    priority: 22
+    conditions: { description_regex: "^exchanged (to|from)\\b" }
+    actions: { kind: internal_transfer }
+
+  - code: plan_fee
+    name: Canone del piano del conto
+    priority: 41
+    conditions: { description_regex: "\\bplan fee\\b", direction: out }
+    actions: { kind: fee, category: altro }
+
+  - code: cash_deposit
+    name: Versamento di contanti
+    priority: 63
+    conditions: { description_regex: "\\bversamento (di )?contanti\\b", direction: in }
+    actions: { kind: income, income_type: cash }
+
+  # Bonifici tra persone su Revolut ("From Mario R", "To Mario R", "Payment from ..."):
+  # spese divise con gli amici. I tuoi giroconti (controparte = OWNER_NAMES) e le regole tue
+  # vengono prima.
+  - code: friends_in
+    name: Spese divise · soldi ricevuti
+    priority: 70
+    conditions: { description_regex: "(?<!refund )\\b(from|payment from)\\s+\\S.*$", direction: in }
+    actions: { kind: refund, category: spese_divise }
+
+  - code: friends_out
+    name: Spese divise · soldi inviati
+    priority: 71
+    conditions: { description_regex: "^(inviato da revolut\\s+)?to\\s+\\S.*$", direction: out }
+    actions: { kind: expense, category: spese_divise }
+
+  # --- Parole chiave dei negozi (dopo i merchant noti: vincono le regole più specifiche) ---
+  - code: keyword_salute
+    name: Farmacie e salute
+    priority: 90
+    conditions:
+      description_regex: "\\b(farmacia|parafarmacia|sanitari[ae]|ambulatorio|poliambulatorio|dentist[ai]|studio dentistico|ottica|ospedale)\\b"
+      direction: out
+    actions: { category: salute }
+
+  - code: keyword_cartoleria
+    name: Cartolerie, tabacchi ed edicole
+    priority: 91
+    conditions:
+      description_regex: "\\b(tabacchi|tabaccheria|cartoleria|cartolibreria|edicola)\\b"
+      direction: out
+    actions: { category: cartoleria }
+
+  - code: keyword_uscite
+    name: Cinema, discoteche e sale giochi
+    priority: 92
+    conditions:
+      description_regex: "\\b(cinema|cinemas|multisala|discoteca|disco|bingo|bowling|teatro)\\b"
+      direction: out
+    actions: { category: uscite }
+
+  - code: keyword_bar
+    name: Bar, caffè, gelaterie e pasticcerie
+    priority: 93
+    conditions:
+      description_regex: "\\b(bar|caff[eè]|cafe|coffee|gelateria|gelataria|cremeria|pasticceria|panificio|panetteria|pub|birreria|enoteca)\\b"
+      direction: out
+    actions: { category: ristoranti }
+
+  - code: keyword_ristoranti
+    name: Ristoranti, pizzerie e fast food
+    priority: 94
+    conditions:
+      description_regex: "\\b(ristorante|pizzeria|pizza|trattoria|osteria|bistro|burger|burgers|kebab|sushi|paninoteca|piadineria|rosticceria|salumeria|tavola calda)\\b"
+      direction: out
+    actions: { category: ristoranti }
+
+  - code: keyword_alloggio
+    name: Hotel, B&B e ostelli
+    priority: 85
+    conditions:
+      description_regex: "\\b(hotel|albergo|b&b|bed and breakfast|ostello|hostel|residence|agriturismo|airbnb)\\b"
+      direction: out
+    actions: { category: viaggi, subcategory: alloggio }
+
+  - code: keyword_visite
+    name: Musei, monumenti e attrazioni
+    priority: 86
+    conditions:
+      description_regex: "\\b(museo|musei|museum|colosseo|colosseum|castello|basilica|pinacoteca|galleria|acquario|zoo)\\b"
+      direction: out
+    actions: { category: viaggi, subcategory: visite }
+
+  - code: keyword_fiori
+    name: Fiorai
+    priority: 95
+    conditions:
+      description_regex: "\\b(fioreria|fiorista|fiori|garden)\\b"
+      direction: out
+    actions: { category: regali }
+
+  # Calcolato dal confronto col saldo vero (es. PayPal converte i dollari con un cambio
+  # peggiore di quello BCE e non manda la conversione come movimento).
+  - code: fx_conversion_cost
+    name: Costo del cambio (calcolato dal saldo)
+    priority: 42
+    conditions: { description_regex: "^costo del cambio\\b", direction: out }
+    actions: { kind: fee, category: altro }

@@ -1,0 +1,99 @@
+{
+  // Backend da Fase 2, frontend da Fase 3.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:backend",
+      "type": "shell",
+      "command": "uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:frontend",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "test:backend",
+      "type": "shell",
+      "command": "uv run pytest",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint:backend",
+      "type": "shell",
+      "command": "uv run ruff check . ; uv run ruff format --check . ; uv run mypy app tests",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "db:migrate",
+      "type": "shell",
+      "command": "uv run alembic upgrade head",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "test:frontend",
+      "type": "shell",
+      "command": "pnpm test",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint:frontend",
+      "type": "shell",
+      "command": "pnpm typecheck ; pnpm lint ; pnpm format:check",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "api:generate",
+      "type": "shell",
+      "command": "pnpm api:generate",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:full",
+      "dependsOn": ["dev:backend", "dev:frontend"],
+      "problemMatcher": []
+    },
+    {
+      "label": "db:seed",
+      "type": "shell",
+      "command": "uv run python -m app.db.seed",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "db:seed-mock",
+      "type": "shell",
+      "command": "uv run python -m app.ingestion.cli mock-setup",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "sync:all",
+      "type": "shell",
+      "command": "uv run python -m app.ingestion.cli sync --all",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "check:secrets",
+      "type": "shell",
+      "command": "./scripts/check-secrets.ps1",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

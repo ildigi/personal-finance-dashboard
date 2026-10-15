@@ -1,0 +1,127 @@
+# Categorie e sottocategorie iniziali (SPEC §11).
+# `code` è la chiave stabile: il seed non tocca mai le righe già presenti,
+# quindi nomi, colori e ordinamento modificati dall'interfaccia restano tuoi.
+# `icon`: nome di un'icona lucide (usata dal frontend).
+
+categories:
+  - code: sport
+    name: Sport e palestra
+    kind: expense
+    icon: dumbbell
+
+  - code: vestiti
+    name: Vestiti
+    kind: expense
+    icon: shirt
+
+  - code: regali
+    name: Regali
+    kind: expense
+    icon: gift
+
+  - code: spesa
+    name: Spesa
+    kind: expense
+    icon: shopping-cart
+
+  - code: abbonamenti
+    name: Abbonamenti
+    kind: expense
+    icon: repeat
+    subcategories:
+      - { code: software, name: Software e AI }
+      - { code: musica, name: Musica }
+      - { code: cloud, name: Cloud e archiviazione }
+      - { code: altri_servizi, name: Altri servizi }
+
+  - code: uscite
+    name: Uscite
+    kind: expense
+    icon: party-popper
+
+  # Bar e locali hanno una categoria loro; Uscite resta per discoteche, cinema, giochi da sala.
+  - code: ristoranti
+    name: Bar e ristoranti
+    kind: expense
+    icon: utensils
+
+  - code: salute
+    name: Salute
+    kind: expense
+    icon: heart-pulse
+
+  - code: cartoleria
+    name: Cartoleria e tabacchi
+    kind: expense
+    icon: pencil
+
+  - code: giochi
+    name: Giochi
+    kind: expense
+    icon: gamepad
+
+  # Bonifici tra amici per dividere le spese: quelli ricevuti sono rimborsi (riducono le
+  # spese), quelli inviati spese. Il totale della categoria è quanto hai messo tu di più.
+  - code: spese_divise
+    name: Spese divise
+    kind: expense
+    icon: users
+
+  - code: viaggi
+    name: Viaggi
+    kind: expense
+    icon: plane
+    # In viaggio la spesa va qui, divisa per tipo.
+    subcategories:
+      - { code: cibo, name: Cibo }
+      - { code: alloggio, name: Alloggio }
+      - { code: voli, name: Voli }
+      - { code: treni, name: Treni }
+      - { code: bus_metro, name: Bus e metro }
+      - { code: visite, name: Visite e attrazioni }
+
+  - code: trasporti
+    name: Trasporti
+    kind: expense
+    icon: bus
+    subcategories:
+      - { code: bus, name: Bus }
+      - { code: treno, name: Treno }
+      - { code: monopattini, name: Monopattini e bici }
+      - { code: parcheggi, name: Parcheggi }
+
+  - code: cura_persona
+    name: Cura della persona
+    kind: expense
+    icon: scissors
+
+  - code: istruzione
+    name: Istruzione
+    kind: expense
+    icon: graduation-cap
+    subcategories:
+      - { code: libri, name: Libri }
+      - { code: tasse_corsi, name: Tasse e corsi }
+
+  # Affitto e spese della casa.
+  - code: casa
+    name: Casa
+    kind: expense
+    icon: house
+
+  # Versamenti verso Trading 212: tipo `investment_transfer`, mai sommati alle
+  # spese reali; contano solo nel totale "Spostati e investiti".
+  - code: investimenti
+    name: Investimenti
+    kind: investment
+    icon: trending-up
+    is_system: true
+    excluded_from_spending: true
+
+  # Spese varie (es. commissioni). "Da classificare" non è una categoria: è lo stato dei
+  # movimenti che nessun passo ha riconosciuto (categoria vuota).
+  - code: altro
+    name: Altro
+    kind: expense
+    icon: shapes
+    is_system: true

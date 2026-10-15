@@ -1,0 +1,12 @@
+# Tipologie di entrata (SPEC §12). Chiave stabile: `code`.
+
+income_classifications:
+  - { code: salary, label: Stipendio }
+  - { code: transfer_received, label: Bonifico ricevuto }
+  - { code: refund, label: Rimborso }
+  - { code: cashback, label: Cashback }
+  - { code: interest, label: Interessi }
+  - { code: dividend, label: Dividendi }
+  - { code: cash, label: Contanti }
+  - { code: family, label: Famiglia }
+  - { code: other, label: Altro }

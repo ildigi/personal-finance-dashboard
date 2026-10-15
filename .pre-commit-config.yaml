@@ -1,0 +1,58 @@
+# Controlli automatici prima di ogni commit.
+# Installazione (una volta): pre-commit install
+# Esecuzione manuale su tutto il repo: pre-commit run --all-files
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (ricerca segreti)
+        entry: gitleaks git --pre-commit --staged --redact --verbose --config .gitleaks.toml
+        language: system
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (backend)
+        entry: uv run --project backend ruff check --force-exclude
+        language: system
+        types: [python]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff format --check (backend)
+        entry: uv run --project backend ruff format --check --force-exclude
+        language: system
+        types: [python]
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier --check (frontend)
+        entry: pnpm --dir frontend format:check
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: eslint
+        name: eslint (frontend)
+        entry: pnpm --dir frontend lint
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|mjs)$
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: ^(\.vscode/|.*\.code-workspace$)
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: mixed-line-ending
+        args: ["--fix=no"]

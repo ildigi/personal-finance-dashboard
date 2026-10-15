@@ -1,0 +1,233 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Token di design.
+ * - Superfici neutre calde, accento blu (#256abf: 5,3:1 con testo bianco).
+ * - Colori dei grafici: palette categoriale validata (ordine fisso, mai ciclato)
+ *   e palette di stato riservata (sempre con icona + etichetta).
+ * - Il tema scuro ha valori propri scelti per la superficie scura, non un'inversione.
+ */
+:root {
+  --radius: 0.75rem;
+
+  --background: #f4f4f1;
+  --foreground: #0b0b0b;
+  --card: #fcfcfb;
+  --card-foreground: #0b0b0b;
+  --popover: #fcfcfb;
+  --popover-foreground: #0b0b0b;
+  --primary: #256abf;
+  --primary-foreground: #ffffff;
+  --secondary: #ecebe6;
+  --secondary-foreground: #1d1d1b;
+  --muted: #ecebe6;
+  --muted-foreground: #52514e;
+  --accent: #ecebe6;
+  --accent-foreground: #0b0b0b;
+  --destructive: #d03b3b;
+  --border: #e1e0d9;
+  --input: #d6d5cd;
+  --ring: #3987e5;
+
+  --sidebar: #f4f4f1;
+  --sidebar-foreground: #52514e;
+  --sidebar-primary: #256abf;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fcfcfb;
+  --sidebar-accent-foreground: #0b0b0b;
+  --sidebar-border: #e1e0d9;
+  --sidebar-ring: #3987e5;
+
+  /* Grafici: categoriale (slot 1-8), stato, cromia */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #c3c2b7;
+  --chart-ink-muted: #898781;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --positive: #006300;
+  --negative: #b42318;
+
+  --shadow-card: 0 1px 2px rgb(11 11 11 / 0.04), 0 0 0 1px rgb(11 11 11 / 0.06);
+}
+
+.dark {
+  --background: #0d0d0d;
+  --foreground: #f5f5f3;
+  --card: #1a1a19;
+  --card-foreground: #f5f5f3;
+  --popover: #1f1f1e;
+  --popover-foreground: #f5f5f3;
+  --primary: #256abf;
+  --primary-foreground: #ffffff;
+  --secondary: #262624;
+  --secondary-foreground: #f5f5f3;
+  --muted: #262624;
+  --muted-foreground: #c3c2b7;
+  --accent: #262624;
+  --accent-foreground: #f5f5f3;
+  --destructive: #e66767;
+  --border: #2c2c2a;
+  --input: #383835;
+  --ring: #3987e5;
+
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #c3c2b7;
+  --sidebar-primary: #3987e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a19;
+  --sidebar-accent-foreground: #f5f5f3;
+  --sidebar-border: #232322;
+  --sidebar-ring: #3987e5;
+
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+  --chart-grid: #2c2c2a;
+  --chart-axis: #383835;
+  --chart-ink-muted: #898781;
+
+  --positive: #0ca30c;
+  --negative: #f07167;
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+
+@theme inline {
+  --font-sans:
+    "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-serious: var(--status-serious);
+  --color-status-critical: var(--status-critical);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+
+  --shadow-card: var(--shadow-card);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+    /* Spazio della barra di scorrimento sempre riservato: quando la pagina cambia
+       altezza (filtri, ricerca) il layout non si sposta a destra e a sinistra. */
+    scrollbar-gutter: stable;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11";
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  /* Cifre allineate: solo per colonne e tabelle, non per i numeri grandi isolati. */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/*
+ * Menu e pannelli Radix bloccano lo scorrimento e compensano la barra con un margine
+ * destro. Lo spazio della barra è già riservato (scrollbar-gutter), quindi la
+ * compensazione sposterebbe tutto di lato: la si annulla.
+ */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+}
+
+/* Modalità privacy: importi e dati sensibili sfocati finché non li si passa col mouse. */
+html[data-privacy="on"] [data-sensitive] {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter 150ms ease;
+}
+html[data-privacy="on"] [data-sensitive]:hover {
+  filter: none;
+}
+@media print {
+  html[data-privacy="on"] [data-sensitive] {
+    filter: none;
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,7 @@
+{
+  // Workspace unico: apri questo file in VS Code (File > Apri area di lavoro da file).
+  // Le impostazioni condivise sono in .vscode/. la cartella dei dati (DATA_DIR) NON fa parte del workspace, di proposito.
+  "folders": [
+    { "name": "finance-dashboard", "path": "." }
+  ]
+}
