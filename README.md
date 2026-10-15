@@ -127,6 +127,10 @@ docker compose up --build
 
 Then open <http://localhost:8000>.
 
+If PostgreSQL already runs on port 5432 on your machine, publish the container database on
+another port: `DB_PORT=5434 docker compose up --build` (and use 5434 in `DATABASE_URL` /
+`TEST_DATABASE_URL` for option B).
+
 ### Option B — local development
 
 Requirements: Python 3.12 + [uv](https://docs.astral.sh/uv/), Node 24 + pnpm, and PostgreSQL
