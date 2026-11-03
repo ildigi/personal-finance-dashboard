@@ -27,6 +27,7 @@ import { useBudgets, useDeleteBudget, type BudgetStatus } from "@/features/budge
 import { useLookups } from "@/features/transactions/lookups";
 import { formatCount, formatMonth, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 export function BudgetPage() {
   const lookups = useLookups();
@@ -39,8 +40,8 @@ export function BudgetPage() {
   if (budgets.isError) {
     return (
       <Card>
-        <EmptyState icon={PiggyBank} title="Budget non disponibili">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={PiggyBank} title={i18n.t("budgets.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -53,9 +54,7 @@ export function BudgetPage() {
   const total = Number(data?.total_amount ?? 0);
 
   function onDelete(budget: BudgetStatus): void {
-    const ok = window.confirm(
-      `Rimuovere il budget di ${budget.name}? Sparisce da questo mese in poi; i mesi passati restano nello storico.`,
-    );
+    const ok = window.confirm(i18n.t("budgets.deleteConfirm", { name: budget.name }));
     if (ok) remove.mutate(budget.id);
   }
 
@@ -69,7 +68,7 @@ export function BudgetPage() {
             onClick={() => {
               setMonth(shiftMonth(month, -1));
             }}
-            aria-label="Mese precedente"
+            aria-label={i18n.t("budgets.previousMonth")}
           >
             <ChevronLeft aria-hidden />
           </Button>
@@ -83,7 +82,7 @@ export function BudgetPage() {
             onClick={() => {
               setMonth(shiftMonth(month, 1));
             }}
-            aria-label="Mese successivo"
+            aria-label={i18n.t("budgets.nextMonth")}
           >
             <ChevronRight aria-hidden />
           </Button>
@@ -95,7 +94,7 @@ export function BudgetPage() {
                 setMonth(thisMonth);
               }}
             >
-              Torna a questo mese
+              {i18n.t("budgets.backToCurrent")}
             </Button>
           )}
         </div>
@@ -105,61 +104,75 @@ export function BudgetPage() {
               setDraft({ budget: null });
             }}
           >
-            <Plus aria-hidden /> Nuovo budget
+            <Plus aria-hidden /> {i18n.t("budgets.new")}
           </Button>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Budget del mese"
+          label={i18n.t("budgets.tiles.month")}
           icon={PiggyBank}
           value={data && total > 0 ? <Money value={data.total_amount} /> : undefined}
-          delta={data ? `${formatCount(data.items.length)} categorie con un limite` : undefined}
-          pendingNote={data ? "Nessun budget in questo mese" : "Caricamento…"}
+          delta={
+            data
+              ? i18n.t("budgets.tiles.categories", {
+                  count: data.items.length,
+                  n: formatCount(data.items.length),
+                })
+              : undefined
+          }
+          pendingNote={data ? i18n.t("budgets.tiles.noneThisMonth") : i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Speso"
+          label={i18n.t("budgets.tiles.spent")}
           icon={Wallet}
           value={data && total > 0 ? <Money value={data.total_spent_eur} /> : undefined}
           delta={
             data && total > 0
-              ? `${formatPercent(Number(data.total_spent_eur) / total, { digits: 0 })} del budget`
+              ? i18n.t("budgets.tiles.ofBudget", {
+                  pct: formatPercent(Number(data.total_spent_eur) / total, { digits: 0 }),
+                })
               : undefined
           }
           pendingNote={data ? "—" : "Caricamento…"}
         />
         <StatTile
-          label={isCurrent ? "Stima a fine mese" : "Totale del mese"}
+          label={
+            isCurrent ? i18n.t("budgets.tiles.projection") : i18n.t("budgets.tiles.monthTotal")
+          }
           icon={TrendingUp}
           value={data && total > 0 ? <Money value={data.total_projected_eur} /> : undefined}
           delta={
             data && isCurrent
-              ? `giorno ${String(data.days_elapsed)} di ${String(data.days_in_month)}`
-              : "mese concluso"
+              ? i18n.t("budgets.tiles.day", { day: data.days_elapsed, days: data.days_in_month })
+              : i18n.t("budgets.tiles.monthClosed")
           }
           pendingNote={data ? "—" : "Caricamento…"}
         />
         <StatTile
-          label="Avvisi"
+          label={i18n.t("budgets.tiles.alerts")}
           icon={Gauge}
           value={data ? formatCount(alerts.length) : undefined}
           delta={
             data
               ? alerts.length === 0
                 ? atRisk.length > 0
-                  ? `${formatCount(atRisk.length)} a rischio a fine mese`
-                  : "tutto sotto le soglie"
-                : `${formatCount(data.over_count)} superati · ${formatCount(data.warning_count)} oltre la soglia`
+                  ? i18n.t("budgets.tiles.atRisk", { n: formatCount(atRisk.length) })
+                  : i18n.t("budgets.tiles.allBelow")
+                : i18n.t("budgets.tiles.overAndWarning", {
+                    over: formatCount(data.over_count),
+                    warning: formatCount(data.warning_count),
+                  })
               : undefined
           }
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
       </div>
 
       {alerts.length > 0 && (
         <ul
-          aria-label="Avvisi dei budget"
+          aria-label={i18n.t("budgets.alertsLabel")}
           className="space-y-2 rounded-xl border border-status-serious/40 bg-status-serious/5 p-4"
         >
           {alerts.map((a) => {
@@ -176,9 +189,10 @@ export function BudgetPage() {
                 <span>
                   <span className="font-medium">{a.name}</span>:{" "}
                   {a.level === "over"
-                    ? "budget superato"
-                    : `oltre il ${String(a.alert_threshold_pct)}%`}{" "}
-                  (<Money value={a.spent_eur} /> di <Money value={a.amount} />)
+                    ? i18n.t("budgets.alertOver")
+                    : i18n.t("budgets.alertThreshold", { pct: a.alert_threshold_pct })}{" "}
+                  (<Money value={a.spent_eur} /> {i18n.t("budgets.alertOf")}{" "}
+                  <Money value={a.amount} />)
                 </span>
               </li>
             );
@@ -195,7 +209,9 @@ export function BudgetPage() {
         <Card>
           <EmptyState
             icon={PiggyBank}
-            title={isCurrent ? "Nessun budget" : "Nessun budget in questo mese"}
+            title={
+              isCurrent ? i18n.t("budgets.empty.title") : i18n.t("budgets.tiles.noneThisMonth")
+            }
             action={
               isCurrent ? (
                 <Button
@@ -203,14 +219,12 @@ export function BudgetPage() {
                     setDraft({ budget: null });
                   }}
                 >
-                  <Plus aria-hidden /> Crea il primo budget
+                  <Plus aria-hidden /> {i18n.t("budgets.empty.createFirst")}
                 </Button>
               ) : undefined
             }
           >
-            {isCurrent
-              ? "Imposta un limite mensile solo dove ti serve, per esempio Uscite o Vestiti. Le categorie senza budget restano fuori da questa pagina."
-              : "I budget valgono dal mese in cui li crei."}
+            {isCurrent ? i18n.t("budgets.empty.hint") : i18n.t("budgets.empty.past")}
           </EmptyState>
         </Card>
       ) : (

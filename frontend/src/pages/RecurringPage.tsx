@@ -37,6 +37,7 @@ import {
 import { useLookups } from "@/features/transactions/lookups";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatCount } from "@/lib/format";
+import { i18n } from "@/i18n";
 
 export function RecurringPage() {
   const lookups = useLookups();
@@ -55,8 +56,8 @@ export function RecurringPage() {
   if (recurring.isError) {
     return (
       <Card>
-        <EmptyState icon={Repeat} title="Ricorrenze non disponibili">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={Repeat} title={i18n.t("recurring.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -117,42 +118,40 @@ export function RecurringPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Abbonamenti, affitto, stipendio e altri movimenti periodici, riconosciuti dai tuoi dati.
-      </p>
+      <p className="text-sm text-muted-foreground">{i18n.t("recurring.intro")}</p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Spese ricorrenti"
+          label={i18n.t("recurring.tiles.expenses")}
           icon={Wallet}
           value={summary ? <Money value={summary.expenses_monthly_eur} /> : undefined}
-          delta="al mese, dalle ricorrenze confermate"
-          pendingNote="Caricamento…"
+          delta={i18n.t("recurring.tiles.expensesNote")}
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Abbonamenti"
+          label={i18n.t("recurring.tiles.subscriptions")}
           icon={Repeat}
           value={summary ? <Money value={summary.subscriptions_monthly_eur} /> : undefined}
-          delta="al mese, categoria Abbonamenti"
-          pendingNote="Caricamento…"
+          delta={i18n.t("recurring.tiles.subscriptionsNote")}
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Entrate ricorrenti"
+          label={i18n.t("recurring.tiles.income")}
           icon={TrendingUp}
           value={summary ? <Money value={summary.income_monthly_eur} /> : undefined}
-          delta="al mese, es. lo stipendio"
-          pendingNote="Caricamento…"
+          delta={i18n.t("recurring.tiles.incomeNote")}
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Da confermare"
+          label={i18n.t("recurring.tiles.toConfirm")}
           icon={Sparkles}
           value={summary ? formatCount(summary.suggested_count) : undefined}
           delta={
             summary && summary.late_count > 0
-              ? `${formatCount(summary.late_count)} confermate in ritardo`
-              : "proposte trovate nei movimenti"
+              ? i18n.t("recurring.tiles.late", { n: formatCount(summary.late_count) })
+              : i18n.t("recurring.tiles.found")
           }
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
       </div>
 
@@ -165,12 +164,9 @@ export function RecurringPage() {
               <CardHeader className="border-b pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles aria-hidden className="size-4 text-primary" />
-                  Da confermare
+                  {i18n.t("recurring.suggested.title")}
                 </CardTitle>
-                <CardDescription>
-                  Movimenti che si ripetono a intervalli regolari con importo simile. Confermali per
-                  vederli tra i prossimi addebiti e nelle proiezioni dei budget.
-                </CardDescription>
+                <CardDescription>{i18n.t("recurring.suggested.description")}</CardDescription>
                 {suggested.length > 1 &&
                   // Su telefono il pulsante va sotto il testo, non accanto.
                   (wide ? (
@@ -190,20 +186,20 @@ export function RecurringPage() {
           <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
             <div className="space-y-4 lg:col-span-2 lg:space-y-6">
               <ConfirmedCard
-                title="Uscite ricorrenti"
-                description="Abbonamenti, affitto, utenze, versamenti periodici"
+                title={i18n.t("recurring.outgoing.title")}
+                description={i18n.t("recurring.outgoing.description")}
                 items={outgoing}
                 emptyText={
                   suggested.length > 0
-                    ? "Conferma le proposte qui sopra per vederle qui."
-                    : "Nessuna uscita ricorrente confermata."
+                    ? i18n.t("recurring.outgoing.emptyWithSuggestions")
+                    : i18n.t("recurring.outgoing.empty")
                 }
                 row={row}
               />
               {incoming.length > 0 && (
                 <ConfirmedCard
-                  title="Entrate ricorrenti"
-                  description="Stipendio e altre entrate periodiche"
+                  title={i18n.t("recurring.incoming.title")}
+                  description={i18n.t("recurring.incoming.description")}
                   items={incoming}
                   emptyText=""
                   row={row}
@@ -214,9 +210,9 @@ export function RecurringPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CalendarClock aria-hidden className="size-4 text-muted-foreground" />
-                  Prossimi 30 giorni
+                  {i18n.t("recurring.next30.title")}
                 </CardTitle>
-                <CardDescription>Dalle ricorrenze confermate</CardDescription>
+                <CardDescription>{i18n.t("recurring.next30.description")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {upcoming.data ? (
@@ -225,8 +221,8 @@ export function RecurringPage() {
                     lookups={lookups}
                     emptyText={
                       confirmed.length === 0
-                        ? "Conferma qualche ricorrenza per vedere i prossimi addebiti."
-                        : "Niente in arrivo nei prossimi 30 giorni."
+                        ? i18n.t("recurring.next30.emptyNoConfirmed")
+                        : i18n.t("recurring.next30.empty")
                     }
                   />
                 ) : (
@@ -239,7 +235,7 @@ export function RecurringPage() {
           {archived.length > 0 && (
             <details className="group rounded-xl border bg-card">
               <summary className="cursor-pointer px-5 py-4 text-sm font-medium select-none hover:bg-accent/40">
-                Terminate e rifiutate ({formatCount(archived.length)})
+                {i18n.t("recurring.archived", { n: formatCount(archived.length) })}
               </summary>
               <ul className="divide-y border-t">{archived.map(row)}</ul>
             </details>
@@ -247,9 +243,8 @@ export function RecurringPage() {
 
           {items.length === 0 && (
             <Card>
-              <EmptyState icon={Repeat} title="Nessuna ricorrenza trovata">
-                Servono almeno tre addebiti simili a intervalli regolari (due per quelli annuali).
-                Le ricorrenze si aggiornano a ogni sincronizzazione.
+              <EmptyState icon={Repeat} title={i18n.t("recurring.noneTitle")}>
+                {i18n.t("recurring.none")}
               </EmptyState>
             </Card>
           )}
@@ -267,15 +262,19 @@ export function RecurringPage() {
         {deleting && (
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Eliminare «{deleting.name}»?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {i18n.t("recurring.delete.title", { name: deleting.name })}
+              </AlertDialogTitle>
               <AlertDialogDescription>
                 {deleting.occurrences === 0
-                  ? "Non ha movimenti collegati: sparisce del tutto."
-                  : `I ${formatCount(deleting.occurrences)} movimenti restano, solo non più collegati. Se continuano a ripetersi potrebbe tornare tra le proposte: per non vederla più usa «Rifiuta».`}
+                  ? i18n.t("recurring.delete.noTransactions")
+                  : i18n.t("recurring.delete.withTransactions", {
+                      n: formatCount(deleting.occurrences),
+                    })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogCancel>{i18n.t("common.cancel")}</AlertDialogCancel>
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -285,7 +284,7 @@ export function RecurringPage() {
                   forget.mutate(item.id, { onSettled: () => setBusyId(null) });
                 }}
               >
-                Elimina
+                {i18n.t("common.delete")}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -299,7 +298,7 @@ function ConfirmAllButton({ busy, onClick }: { busy: boolean; onClick: () => voi
   return (
     <Button size="sm" variant="outline" disabled={busy} onClick={onClick}>
       <CheckCheck aria-hidden />
-      {busy ? "Conferma in corso…" : "Conferma tutte"}
+      {busy ? i18n.t("recurring.suggested.confirming") : i18n.t("recurring.suggested.confirmAll")}
     </Button>
   );
 }
@@ -326,7 +325,7 @@ function ConfirmedCard({
         {items.length > 0 && (
           <CardAction className="text-right text-sm">
             <Money value={monthly} />
-            <div className="text-xs text-muted-foreground">al mese</div>
+            <div className="text-xs text-muted-foreground">{i18n.t("recurring.perMonth")}</div>
           </CardAction>
         )}
       </CardHeader>

@@ -7,6 +7,7 @@ import { accountLabel, type Lookups } from "@/features/transactions/lookups";
 import { formatDate } from "@/lib/format";
 
 import { useDismissTransfer, usePairTransfer, type TransferSuggestion } from "../queries";
+import { i18n } from "@/i18n";
 
 /**
  * Coppie possibili (importi opposti, date vicine, conti diversi) ma senza indizi
@@ -29,12 +30,9 @@ export function TransferSuggestionsCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link2 aria-hidden className="size-4 text-muted-foreground" />
-          Trasferimenti da confermare
+          {i18n.t("rules.transfers.title")}
         </CardTitle>
-        <CardDescription>
-          Stesso importo, date vicine, due tuoi conti: sono un giroconto? Se confermi non contano né
-          come spesa né come entrata.
-        </CardDescription>
+        <CardDescription>{i18n.t("rules.transfers.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="divide-y">
@@ -70,7 +68,7 @@ export function TransferSuggestionsCard({
                     }}
                   >
                     <X aria-hidden />
-                    No, sono separati
+                    {i18n.t("rules.transfers.separate")}
                   </Button>
                   <Button
                     size="sm"
@@ -80,7 +78,7 @@ export function TransferSuggestionsCard({
                     }}
                   >
                     <Check aria-hidden />
-                    Sì, è un giroconto
+                    {i18n.t("rules.transfers.pair")}
                   </Button>
                 </div>
               </li>

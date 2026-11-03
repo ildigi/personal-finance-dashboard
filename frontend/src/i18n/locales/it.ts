@@ -1,4 +1,8 @@
 import { overview } from "./it/overview";
+import { rules } from "./it/rules";
+import { recurring } from "./it/recurring";
+import { budgets } from "./it/budgets";
+import { investments } from "./it/investments";
 import { networth } from "./it/networth";
 import { analytics } from "./it/analytics";
 import { transactions } from "./it/transactions";
@@ -350,6 +354,10 @@ export const it = {
     transactionsShort: "{{n}} mov.",
   },
   ...overview,
+  ...rules,
+  ...recurring,
+  ...budgets,
+  ...investments,
   ...networth,
   ...analytics,
   ...transactions,

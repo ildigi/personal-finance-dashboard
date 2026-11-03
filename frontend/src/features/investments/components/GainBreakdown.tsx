@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/format";
 import type { InvestmentScope } from "@/lib/preferences";
 
 import type { InvestmentSummary } from "../queries";
+import { i18n } from "@/i18n";
 
 /**
  * Da dove viene il guadagno: ogni voce sommata (o sottratta) fa il guadagno totale,
@@ -22,45 +23,45 @@ export function GainBreakdown({
   const rows = [
     {
       key: "unrealized",
-      label: "Plusvalenze sulle posizioni aperte",
-      hint: "valore attuale − costo, non ancora incassate",
+      label: i18n.t("investments.gain.rows.unrealized"),
+      hint: i18n.t("investments.gain.hints.unrealized"),
       value: Number(b.unrealized_eur),
     },
     {
       key: "realized",
-      label: "Realizzato dalle vendite",
-      hint: "ribilanciamenti e vendite, col costo medio",
+      label: i18n.t("investments.gain.rows.realized"),
+      hint: i18n.t("investments.gain.hints.realized"),
       value: Number(b.realized_eur),
     },
     {
       key: "dividends",
-      label: "Dividendi",
-      hint: "netti, ricevuti",
+      label: i18n.t("investments.gain.rows.dividends"),
+      hint: i18n.t("investments.gain.hints.dividends"),
       value: Number(b.dividends_eur),
     },
     {
       key: "interest",
-      label: "Interessi sulla liquidità",
+      label: i18n.t("investments.gain.rows.interest"),
       hint: null,
       value: Number(b.interest_eur),
     },
     {
       key: "fees",
-      label: "Commissioni",
-      hint: "es. conversione valuta",
+      label: i18n.t("investments.gain.rows.fees"),
+      hint: i18n.t("investments.gain.hints.fees"),
       value: -Number(b.fees_eur),
     },
     {
       key: "other",
-      label: "Altro",
-      hint: "cambi, arrotondamenti, eventi societari",
+      label: i18n.t("investments.gain.rows.other"),
+      hint: i18n.t("investments.gain.hints.other"),
       value: Number(b.other_eur),
     },
   ].filter((r) => Math.abs(r.value) >= 0.005 || r.key === "unrealized" || r.key === "realized");
 
   return (
     <table className="w-full text-sm">
-      <caption className="sr-only">Scomposizione del guadagno totale</caption>
+      <caption className="sr-only">{i18n.t("investments.gain.caption")}</caption>
       <tbody>
         {rows.map((r) => (
           <tr key={r.key} className="border-b last:border-0">
@@ -77,7 +78,7 @@ export function GainBreakdown({
       <tfoot>
         <tr className="border-t-2">
           <th scope="row" className="pt-2.5 text-left font-medium">
-            Guadagno totale
+            {i18n.t("investments.tiles.totalGain")}
           </th>
           <td className="pt-2.5 text-right font-semibold">
             <Money value={summary.returns.total_pl_eur} signed tone="auto" />
@@ -92,7 +93,7 @@ function ActiveBreakdown({ summary }: { summary: InvestmentSummary }) {
   const rows = [...summary.positions].sort((a, b) => Number(b.pl_eur) - Number(a.pl_eur));
   return (
     <table className="w-full text-sm">
-      <caption className="sr-only">Guadagno delle posizioni in mano, per titolo</caption>
+      <caption className="sr-only">{i18n.t("investments.gain.activeCaption")}</caption>
       <tbody>
         {rows.map((p) => (
           <tr key={p.ticker} className="border-b last:border-0">
@@ -106,14 +107,16 @@ function ActiveBreakdown({ summary }: { summary: InvestmentSummary }) {
         ))}
         {rows.length === 0 && (
           <tr>
-            <td className="py-4 text-center text-muted-foreground">Nessuna posizione aperta</td>
+            <td className="py-4 text-center text-muted-foreground">
+              {i18n.t("investments.tiles.noPositions")}
+            </td>
           </tr>
         )}
       </tbody>
       <tfoot>
         <tr className="border-t-2">
           <th scope="row" className="pt-2.5 text-left font-medium">
-            Guadagno sulle posizioni in mano
+            {i18n.t("investments.gain.activeTotal")}
           </th>
           <td className="pt-2.5 text-right font-semibold">
             <Money value={summary.active.pl_eur} signed tone="auto" />

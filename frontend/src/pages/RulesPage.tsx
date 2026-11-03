@@ -25,6 +25,7 @@ import { transactionsUrl } from "@/features/transactions/filters";
 import { useLookups } from "@/features/transactions/lookups";
 import { useTransaction, type TransactionDetail } from "@/features/transactions/queries";
 import { formatCount, formatPercent } from "@/lib/format";
+import { i18n } from "@/i18n";
 
 /** Bozza di regola a partire da un movimento ("crea regola da qui"). */
 function draftFromTransaction(tx: TransactionDetail): RuleDraft {
@@ -126,11 +127,7 @@ export function RulesPage() {
           edit(rule);
         },
         onDelete: () => {
-          if (
-            window.confirm(
-              `Eliminare la regola «${rule.name}»? I movimenti verranno riclassificati.`,
-            )
-          ) {
+          if (window.confirm(i18n.t("rules.deleteConfirm", { name: rule.name }))) {
             remove.mutate(rule.id);
           }
         },
@@ -146,10 +143,7 @@ export function RulesPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Valutate dall'alto in basso: vince la prima che corrisponde. Le correzioni manuali vincono
-          sempre.
-        </p>
+        <p className="text-sm text-muted-foreground">{i18n.t("rules.intro")}</p>
         <div className="flex shrink-0 gap-2">
           <Button
             variant="outline"
@@ -159,7 +153,7 @@ export function RulesPage() {
             }}
           >
             <RefreshCw aria-hidden className={run.isPending ? "animate-spin" : undefined} />
-            Riclassifica
+            {i18n.t("rules.reclassify")}
           </Button>
           <Button
             onClick={() => {
@@ -167,34 +161,38 @@ export function RulesPage() {
             }}
           >
             <Plus aria-hidden />
-            Nuova regola
+            {i18n.t("rules.new")}
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Regole attive"
+          label={i18n.t("rules.tiles.active")}
           icon={ListChecks}
           value={stats.data ? formatCount(stats.data.active_rules) : undefined}
           delta={
             stats.data && stats.data.stale_rules > 0
-              ? `${formatCount(stats.data.stale_rules)} senza corrispondenze da oltre 6 mesi`
-              : "tutte in uso"
+              ? i18n.t("rules.tiles.stale", { n: formatCount(stats.data.stale_rules) })
+              : i18n.t("rules.tiles.allInUse")
           }
         />
         <StatTile
-          label="Classificati in automatico"
+          label={i18n.t("rules.tiles.auto")}
           icon={Sparkles}
           value={stats.data ? formatPercent(stats.data.auto_pct / 100) : undefined}
           delta={
             stats.data
-              ? `${formatCount(stats.data.auto_classified)} su ${formatCount(stats.data.total)} · ${formatCount(stats.data.manual)} corretti a mano`
+              ? i18n.t("rules.tiles.autoDetail", {
+                  auto: formatCount(stats.data.auto_classified),
+                  total: formatCount(stats.data.total),
+                  manual: formatCount(stats.data.manual),
+                })
               : undefined
           }
         />
         <StatTile
-          label="Da classificare"
+          label={i18n.t("rules.tiles.unclassified")}
           icon={CircleDashed}
           value={stats.data ? formatCount(stats.data.unclassified) : undefined}
           delta={
@@ -203,18 +201,18 @@ export function RulesPage() {
                 to={transactionsUrl({ uncategorized: true })}
                 className="text-primary hover:underline"
               >
-                Vedi i movimenti
+                {i18n.t("rules.tiles.seeTransactions")}
               </Link>
             ) : (
-              "nessuno: ottimo"
+              i18n.t("rules.tiles.noneGreat")
             )
           }
         />
         <StatTile
-          label="Trasferimenti da confermare"
+          label={i18n.t("rules.tiles.transfers")}
           icon={Link2}
           value={suggestions.data ? formatCount(suggestions.data.length) : undefined}
-          delta="abbinamenti senza indizi certi"
+          delta={i18n.t("rules.tiles.transfersNote")}
         />
       </div>
 
@@ -224,10 +222,8 @@ export function RulesPage() {
 
       <Card className="gap-0 overflow-hidden pb-0">
         <CardHeader className="border-b pb-4">
-          <CardTitle>Le tue regole</CardTitle>
-          <CardDescription>
-            Create da te o imparate dalle tue correzioni. Usa le frecce per cambiare l'ordine.
-          </CardDescription>
+          <CardTitle>{i18n.t("rules.mine.title")}</CardTitle>
+          <CardDescription>{i18n.t("rules.mine.description")}</CardDescription>
         </CardHeader>
         {rules.isPending ? (
           <div className="space-y-3 p-5">
@@ -235,9 +231,8 @@ export function RulesPage() {
             <Skeleton className="h-12 w-full" />
           </div>
         ) : mine.length === 0 ? (
-          <EmptyState icon={Workflow} title="Ancora nessuna regola tua">
-            Quando correggi la categoria di un movimento, la dashboard ti propone di applicarla ai
-            movimenti simili creando una regola. Puoi anche crearne una con «Nuova regola».
+          <EmptyState icon={Workflow} title={i18n.t("rules.mine.emptyTitle")}>
+            {i18n.t("rules.mine.empty")}
           </EmptyState>
         ) : (
           <ul className="divide-y">{mine.map((r, i, list) => row(r, i, list, true))}</ul>
@@ -246,10 +241,8 @@ export function RulesPage() {
 
       <Card className="gap-0 overflow-hidden pb-0">
         <CardHeader className="border-b pb-4">
-          <CardTitle>Regole di sistema</CardTitle>
-          <CardDescription>
-            Valutate dopo le tue. Non si modificano: se non ti servono, disattivale.
-          </CardDescription>
+          <CardTitle>{i18n.t("rules.system.title")}</CardTitle>
+          <CardDescription>{i18n.t("rules.system.description")}</CardDescription>
         </CardHeader>
         {rules.isPending ? (
           <div className="p-5">

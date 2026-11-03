@@ -11,8 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { describeActions, describeConditions } from "../describe";
 import type { Rule } from "../queries";
-
-const ORIGIN_LABELS = { user: "Tua", learned: "Imparata", seed: "Sistema" } as const;
+import { i18n } from "@/i18n";
 
 export function RuleRow({
   rule,
@@ -58,7 +57,7 @@ export function RuleRow({
             onClick={() => {
               onMove(-1);
             }}
-            aria-label={`Valuta prima ${rule.name}`}
+            aria-label={i18n.t("rules.row.earlier", { name: rule.name })}
             className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
           >
             <ArrowUp aria-hidden className="size-4" />
@@ -69,7 +68,7 @@ export function RuleRow({
             onClick={() => {
               onMove(1);
             }}
-            aria-label={`Valuta dopo ${rule.name}`}
+            aria-label={i18n.t("rules.row.later", { name: rule.name })}
             className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
           >
             <ArrowDown aria-hidden className="size-4" />
@@ -81,18 +80,19 @@ export function RuleRow({
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{rule.name}</span>
           <Badge variant={rule.origin === "seed" ? "outline" : "secondary"} className="text-[10px]">
-            {ORIGIN_LABELS[rule.origin]}
+            {i18n.t(`rules.origin.${rule.origin}`)}
           </Badge>
           {rule.is_stale && (
             <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground">
               <Clock aria-hidden className="size-3" />
-              Nessuna corrispondenza da oltre 6 mesi
+              {i18n.t("rules.row.stale")}
             </Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">Se</span> {conditions.join(" · ")}{" "}
-          <span className="font-medium text-foreground/80">→</span> {actions.join(" · ")}
+          <span className="font-medium text-foreground/80">{i18n.t("rules.row.if")}</span>{" "}
+          {conditions.join(" · ")} <span className="font-medium text-foreground/80">→</span>{" "}
+          {actions.join(" · ")}
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export function RuleRow({
           to={transactionsUrl({ rule: rule.id })}
           className="text-xs whitespace-nowrap text-muted-foreground hover:text-foreground hover:underline"
         >
-          {formatCount(rule.match_count)} movimenti
+          {i18n.t("rules.row.matches", { n: formatCount(rule.match_count) })}
         </Link>
         {onEdit && (
           <Button
@@ -109,7 +109,7 @@ export function RuleRow({
             size="icon"
             className="size-8"
             onClick={onEdit}
-            aria-label={`Modifica ${rule.name}`}
+            aria-label={i18n.t("rules.row.edit", { name: rule.name })}
           >
             <Pencil aria-hidden />
           </Button>
@@ -121,7 +121,7 @@ export function RuleRow({
             className="size-8 text-muted-foreground hover:text-destructive"
             onClick={onDelete}
             disabled={busy}
-            aria-label={`Elimina ${rule.name}`}
+            aria-label={i18n.t("rules.row.delete", { name: rule.name })}
           >
             <Trash2 aria-hidden />
           </Button>
@@ -130,7 +130,11 @@ export function RuleRow({
           checked={rule.is_active}
           onChange={onToggle}
           disabled={busy}
-          label={rule.is_active ? `Disattiva ${rule.name}` : `Attiva ${rule.name}`}
+          label={
+            rule.is_active
+              ? i18n.t("rules.row.deactivate", { name: rule.name })
+              : i18n.t("rules.row.activate", { name: rule.name })
+          }
         />
       </div>
     </li>

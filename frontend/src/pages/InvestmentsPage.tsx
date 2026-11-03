@@ -1,5 +1,6 @@
 import { Coins, Info, Landmark, PiggyBank, RefreshCw, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
+import { Trans } from "react-i18next";
 import { Link } from "react-router";
 
 import { EmptyState } from "@/components/common/EmptyState";
@@ -39,34 +40,37 @@ import { describeSummary, useSyncSource } from "@/features/sync/queries";
 import { formatDate, formatPercent, formatRelative, sign } from "@/lib/format";
 import { useInvestmentScope, type InvestmentScope } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 function ReturnTile({ summary, scope }: { summary: InvestmentSummary; scope: InvestmentScope }) {
   if (scope === "active") {
     const pct = summary.active.pct;
     return (
       <StatTile
-        label="Rendimento"
+        label={i18n.t("investments.tiles.return")}
         icon={TrendingUp}
         value={pct !== null ? formatPercent(pct / 100, { signed: true }) : undefined}
-        delta="sul costo delle posizioni in mano, come la Pie nell'app"
-        pendingNote="Nessuna posizione aperta"
+        delta={i18n.t("investments.tiles.returnActive")}
+        pendingNote={i18n.t("investments.tiles.noPositions")}
       />
     );
   }
   const r = summary.returns;
   return (
     <StatTile
-      label="Rendimento"
+      label={i18n.t("investments.tiles.return")}
       icon={TrendingUp}
       value={
         r.simple_pct !== null ? formatPercent(r.simple_pct / 100, { signed: true }) : undefined
       }
       delta={
         r.mwr_annual_pct !== null
-          ? `sul capitale versato · annuo ${formatPercent(r.mwr_annual_pct / 100, { signed: true })} tenendo conto di quando hai versato`
-          : "sul capitale versato, non annualizzato"
+          ? i18n.t("investments.tiles.returnAnnual", {
+              pct: formatPercent(r.mwr_annual_pct / 100, { signed: true }),
+            })
+          : i18n.t("investments.tiles.returnSimple")
       }
-      pendingNote="Serve almeno un versamento"
+      pendingNote={i18n.t("investments.tiles.needDeposit")}
     />
   );
 }
@@ -84,11 +88,11 @@ function PieBaseNote({ summary }: { summary: InvestmentSummary }) {
   const realized = summary.breakdown.realized_eur;
   return (
     <span className="mt-0.5 block">
-      base della Pie <Money value={pie.invested_eur} />
+      {i18n.t("investments.tiles.pieBase")} <Money value={pie.invested_eur} />
       {sign(realized) !== 0 && (
         <>
           {" "}
-          · <Money value={realized} signed /> nei ribilanciamenti
+          · <Money value={realized} signed /> {i18n.t("investments.tiles.inRebalances")}
         </>
       )}
     </span>
@@ -110,8 +114,8 @@ export function InvestmentsPage() {
   if (portfolios.isError || summary.isError) {
     return (
       <Card>
-        <EmptyState icon={TrendingUp} title="Investimenti non disponibili">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={TrendingUp} title={i18n.t("investments.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -121,15 +125,14 @@ export function InvestmentsPage() {
       <Card>
         <EmptyState
           icon={TrendingUp}
-          title="Nessun conto di investimento collegato"
+          title={i18n.t("investments.noPortfolioTitle")}
           action={
             <Button asChild>
-              <Link to="/impostazioni">Collega Trading 212</Link>
+              <Link to="/impostazioni">{i18n.t("investments.connect")}</Link>
             </Button>
           }
         >
-          Il collegamento è in sola lettura: la dashboard legge portafoglio, ordini, dividendi e
-          versamenti, senza poter comprare o vendere.
+          {i18n.t("investments.noPortfolio")}
         </EmptyState>
       </Card>
     );
@@ -137,7 +140,9 @@ export function InvestmentsPage() {
 
   const data = summary.data;
   const start = portfolio?.tracking_start ?? null;
-  const allLabel = start ? `Tutto (dal ${formatDate(start, "short")})` : "Tutto";
+  const allLabel = start
+    ? i18n.t("investments.allSince", { date: formatDate(start, "short") })
+    : i18n.t("investments.all");
   const liveMessage = live.data?.message ?? null;
   const isLive = live.isSuccess && liveMessage === null;
   const months = activity.data ? fillMonths(activity.data.months, currentMonth()) : [];
@@ -154,7 +159,7 @@ export function InvestmentsPage() {
                 setChosen(Number(v));
               }}
             >
-              <SelectTrigger aria-label="Portafoglio" className="w-56 bg-card">
+              <SelectTrigger aria-label={i18n.t("investments.portfolio")} className="w-56 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -180,16 +185,16 @@ export function InvestmentsPage() {
           {data?.as_of && (
             <span className="inline-flex items-center gap-1.5">
               {!portfolio?.is_mock && <StatusDot status={isLive ? "good" : "unknown"} />}
-              aggiornato {formatRelative(new Date(data.as_of))}
-              {isLive && <span className="sr-only">, in tempo reale</span>}
+              {i18n.t("investments.updated", { when: formatRelative(new Date(data.as_of)) })}
+              {isLive && <span className="sr-only">{i18n.t("investments.liveSr")}</span>}
             </span>
           )}
           {liveMessage && (
             <span className="text-xs" title={liveMessage}>
-              · tempo reale in pausa
+              {i18n.t("investments.livePaused")}
             </span>
           )}
-          <span className="hidden sm:inline">· sola lettura</span>
+          <span className="hidden sm:inline">{i18n.t("investments.readOnly")}</span>
         </div>
         {portfolio && (
           <div className="flex flex-wrap items-center gap-3">
@@ -209,7 +214,7 @@ export function InvestmentsPage() {
               }}
             >
               <RefreshCw aria-hidden className={cn(sync.isPending && "animate-spin")} />
-              {sync.isPending ? "Aggiornamento…" : "Aggiorna"}
+              {sync.isPending ? i18n.t("investments.refreshing") : i18n.t("investments.refresh")}
             </Button>
           </div>
         )}
@@ -228,111 +233,121 @@ export function InvestmentsPage() {
       {scope === "active" ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatTile
-            label="Valore posizioni"
+            label={i18n.t("investments.tiles.positionsValue")}
             icon={Landmark}
             value={data ? <Money value={data.active.value_eur} /> : undefined}
-            delta="solo i titoli in mano, liquidità esclusa"
-            pendingNote="Caricamento…"
+            delta={i18n.t("investments.tiles.positionsValueNote")}
+            pendingNote={i18n.t("analytics.loading")}
           />
           <StatTile
-            label="Costo posizioni"
+            label={i18n.t("investments.tiles.positionsCost")}
             icon={PiggyBank}
             value={data ? <Money value={data.active.cost_eur} /> : undefined}
-            delta="quanto hai pagato i titoli in mano"
-            pendingNote="Caricamento…"
+            delta={i18n.t("investments.tiles.positionsCostNote")}
+            pendingNote={i18n.t("analytics.loading")}
           />
           <StatTile
-            label="Guadagno"
+            label={i18n.t("investments.tiles.gain")}
             icon={Wallet}
             value={data ? <Money value={data.active.pl_eur} signed tone="auto" /> : undefined}
-            delta="valore meno costo delle posizioni in mano"
-            pendingNote="Caricamento…"
+            delta={i18n.t("investments.tiles.gainNote")}
+            pendingNote={i18n.t("analytics.loading")}
           />
           {data ? (
             <ReturnTile summary={data} scope={scope} />
           ) : (
-            <StatTile label="Rendimento" icon={TrendingUp} pendingNote="Caricamento…" />
+            <StatTile
+              label={i18n.t("investments.tiles.return")}
+              icon={TrendingUp}
+              pendingNote={i18n.t("analytics.loading")}
+            />
           )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatTile
-            label="Valore attuale"
+            label={i18n.t("investments.tiles.currentValue")}
             icon={Landmark}
             value={data ? <Money value={data.value_eur} /> : undefined}
             delta={
               data ? (
                 <>
-                  di cui liquidità <Money value={data.cash_eur} />
+                  {i18n.t("investments.tiles.cashPart")} <Money value={data.cash_eur} />
                 </>
               ) : undefined
             }
-            pendingNote="Caricamento…"
+            pendingNote={i18n.t("analytics.loading")}
           />
           <StatTile
-            label="Capitale versato"
+            label={i18n.t("investments.tiles.netDeposits")}
             icon={PiggyBank}
             value={data ? <Money value={data.net_deposited_eur} /> : undefined}
             delta={
               <>
                 {data && start && Number(data.opening_balance_eur) > 0 ? (
                   <>
-                    <Money value={data.opening_balance_eur} /> già sul conto il{" "}
-                    {formatDate(start, "short")}
+                    <Money value={data.opening_balance_eur} />{" "}
+                    {i18n.t("investments.tiles.openingOn", { date: formatDate(start, "short") })}
                     {Number(data.deposits_eur) > 0 && (
                       <>
                         {" "}
-                        + versati <Money value={data.deposits_eur} />
+                        + {i18n.t("investments.tiles.deposited")}{" "}
+                        <Money value={data.deposits_eur} />
                       </>
                     )}
                     {Number(data.withdrawals_eur) > 0 && (
                       <>
                         {" "}
-                        − prelevati <Money value={data.withdrawals_eur} />
+                        − {i18n.t("investments.tiles.withdrawn")}{" "}
+                        <Money value={data.withdrawals_eur} />
                       </>
                     )}
                   </>
                 ) : data && Number(data.withdrawals_eur) > 0 ? (
                   <>
-                    versati <Money value={data.deposits_eur} /> − prelevati{" "}
-                    <Money value={data.withdrawals_eur} />
+                    {i18n.t("investments.tiles.deposited")} <Money value={data.deposits_eur} /> −{" "}
+                    {i18n.t("investments.tiles.withdrawn")} <Money value={data.withdrawals_eur} />
                   </>
                 ) : (
-                  "versamenti meno prelievi"
+                  i18n.t("investments.tiles.depositsMinusWithdrawals")
                 )}
                 {data && <PieBaseNote summary={data} />}
               </>
             }
-            pendingNote="Caricamento…"
+            pendingNote={i18n.t("analytics.loading")}
           />
           <StatTile
-            label="Guadagno totale"
+            label={i18n.t("investments.tiles.totalGain")}
             icon={Wallet}
             value={
               data ? <Money value={data.returns.total_pl_eur} signed tone="auto" /> : undefined
             }
-            delta="valore attuale meno capitale versato"
-            pendingNote="Caricamento…"
+            delta={i18n.t("investments.tiles.totalGainNote")}
+            pendingNote={i18n.t("analytics.loading")}
           />
           {data ? (
             <ReturnTile summary={data} scope={scope} />
           ) : (
-            <StatTile label="Rendimento" icon={TrendingUp} pendingNote="Caricamento…" />
+            <StatTile
+              label={i18n.t("investments.tiles.return")}
+              icon={TrendingUp}
+              pendingNote={i18n.t("analytics.loading")}
+            />
           )}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Posizioni</CardTitle>
+          <CardTitle>{i18n.t("investments.positions.title")}</CardTitle>
           <CardDescription>
             {data ? (
               <>
-                Valore <Money value={data.positions_value_eur} /> · costo{" "}
-                <Money value={data.positions_cost_eur} />
+                {i18n.t("investments.positions.value")} <Money value={data.positions_value_eur} /> ·{" "}
+                {i18n.t("investments.positions.cost")} <Money value={data.positions_cost_eur} />
               </>
             ) : (
-              "Titoli ed ETF in portafoglio"
+              i18n.t("investments.positions.fallback")
             )}
           </CardDescription>
         </CardHeader>
@@ -348,11 +363,11 @@ export function InvestmentsPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>Da dove viene il guadagno</CardTitle>
+            <CardTitle>{i18n.t("investments.gain.title")}</CardTitle>
             <CardDescription>
               {scope === "active"
-                ? "Solo le posizioni in mano: vendite, dividendi e commissioni esclusi"
-                : "I versamenti non contano mai come guadagno"}
+                ? i18n.t("investments.gain.activeDescription")
+                : i18n.t("investments.gain.allDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -374,13 +389,10 @@ export function InvestmentsPage() {
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Capitale versato e valore</CardTitle>
+            <CardTitle>{i18n.t("investments.capital.title")}</CardTitle>
             <CardDescription>
-              {start
-                ? `Dal ${formatDate(start)}: quello che c'era sul conto quel giorno conta come capitale versato. `
-                : ""}
-              Il valore si registra mentre la dashboard è accesa (un punto ogni 15 minuti): lo
-              storico cresce da quando il conto è collegato.
+              {start ? i18n.t("investments.capital.since", { date: formatDate(start) }) : ""}
+              {i18n.t("investments.capital.recording")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -395,17 +407,17 @@ export function InvestmentsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Coins aria-hidden className="size-4 text-muted-foreground" />
-              Dividendi
+              {i18n.t("investments.dividends.title")}
             </CardTitle>
             <CardDescription>
               {data ? (
                 <>
-                  Ultimi 12 mesi <Money value={data.dividends_12m_eur} />
+                  {i18n.t("investments.dividends.last12")} <Money value={data.dividends_12m_eur} />
                   {data.dividend_yield_on_cost_pct !== null &&
-                    ` · ${formatPercent(data.dividend_yield_on_cost_pct / 100)} sul costo`}
+                    ` · ${i18n.t("investments.dividends.onCost", { pct: formatPercent(data.dividend_yield_on_cost_pct / 100) })}`}
                 </>
               ) : (
-                "Per mese"
+                i18n.t("investments.dividends.perMonth")
               )}
             </CardDescription>
           </CardHeader>
@@ -415,7 +427,9 @@ export function InvestmentsPage() {
             ) : hasDividends ? (
               <DividendsChart months={months} />
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">Nessun dividendo</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {i18n.t("investments.dividends.none")}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -423,8 +437,8 @@ export function InvestmentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Attività</CardTitle>
-          <CardDescription>Ordini eseguiti, dividendi, versamenti e prelievi</CardDescription>
+          <CardTitle>{i18n.t("investments.activity.title")}</CardTitle>
+          <CardDescription>{i18n.t("investments.activity.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {activity.data ? (
@@ -438,37 +452,20 @@ export function InvestmentsPage() {
   );
 }
 
+const STRONG = { strong: <strong className="font-medium text-foreground" /> };
+
 function ReturnsNote() {
   return (
     <details className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
       <summary className="flex cursor-pointer items-center gap-1.5 font-medium select-none hover:text-foreground">
-        <Info aria-hidden className="size-3.5" /> Come leggere i rendimenti
+        <Info aria-hidden className="size-3.5" /> {i18n.t("investments.returnsNote.title")}
       </summary>
       <div className="mt-2 space-y-1.5">
-        <p>
-          <strong className="font-medium text-foreground">Guadagno totale</strong>: valore attuale
-          meno capitale versato. Versare soldi non lo fa mai salire.
-        </p>
-        <p>
-          <strong className="font-medium text-foreground">Rendimento</strong>: guadagno diviso per
-          il capitale versato. Non è annualizzato: è quanto hai guadagnato su quello che hai messo.
-        </p>
-        <p>
-          <strong className="font-medium text-foreground">Tutto o solo attivi</strong>: «Tutto»
-          conta tutto ciò che hai investito dalla data di inizio, anche quello già venduto, più
-          dividendi, interessi e commissioni. «Solo attivi» guarda solo i titoli che hai in mano
-          (valore meno costo), come il risultato della Pie nell'app.
-        </p>
-        <p>
-          <strong className="font-medium text-foreground">Data di inizio</strong>: quello che è
-          successo prima non conta; il saldo del conto a quella data vale come capitale di partenza.
-        </p>
-        <p>
-          <strong className="font-medium text-foreground">Annuo</strong>: compare solo quando ha
-          senso, cioè con almeno un anno di storia e il capitale rimasto investito per buona parte
-          del tempo. Annualizzare poco capitale investito per poche settimane produce cifre
-          gonfiate, come i rendimenti altissimi che a volte mostra l'app dopo un versamento.
-        </p>
+        {(["totalGain", "return", "scope", "start", "annual"] as const).map((key) => (
+          <p key={key}>
+            <Trans i18nKey={`investments.returnsNote.${key}`} components={STRONG} />
+          </p>
+        ))}
       </div>
     </details>
   );

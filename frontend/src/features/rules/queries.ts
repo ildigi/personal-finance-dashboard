@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { api, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 
 export type Rule = Schemas["RuleRead"];
 export type RuleConditions = Schemas["RuleConditions"];
@@ -89,7 +90,7 @@ export function useDeleteRule() {
     const { response } = await api.DELETE("/api/rules/{rule_id}", {
       params: { path: { rule_id: id } },
     });
-    if (!response.ok) throw new Error("Eliminazione non riuscita");
+    if (!response.ok) throw new Error(i18n.t("errors.deleteFailed"));
   });
 }
 

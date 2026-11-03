@@ -8,6 +8,7 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react";
+import { Trans } from "react-i18next";
 import { Link } from "react-router";
 
 import { CategoryIcon } from "@/components/common/CategoryIcon";
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 
 import { budgetStatusText, type BudgetLevel } from "../month";
 import type { BudgetMonth, BudgetOverview, BudgetStatus } from "../queries";
+import { i18n } from "@/i18n";
 
 /** Colore del livello: riempimento pieno, traccia dello stesso colore più chiara. */
 const LEVEL_STYLE: Record<BudgetLevel, { fill: string; track: string; icon: typeof CircleCheck }> =
@@ -65,8 +67,8 @@ export function BudgetCard({
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-medium">{budget.name}</h3>
           <p className="text-sm text-muted-foreground">
-            <Money value={budget.spent_eur} className="font-medium text-foreground" /> di{" "}
-            <Money value={budget.amount} />
+            <Money value={budget.spent_eur} className="font-medium text-foreground" />{" "}
+            {i18n.t("budgets.card.of")} <Money value={budget.amount} />
           </p>
         </div>
         <div className="text-right">
@@ -81,7 +83,7 @@ export function BudgetCard({
                 variant="ghost"
                 size="icon-sm"
                 className="-mr-2"
-                aria-label={`Azioni per ${budget.name}`}
+                aria-label={i18n.t("budgets.card.actions", { name: budget.name })}
               >
                 <MoreHorizontal aria-hidden />
               </Button>
@@ -89,7 +91,7 @@ export function BudgetCard({
             <DropdownMenuContent align="end" className="w-52">
               {onEdit && (
                 <DropdownMenuItem onSelect={onEdit}>
-                  <Pencil aria-hidden /> Modifica
+                  <Pencil aria-hidden /> {i18n.t("budgets.card.edit")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
@@ -99,14 +101,14 @@ export function BudgetCard({
                     ...(budget.subcategory_id ? { subcategory: budget.subcategory_id } : {}),
                   })}
                 >
-                  <ListFilter aria-hidden /> Vedi i movimenti
+                  <ListFilter aria-hidden /> {i18n.t("budgets.card.seeTransactions")}
                 </Link>
               </DropdownMenuItem>
               {onDelete && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                    <Trash2 aria-hidden /> Rimuovi il budget
+                    <Trash2 aria-hidden /> {i18n.t("budgets.card.remove")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -118,11 +120,14 @@ export function BudgetCard({
       <div>
         <div
           role="meter"
-          aria-label={`Speso del budget ${budget.name}`}
+          aria-label={i18n.t("budgetMini.meter", { name: budget.name })}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(budget.used_pct)}
-          aria-valuetext={`${formatMoney(budget.spent_eur)} su ${formatMoney(budget.amount)}`}
+          aria-valuetext={i18n.t("budgetMini.meterValue", {
+            spent: formatMoney(budget.spent_eur),
+            amount: formatMoney(budget.amount),
+          })}
           className={cn("relative h-2.5 overflow-hidden rounded-full", style.track)}
         >
           {showProjection && projected > used && (
@@ -165,23 +170,27 @@ export function BudgetCard({
           <span className="text-muted-foreground">
             {remaining >= 0 ? (
               <>
-                Restano <Money value={budget.remaining_eur} />
+                {i18n.t("budgets.card.remaining")} <Money value={budget.remaining_eur} />
               </>
             ) : (
               <>
-                Oltre di <Money value={String(-remaining)} />
+                {i18n.t("budgets.card.overBy")} <Money value={String(-remaining)} />
               </>
             )}
             {showProjection && (
               <>
-                {" · "}stima a fine mese <Money value={budget.projected_eur} />
+                {" · "}
+                {i18n.t("budgets.card.projection")} <Money value={budget.projected_eur} />
               </>
             )}
           </span>
         </div>
         {showProjection && Number(budget.recurring_expected_eur) > 0 && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Include <Money value={budget.recurring_expected_eur} /> di addebiti ricorrenti attesi
+            <Trans
+              i18nKey="budgets.card.includesRecurring"
+              components={{ amount: <Money value={budget.recurring_expected_eur} /> }}
+            />
           </p>
         )}
       </div>
@@ -199,18 +208,26 @@ function History({ months, current }: { months: BudgetMonth[]; current: string }
   );
   return (
     <div className="border-t pt-3">
-      <div className="mb-1.5 text-[11px] text-muted-foreground">Ultimi 6 mesi</div>
+      <div className="mb-1.5 text-[11px] text-muted-foreground">{i18n.t("budgets.card.last6")}</div>
       <ul
         className="grid h-16 grid-cols-6 items-end gap-0.5"
-        aria-label="Storico degli ultimi 6 mesi"
+        aria-label={i18n.t("budgets.card.historyLabel")}
       >
         {months.map((m) => {
           const spent = Number(m.spent_eur);
           const amount = m.amount === null ? null : Number(m.amount);
           const over = amount !== null && spent > amount;
-          const label = `${formatMonth(m.month, "long")}: ${formatMoney(spent)}${
-            amount !== null ? ` su ${formatMoney(amount)}` : ", senza budget"
-          }`;
+          const label =
+            amount !== null
+              ? i18n.t("budgets.card.historyOf", {
+                  month: formatMonth(m.month, "long"),
+                  spent: formatMoney(spent),
+                  amount: formatMoney(amount),
+                })
+              : i18n.t("budgets.card.historyNoBudget", {
+                  month: formatMonth(m.month, "long"),
+                  spent: formatMoney(spent),
+                });
           return (
             <li key={m.month} className="relative h-full">
               <Tooltip>
@@ -245,7 +262,7 @@ function History({ months, current }: { months: BudgetMonth[]; current: string }
                 </TooltipTrigger>
                 <TooltipContent>
                   <span data-sensitive>{label}</span>
-                  {over && " (sforato)"}
+                  {over && i18n.t("budgets.card.overspent")}
                 </TooltipContent>
               </Tooltip>
             </li>

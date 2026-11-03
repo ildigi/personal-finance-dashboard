@@ -6,15 +6,18 @@ import { formatCount, formatDate, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { InvestmentActivity } from "../queries";
+import { i18n } from "@/i18n";
 
 type Tab = "orders" | "dividends" | "flows";
 
-const FLOW_LABELS: Record<string, string> = {
-  deposit: "Versamento",
-  withdrawal: "Prelievo",
-  interest: "Interessi",
-  fee: "Commissione",
-};
+/** Tipi con un nome in `investments.activity.flowTypes`; gli altri restano col codice. */
+const FLOW_TYPES = ["deposit", "withdrawal", "interest", "fee"] as const;
+
+function flowLabel(type: string): string {
+  return (FLOW_TYPES as readonly string[]).includes(type)
+    ? i18n.t(`investments.activity.flowTypes.${type as (typeof FLOW_TYPES)[number]}`)
+    : type;
+}
 const PAGE = 15;
 
 function day(iso: string): string {
@@ -26,15 +29,31 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
   const [tab, setTab] = useState<Tab>("orders");
   const [shown, setShown] = useState(PAGE);
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "orders", label: "Ordini", count: activity.orders.length },
-    { key: "dividends", label: "Dividendi", count: activity.dividends.length },
-    { key: "flows", label: "Versamenti", count: activity.cash_flows.length },
+    {
+      key: "orders",
+      label: i18n.t("investments.activity.tabs.orders"),
+      count: activity.orders.length,
+    },
+    {
+      key: "dividends",
+      label: i18n.t("investments.activity.tabs.dividends"),
+      count: activity.dividends.length,
+    },
+    {
+      key: "flows",
+      label: i18n.t("investments.activity.tabs.flows"),
+      count: activity.cash_flows.length,
+    },
   ];
   const total = tabs.find((t) => t.key === tab)?.count ?? 0;
 
   return (
     <div className="space-y-3">
-      <div role="tablist" aria-label="Attività" className="flex gap-1 border-b">
+      <div
+        role="tablist"
+        aria-label={i18n.t("investments.activity.title")}
+        className="flex gap-1 border-b"
+      >
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -67,17 +86,19 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
                   o.side === "buy" ? "bg-primary/10 text-primary" : "bg-muted text-foreground",
                 )}
               >
-                {o.side === "buy" ? "Acquisto" : "Vendita"}
+                {o.side === "buy"
+                  ? i18n.t("investments.activity.buy")
+                  : i18n.t("investments.activity.sell")}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{o.name ?? o.ticker}</span>
                 <span className="text-xs text-muted-foreground">
                   {day(o.executed_at)} · <span data-sensitive>{formatQuantity(o.quantity)}</span>{" "}
-                  quote
+                  {i18n.t("investments.positions.sharesShort")}
                   {o.fees_eur && Number(o.fees_eur) > 0 && (
                     <>
                       {" "}
-                      · commissione <Money value={o.fees_eur} />
+                      · {i18n.t("investments.activity.fee")} <Money value={o.fees_eur} />
                     </>
                   )}
                 </span>
@@ -103,12 +124,13 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
           activity.cash_flows.slice(0, shown).map((f) => (
             <li key={f.id} className="flex items-center gap-3 py-2.5">
               <span className="min-w-0 flex-1">
-                <span className="block">{FLOW_LABELS[f.type] ?? f.type}</span>
+                <span className="block">{flowLabel(f.type)}</span>
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {day(f.occurred_at)}
                   {f.transaction_id !== null && (
                     <span className="inline-flex items-center gap-1">
-                      · <Link2 aria-hidden className="size-3" /> abbinato al bonifico in banca
+                      · <Link2 aria-hidden className="size-3" />{" "}
+                      {i18n.t("investments.activity.matched")}
                     </span>
                   )}
                 </span>
@@ -124,7 +146,9 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
             </li>
           ))}
         {total === 0 && (
-          <li className="py-6 text-center text-muted-foreground">Niente da mostrare</li>
+          <li className="py-6 text-center text-muted-foreground">
+            {i18n.t("investments.activity.nothing")}
+          </li>
         )}
       </ul>
       {shown < total && (
@@ -135,7 +159,7 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
           }}
           className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
         >
-          Mostra altri ({formatCount(total - shown)})
+          {i18n.t("investments.activity.more", { n: formatCount(total - shown) })}
         </button>
       )}
     </div>

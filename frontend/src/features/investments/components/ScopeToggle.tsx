@@ -1,5 +1,6 @@
 import type { InvestmentScope } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 /**
  * "Tutto": rendimento di tutto ciò che hai investito dalla data di inizio, anche già venduto.
@@ -16,12 +17,12 @@ export function ScopeToggle({
 }) {
   const options: { key: InvestmentScope; label: string }[] = [
     { key: "all", label: allLabel },
-    { key: "active", label: "Solo attivi" },
+    { key: "active", label: i18n.t("investments.activeOnly") },
   ];
   return (
     <div
       role="radiogroup"
-      aria-label="Cosa conteggiare"
+      aria-label={i18n.t("investments.scopeLabel")}
       className="flex rounded-lg border bg-card p-0.5"
     >
       {options.map((o) => (

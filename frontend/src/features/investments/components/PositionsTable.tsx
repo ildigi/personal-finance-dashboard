@@ -7,6 +7,7 @@ import { formatMoney, formatPercent, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { InvestmentPosition } from "../queries";
+import { i18n } from "@/i18n";
 
 type SortKey = "weight" | "pl";
 
@@ -66,11 +67,15 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
   );
 
   const toggle = (
-    <div role="group" aria-label="Ordina per" className="flex gap-1 text-xs">
+    <div
+      role="group"
+      aria-label={i18n.t("investments.positions.sortBy")}
+      className="flex gap-1 text-xs"
+    >
       {(
         [
-          ["weight", "Peso"],
-          ["pl", "Risultato"],
+          ["weight", i18n.t("investments.positions.weight")],
+          ["pl", i18n.t("investments.positions.result")],
         ] as const
       ).map(([key, label]) => (
         <button
@@ -95,7 +100,9 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
 
   if (positions.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">Nessuna posizione aperta</p>
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {i18n.t("investments.tiles.noPositions")}
+      </p>
     );
   }
 
@@ -115,8 +122,11 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
                 <WeightBar pct={p.weight_pct} />
               </div>
               <p className="text-xs text-muted-foreground">
-                <span data-sensitive>{formatQuantity(p.quantity)}</span> quote · medio{" "}
-                <span data-sensitive>{priceText(p.avg_price, p.instrument_currency)}</span> · ora{" "}
+                <span data-sensitive>{formatQuantity(p.quantity)}</span>{" "}
+                {i18n.t("investments.positions.sharesShort")} ·{" "}
+                {i18n.t("investments.positions.average")}{" "}
+                <span data-sensitive>{priceText(p.avg_price, p.instrument_currency)}</span> ·{" "}
+                {i18n.t("investments.positions.now")}{" "}
                 {priceText(p.current_price, p.instrument_currency)}
               </p>
             </li>
@@ -133,25 +143,25 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
         <thead>
           <tr className="border-b text-xs text-muted-foreground">
             <th scope="col" className="py-2 text-left font-medium">
-              Strumento
+              {i18n.t("investments.positions.instrument")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Quote
+              {i18n.t("investments.positions.shares")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Prezzo medio
+              {i18n.t("investments.positions.avgPrice")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Prezzo attuale
+              {i18n.t("investments.positions.currentPrice")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Valore
+              {i18n.t("investments.positions.value")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Risultato
+              {i18n.t("investments.positions.result")}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Peso
+              {i18n.t("investments.positions.weight")}
             </th>
           </tr>
         </thead>

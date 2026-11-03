@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { confidenceLabel, frequencyLabel, perPeriodSuffix } from "../labels";
 import type { Recurring } from "../queries";
 import { RecurringCategory } from "./RecurringCategory";
+import { i18n } from "@/i18n";
 
 export type RecurringAction = "confirm" | "reject" | "end" | "forget" | "edit" | "delete";
 
@@ -49,7 +50,12 @@ export function RecurringRow({
   const archived = item.status === "ended" || item.status === "rejected";
   const details = [
     frequencyLabel(item.frequency, item.interval_days),
-    item.occurrences > 0 ? `${formatCount(item.occurrences)} movimenti` : null,
+    item.occurrences > 0
+      ? i18n.t("recurring.row.transactions", {
+          count: item.occurrences,
+          n: formatCount(item.occurrences),
+        })
+      : null,
     item.status === "suggested" ? confidenceLabel(item.confidence) : null,
   ].filter(Boolean);
 
@@ -89,7 +95,7 @@ export function RecurringRow({
           </div>
           {item.frequency !== "monthly" && (
             <div className="text-xs text-muted-foreground">
-              ≈ <Money value={item.monthly_eur} /> al mese
+              ≈ <Money value={item.monthly_eur} /> {i18n.t("recurring.row.aboutPerMonth")}
             </div>
           )}
         </div>
@@ -101,13 +107,14 @@ export function RecurringRow({
 
 function DateLine({ item }: { item: Recurring }) {
   if (item.status === "rejected") {
-    return <p className="text-xs text-muted-foreground">Rifiutata: non verrà più proposta</p>;
+    return <p className="text-xs text-muted-foreground">{i18n.t("recurring.row.rejected")}</p>;
   }
   if (item.status === "ended") {
     return (
       <p className="text-xs text-muted-foreground">
-        Terminata
-        {item.last_seen_date && ` · ultimo addebito ${formatDate(item.last_seen_date)}`}
+        {i18n.t("recurring.row.ended")}
+        {item.last_seen_date &&
+          i18n.t("recurring.row.lastCharge", { date: formatDate(item.last_seen_date) })}
       </p>
     );
   }
@@ -117,12 +124,14 @@ function DateLine({ item }: { item: Recurring }) {
       {item.is_late ? (
         <span className="inline-flex items-center gap-1 font-medium text-foreground">
           <Clock aria-hidden className="size-3 text-status-serious" />
-          Attesa il {formatDate(item.next_expected_date)}, non ancora arrivata
+          {i18n.t("recurring.row.expectedLate", { date: formatDate(item.next_expected_date) })}
         </span>
       ) : (
-        <span>Prossima: {formatDate(item.next_expected_date)}</span>
+        <span>{i18n.t("recurring.row.next", { date: formatDate(item.next_expected_date) })}</span>
       )}
-      {item.last_seen_date && <span>· ultima {formatDate(item.last_seen_date)}</span>}
+      {item.last_seen_date && (
+        <span>{i18n.t("recurring.row.last", { date: formatDate(item.last_seen_date) })}</span>
+      )}
     </p>
   );
 }
@@ -146,10 +155,11 @@ function Actions({
           onClick={() => {
             onAction("reject");
           }}
-          aria-label={`Rifiuta ${item.name}`}
+          aria-label={i18n.t("recurring.row.reject", { name: item.name })}
         >
-          <X aria-hidden /> <span className="hidden sm:inline">Non è ricorrente</span>
-          <span className="sm:hidden">Rifiuta</span>
+          <X aria-hidden />{" "}
+          <span className="hidden sm:inline">{i18n.t("recurring.row.notRecurring")}</span>
+          <span className="sm:hidden">{i18n.t("recurring.row.rejectShort")}</span>
         </Button>
         <Button
           size="sm"
@@ -157,9 +167,9 @@ function Actions({
           onClick={() => {
             onAction("confirm");
           }}
-          aria-label={`Conferma ${item.name}`}
+          aria-label={i18n.t("recurring.row.confirmNamed", { name: item.name })}
         >
-          <Check aria-hidden /> Conferma
+          <Check aria-hidden /> {i18n.t("recurring.row.confirm")}
         </Button>
         <Menu item={item} busy={busy} onAction={onAction} />
       </div>
@@ -186,7 +196,7 @@ function Menu({
           variant="ghost"
           size="icon-sm"
           disabled={busy}
-          aria-label={`Altre azioni per ${item.name}`}
+          aria-label={i18n.t("recurring.row.moreActions", { name: item.name })}
         >
           <MoreHorizontal aria-hidden />
         </Button>
@@ -210,13 +220,15 @@ function Menu({
             }}
           >
             <Pencil aria-hidden />{" "}
-            {item.status === "suggested" ? "Correggi e conferma" : "Modifica"}
+            {item.status === "suggested"
+              ? i18n.t("recurring.row.fixAndConfirm")
+              : i18n.t("recurring.row.edit")}
           </DropdownMenuItem>
         )}
         {item.occurrences > 0 && (
           <DropdownMenuItem asChild>
             <Link to={transactionsUrl({ recurring: item.id })}>
-              <ListFilter aria-hidden /> Vedi i movimenti
+              <ListFilter aria-hidden /> {i18n.t("recurring.row.seeTransactions")}
             </Link>
           </DropdownMenuItem>
         )}
@@ -228,7 +240,7 @@ function Menu({
                 onAction("end");
               }}
             >
-              <Square aria-hidden /> Segna come terminata
+              <Square aria-hidden /> {i18n.t("recurring.row.markEnded")}
             </DropdownMenuItem>
           </>
         )}
@@ -238,7 +250,7 @@ function Menu({
               onAction("confirm");
             }}
           >
-            <RotateCcw aria-hidden /> È ripresa: riattiva
+            <RotateCcw aria-hidden /> {i18n.t("recurring.row.resume")}
           </DropdownMenuItem>
         )}
         {item.status === "rejected" && (
@@ -247,7 +259,7 @@ function Menu({
               onAction("forget");
             }}
           >
-            <RotateCcw aria-hidden /> Annulla il rifiuto
+            <RotateCcw aria-hidden /> {i18n.t("recurring.row.undoReject")}
           </DropdownMenuItem>
         )}
         {item.status !== "suggested" && (
@@ -259,7 +271,7 @@ function Menu({
                 afterClose.current = "delete";
               }}
             >
-              <Trash2 aria-hidden /> Elimina…
+              <Trash2 aria-hidden /> {i18n.t("common.deleteEllipsis")}
             </DropdownMenuItem>
           </>
         )}

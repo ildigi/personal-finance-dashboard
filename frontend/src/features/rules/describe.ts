@@ -3,6 +3,7 @@ import { accountLabel, type Lookups } from "@/features/transactions/lookups";
 import { formatMoney } from "@/lib/format";
 
 import type { RuleActions, RuleConditions } from "./queries";
+import { i18n } from "@/i18n";
 
 /** Le condizioni di una regola in parole: «descrizione contiene "netflix"» · uscite · … */
 export function describeConditions(
@@ -12,22 +13,43 @@ export function describeConditions(
 ): string[] {
   const parts: string[] = [];
   if (c.merchant_id != null)
-    parts.push(`merchant ${merchantNames.get(c.merchant_id) ?? `#${String(c.merchant_id)}`}`);
-  if (c.description_contains) parts.push(`descrizione contiene «${c.description_contains}»`);
-  if (c.description_regex) parts.push(`descrizione corrisponde a /${c.description_regex}/`);
-  if (c.counterparty_iban) parts.push("IBAN controparte indicato");
+    parts.push(
+      i18n.t("rules.describe.merchant", {
+        name: merchantNames.get(c.merchant_id) ?? `#${String(c.merchant_id)}`,
+      }),
+    );
+  if (c.description_contains)
+    parts.push(i18n.t("rules.describe.contains", { text: c.description_contains }));
+  if (c.description_regex)
+    parts.push(i18n.t("rules.describe.regex", { regex: c.description_regex }));
+  if (c.counterparty_iban) parts.push(i18n.t("rules.describe.iban"));
   if (c.account_id != null)
-    parts.push(`conto ${accountLabel(lookups.accountById.get(c.account_id))}`);
-  if (c.direction) parts.push(c.direction === "out" ? "uscite" : "entrate");
-  if (c.amounts?.length) parts.push(`importo ${c.amounts.map((a) => formatMoney(a)).join(" / ")}`);
+    parts.push(
+      i18n.t("rules.describe.account", {
+        name: accountLabel(lookups.accountById.get(c.account_id)),
+      }),
+    );
+  if (c.direction)
+    parts.push(c.direction === "out" ? i18n.t("rules.describe.out") : i18n.t("rules.describe.in"));
+  if (c.amounts?.length)
+    parts.push(
+      i18n.t("rules.describe.amounts", {
+        amounts: c.amounts.map((a) => formatMoney(a)).join(" / "),
+      }),
+    );
   if (c.amount_min != null && c.amount_max != null) {
-    parts.push(`importo tra ${formatMoney(c.amount_min)} e ${formatMoney(c.amount_max)}`);
+    parts.push(
+      i18n.t("rules.describe.between", {
+        min: formatMoney(c.amount_min),
+        max: formatMoney(c.amount_max),
+      }),
+    );
   } else if (c.amount_min != null) {
-    parts.push(`importo da ${formatMoney(c.amount_min)}`);
+    parts.push(i18n.t("rules.describe.from", { min: formatMoney(c.amount_min) }));
   } else if (c.amount_max != null) {
-    parts.push(`importo fino a ${formatMoney(c.amount_max)}`);
+    parts.push(i18n.t("rules.describe.upTo", { max: formatMoney(c.amount_max) }));
   }
-  if (c.mcc) parts.push(`MCC ${c.mcc}`);
+  if (c.mcc) parts.push(i18n.t("rules.describe.mcc", { mcc: c.mcc }));
   return parts;
 }
 
@@ -39,13 +61,18 @@ export function describeActions(a: RuleActions, lookups: Lookups): string[] {
     const sub =
       a.subcategory_id != null ? lookups.subcategoryById.get(a.subcategory_id) : undefined;
     parts.push(
-      sub ? `${category?.name ?? "?"} › ${sub.name}` : (category?.name ?? "categoria rimossa"),
+      sub
+        ? `${category?.name ?? "?"} › ${sub.name}`
+        : (category?.name ?? i18n.t("rules.describe.removedCategory")),
     );
   }
-  if (a.kind) parts.push(`tipo ${kindLabel(a.kind)}`);
+  if (a.kind) parts.push(i18n.t("rules.describe.kind", { kind: kindLabel(a.kind) }));
   if (a.income_type_id != null) {
-    parts.push(lookups.incomeTypeById.get(a.income_type_id)?.label ?? "tipologia rimossa");
+    parts.push(
+      lookups.incomeTypeById.get(a.income_type_id)?.label ??
+        i18n.t("rules.describe.removedIncomeType"),
+    );
   }
-  if (a.tag_ids?.length) parts.push(`${String(a.tag_ids.length)} tag`);
+  if (a.tag_ids?.length) parts.push(i18n.t("rules.describe.tags", { n: a.tag_ids.length }));
   return parts;
 }

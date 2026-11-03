@@ -1,5 +1,6 @@
 import { Eye, Search, X } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
+import { Trans } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { FormField as Field } from "@/components/common/FormField";
@@ -40,6 +41,7 @@ import {
   type RuleCreate,
   type RulePreview,
 } from "../queries";
+import { currentLanguage, i18n } from "@/i18n";
 
 const ANY = "any";
 const KEEP = "keep";
@@ -53,8 +55,10 @@ export interface RuleDraft {
   merchantName?: string;
 }
 
+/** Importo nel formato della lingua: "12,50" in italiano, "12.50" in inglese. */
 function amountText(value: string | null | undefined): string {
-  return value ? value.replace(".", ",") : "";
+  if (!value) return "";
+  return currentLanguage() === "it" ? value.replace(".", ",") : value;
 }
 
 function MerchantField({
@@ -71,13 +75,15 @@ function MerchantField({
   if (value !== null) {
     return (
       <div className="flex h-9 items-center justify-between rounded-md border bg-card px-3 text-sm">
-        <span className="truncate">{name ?? `Merchant #${String(value)}`}</span>
+        <span className="truncate">
+          {name ?? i18n.t("rules.editor.merchantNumber", { id: value })}
+        </span>
         <button
           type="button"
           onClick={() => {
             onChange(null);
           }}
-          aria-label="Togli il merchant"
+          aria-label={i18n.t("rules.editor.removeMerchant")}
           className="rounded p-0.5 text-muted-foreground hover:text-foreground"
         >
           <X aria-hidden className="size-4" />
@@ -98,7 +104,7 @@ function MerchantField({
           onChange={(event) => {
             setQ(event.target.value);
           }}
-          placeholder="Cerca un merchant (facoltativo)"
+          placeholder={i18n.t("rules.editor.searchMerchant")}
           className="bg-card pl-9"
         />
       </div>
@@ -116,13 +122,15 @@ function MerchantField({
               >
                 <span className="truncate">{m.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {formatCount(m.transaction_count)} mov.
+                  {i18n.t("analytics.transactionsShort", { n: formatCount(m.transaction_count) })}
                 </span>
               </button>
             </li>
           ))}
           {results.data?.items.length === 0 && (
-            <li className="px-3 py-1.5 text-muted-foreground">Nessun merchant</li>
+            <li className="px-3 py-1.5 text-muted-foreground">
+              {i18n.t("rules.editor.noMerchants")}
+            </li>
           )}
         </ul>
       )}
@@ -134,15 +142,13 @@ function PreviewResult({ preview, lookups }: { preview: RulePreview; lookups: Lo
   return (
     <section aria-live="polite" className="space-y-2 rounded-xl border bg-muted/30 p-3">
       <p className="text-sm">
-        Corrisponde a <strong className="font-medium">{formatCount(preview.matched)}</strong>{" "}
-        movimenti: <strong className="font-medium">{formatCount(preview.changed)}</strong>{" "}
-        cambierebbero
-        {preview.blocked > 0 && (
-          <>
-            , {formatCount(preview.blocked)} restano come sono (correzione manuale, trasferimento o
-            regola con priorità più alta)
-          </>
-        )}
+        <Trans
+          i18nKey="rules.editor.previewResult"
+          values={{ matched: formatCount(preview.matched), changed: formatCount(preview.changed) }}
+          components={{ strong: <strong className="font-medium" /> }}
+        />
+        {preview.blocked > 0 &&
+          i18n.t("rules.editor.previewBlocked", { n: formatCount(preview.blocked) })}
         .
       </p>
       {preview.changes.length > 0 && (
@@ -261,12 +267,12 @@ function RuleForm({
     if (direction !== ANY) conditions.direction = direction as "in" | "out";
     if (amountMin.trim()) {
       const v = parseAmountInput(amountMin);
-      if (!v) return "Importo minimo non valido";
+      if (!v) return i18n.t("rules.editor.errors.min");
       conditions.amount_min = v;
     }
     if (amountMax.trim()) {
       const v = parseAmountInput(amountMax);
-      if (!v) return "Importo massimo non valido";
+      if (!v) return i18n.t("rules.editor.errors.max");
       conditions.amount_max = v;
     }
     if (amounts.trim()) {
@@ -274,11 +280,11 @@ function RuleForm({
         .split(";")
         .map((x) => parseAmountInput(x))
         .filter((x) => x !== null);
-      if (list.length === 0) return "Importi esatti non validi (separali con ;)";
+      if (list.length === 0) return i18n.t("rules.editor.errors.amounts");
       conditions.amounts = list;
     }
     if (mcc.trim()) conditions.mcc = mcc.trim();
-    if (Object.keys(conditions).length === 0) return "Aggiungi almeno una condizione";
+    if (Object.keys(conditions).length === 0) return i18n.t("rules.editor.errors.condition");
 
     const actions: RuleActions = {};
     if (kind !== KEEP) actions.kind = kind as TransactionKind;
@@ -287,8 +293,8 @@ function RuleForm({
       actions.subcategory_id = category.subcategoryId;
     }
     if (incomeType !== KEEP) actions.income_type_id = Number(incomeType);
-    if (Object.keys(actions).length === 0) return "Scegli almeno un'azione";
-    if (!name.trim()) return "Dai un nome alla regola";
+    if (Object.keys(actions).length === 0) return i18n.t("rules.editor.errors.action");
+    if (!name.trim()) return i18n.t("rules.editor.errors.name");
     return { name: name.trim(), conditions, actions, priority: 100, is_active: true };
   }
 
@@ -309,7 +315,7 @@ function RuleForm({
           setPreviewed(signature);
         },
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Anteprima non riuscita");
+          setError(err instanceof ApiError ? err.message : i18n.t("rules.editor.errors.preview"));
         },
       },
     );
@@ -332,7 +338,7 @@ function RuleForm({
       {
         onSuccess: onClose,
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Salvataggio non riuscito");
+          setError(err instanceof ApiError ? err.message : i18n.t("rules.editor.errors.save"));
         },
       },
     );
@@ -341,15 +347,14 @@ function RuleForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col">
       <SheetHeader className="border-b">
-        <SheetTitle>{draft.id === null ? "Nuova regola" : "Modifica regola"}</SheetTitle>
-        <SheetDescription>
-          Se un movimento soddisfa tutte le condizioni, riceve le azioni. Le tue regole vengono
-          prima di quelle di sistema; le correzioni manuali vincono sempre.
-        </SheetDescription>
+        <SheetTitle>
+          {draft.id === null ? i18n.t("rules.editor.newTitle") : i18n.t("rules.editor.editTitle")}
+        </SheetTitle>
+        <SheetDescription>{i18n.t("rules.editor.description")}</SheetDescription>
       </SheetHeader>
 
       <div className="flex-1 space-y-6 p-4">
-        <Field label="Nome" htmlFor="rule-name">
+        <Field label={i18n.t("rules.editor.name")} htmlFor="rule-name">
           <Input
             id="rule-name"
             value={name}
@@ -357,17 +362,17 @@ function RuleForm({
               setName(event.target.value);
             }}
             maxLength={200}
-            placeholder="Es. Netflix → Abbonamenti"
+            placeholder={i18n.t("rules.editor.namePlaceholder")}
             className="bg-card"
           />
         </Field>
 
         <fieldset className="space-y-3">
-          <legend className="mb-2 text-sm font-medium">Se il movimento…</legend>
+          <legend className="mb-2 text-sm font-medium">{i18n.t("rules.editor.if")}</legend>
           <Field
-            label="Descrizione contiene"
+            label={i18n.t("rules.editor.contains")}
             htmlFor="rule-contains"
-            hint="Maiuscole e minuscole non contano"
+            hint={i18n.t("rules.editor.containsHint")}
           >
             <Input
               id="rule-contains"
@@ -375,11 +380,11 @@ function RuleForm({
               onChange={(event) => {
                 setContains(event.target.value);
               }}
-              placeholder="Es. netflix"
+              placeholder={i18n.t("rules.editor.containsPlaceholder")}
               className="bg-card"
             />
           </Field>
-          <Field label="Merchant" htmlFor="rule-merchant">
+          <Field label={i18n.t("rules.editor.merchant")} htmlFor="rule-merchant">
             <MerchantField
               value={merchant.id}
               name={merchant.name}
@@ -389,25 +394,25 @@ function RuleForm({
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Verso" htmlFor="rule-direction">
+            <Field label={i18n.t("rules.editor.direction")} htmlFor="rule-direction">
               <Select value={direction} onValueChange={setDirection}>
                 <SelectTrigger id="rule-direction" className="w-full bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ANY}>Uscite ed entrate</SelectItem>
-                  <SelectItem value="out">Solo uscite</SelectItem>
-                  <SelectItem value="in">Solo entrate</SelectItem>
+                  <SelectItem value={ANY}>{i18n.t("rules.editor.both")}</SelectItem>
+                  <SelectItem value="out">{i18n.t("rules.editor.outOnly")}</SelectItem>
+                  <SelectItem value="in">{i18n.t("rules.editor.inOnly")}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Conto" htmlFor="rule-account">
+            <Field label={i18n.t("rules.editor.account")} htmlFor="rule-account">
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger id="rule-account" className="w-full bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ANY}>Tutti i conti</SelectItem>
+                  <SelectItem value={ANY}>{i18n.t("rules.editor.allAccounts")}</SelectItem>
                   <SelectSeparator />
                   {lookups.accounts
                     .filter((acc) => acc.type !== "broker")
@@ -419,7 +424,7 @@ function RuleForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Importo da (€)" htmlFor="rule-min">
+            <Field label={i18n.t("rules.editor.amountFrom")} htmlFor="rule-min">
               <Input
                 id="rule-min"
                 inputMode="decimal"
@@ -427,11 +432,11 @@ function RuleForm({
                 onChange={(event) => {
                   setAmountMin(event.target.value);
                 }}
-                placeholder="0,00"
+                placeholder={i18n.t("rules.editor.amountPlaceholder")}
                 className="bg-card"
               />
             </Field>
-            <Field label="Importo fino a (€)" htmlFor="rule-max">
+            <Field label={i18n.t("rules.editor.amountTo")} htmlFor="rule-max">
               <Input
                 id="rule-max"
                 inputMode="decimal"
@@ -446,13 +451,13 @@ function RuleForm({
           </div>
           <details className="group space-y-3">
             <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-              Condizioni avanzate
+              {i18n.t("rules.editor.advanced")}
             </summary>
             <div className="mt-3 space-y-3">
               <Field
-                label="Importi esatti (€)"
+                label={i18n.t("rules.editor.amounts")}
                 htmlFor="rule-amounts"
-                hint="Separati da ; — es. 0,99; 2,99; 9,99"
+                hint={i18n.t("rules.editor.amountsHint")}
               >
                 <Input
                   id="rule-amounts"
@@ -463,18 +468,18 @@ function RuleForm({
                   className="bg-card"
                 />
               </Field>
-              <Field label="Espressione regolare sulla descrizione" htmlFor="rule-regex">
+              <Field label={i18n.t("rules.editor.regex")} htmlFor="rule-regex">
                 <Input
                   id="rule-regex"
                   value={regex}
                   onChange={(event) => {
                     setRegex(event.target.value);
                   }}
-                  placeholder="Es. trading ?212"
+                  placeholder={i18n.t("rules.editor.regexPlaceholder")}
                   className="bg-card font-mono text-xs"
                 />
               </Field>
-              <Field label="Codice MCC" htmlFor="rule-mcc">
+              <Field label={i18n.t("rules.editor.mcc")} htmlFor="rule-mcc">
                 <Input
                   id="rule-mcc"
                   value={mcc}
@@ -483,7 +488,7 @@ function RuleForm({
                   }}
                   inputMode="numeric"
                   maxLength={4}
-                  placeholder="Es. 5411"
+                  placeholder={i18n.t("rules.editor.mccPlaceholder")}
                   className="bg-card"
                 />
               </Field>
@@ -492,24 +497,24 @@ function RuleForm({
         </fieldset>
 
         <fieldset className="space-y-3">
-          <legend className="mb-2 text-sm font-medium">…allora</legend>
-          <Field label="Categoria" htmlFor="rule-category">
+          <legend className="mb-2 text-sm font-medium">{i18n.t("rules.editor.then")}</legend>
+          <Field label={i18n.t("rules.editor.category")} htmlFor="rule-category">
             <CategoryPicker
               id="rule-category"
               categories={lookups.categories}
               value={category}
-              noneLabel="Non cambiare la categoria"
+              noneLabel={i18n.t("rules.editor.keepCategory")}
               onChange={setCategory}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Tipo" htmlFor="rule-kind">
+            <Field label={i18n.t("rules.editor.kind")} htmlFor="rule-kind">
               <Select value={kind} onValueChange={setKind}>
                 <SelectTrigger id="rule-kind" className="w-full bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={KEEP}>Non cambiare</SelectItem>
+                  <SelectItem value={KEEP}>{i18n.t("rules.editor.keep")}</SelectItem>
                   <SelectSeparator />
                   {TRANSACTION_KINDS.map((k) => (
                     <SelectItem key={k} value={k}>
@@ -519,13 +524,13 @@ function RuleForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Tipologia di entrata" htmlFor="rule-income">
+            <Field label={i18n.t("rules.editor.incomeType")} htmlFor="rule-income">
               <Select value={incomeType} onValueChange={setIncomeType}>
                 <SelectTrigger id="rule-income" className="w-full bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={KEEP}>Non cambiare</SelectItem>
+                  <SelectItem value={KEEP}>{i18n.t("rules.editor.keep")}</SelectItem>
                   <SelectSeparator />
                   {lookups.incomeTypes.map((i) => (
                     <SelectItem key={i.id} value={String(i.id)}>
@@ -541,13 +546,13 @@ function RuleForm({
         <div className="space-y-3">
           <Button type="button" variant="outline" onClick={onPreview} disabled={preview.isPending}>
             <Eye aria-hidden />
-            {preview.isPending ? "Calcolo…" : "Prova sui movimenti esistenti"}
+            {preview.isPending ? i18n.t("rules.editor.computing") : i18n.t("rules.editor.preview")}
           </Button>
           {preview.data && (
             <div className={previewIsCurrent ? undefined : "opacity-50"}>
               {!previewIsCurrent && (
                 <p className="mb-2 text-xs text-muted-foreground">
-                  La regola è cambiata dopo l'anteprima: riprovala.
+                  {i18n.t("rules.editor.stalePreview")}
                 </p>
               )}
               <PreviewResult preview={preview.data} lookups={lookups} />
@@ -564,10 +569,14 @@ function RuleForm({
 
       <SheetFooter className="mt-auto flex-row justify-end gap-2 border-t">
         <Button type="button" variant="ghost" onClick={onClose}>
-          Annulla
+          {i18n.t("common.cancel")}
         </Button>
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? "Salvataggio…" : draft.id === null ? "Crea regola" : "Salva"}
+          {save.isPending
+            ? i18n.t("rules.editor.saving")
+            : draft.id === null
+              ? i18n.t("rules.editor.create")
+              : i18n.t("rules.editor.save")}
         </Button>
       </SheetFooter>
     </form>

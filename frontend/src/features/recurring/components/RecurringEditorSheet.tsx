@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/sheet";
 import { parseAmountInput } from "@/lib/format";
 
-import { FREQUENCY_LABELS, type Frequency } from "../labels";
+import { FIXED_FREQUENCIES, type Frequency } from "../labels";
 import { useUpdateRecurring, type Recurring } from "../queries";
+import { currentLanguage, i18n } from "@/i18n";
 
 /** Correggi nome, importo atteso, frequenza e tolleranza (correggere una proposta la conferma). */
 export function RecurringEditorSheet({
@@ -49,7 +50,10 @@ export function RecurringEditorSheet({
 function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void }) {
   const save = useUpdateRecurring();
   const [name, setName] = useState(item.name);
-  const [amount, setAmount] = useState(item.expected_amount.replace(".", ","));
+  // Importo nel formato della lingua: "12,50" in italiano, "12.50" in inglese.
+  const [amount, setAmount] = useState(
+    currentLanguage() === "it" ? item.expected_amount.replace(".", ",") : item.expected_amount,
+  );
   const [frequency, setFrequency] = useState<Frequency>(item.frequency as Frequency);
   const [interval, setInterval] = useState(String(item.interval_days ?? 30));
   const [tolerance, setTolerance] = useState(String(Number(item.amount_tolerance_pct)));
@@ -61,13 +65,13 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
     const days = Number(interval);
     const tol = Number(tolerance);
     const problem = !name.trim()
-      ? "Dai un nome alla ricorrenza"
+      ? i18n.t("recurring.editor.errors.name")
       : !expected
-        ? "Importo non valido"
+        ? i18n.t("recurring.editor.errors.amount")
         : frequency === "custom" && !(Number.isInteger(days) && days >= 1 && days <= 730)
-          ? "Ogni quanti giorni? Da 1 a 730"
+          ? i18n.t("recurring.editor.errors.interval")
           : !(Number.isInteger(tol) && tol >= 0 && tol <= 50)
-            ? "Tolleranza da 0 a 50%"
+            ? i18n.t("recurring.editor.errors.tolerance")
             : null;
     setError(problem);
     if (problem || !expected) return;
@@ -85,7 +89,7 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
       {
         onSuccess: onClose,
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Salvataggio non riuscito");
+          setError(err instanceof ApiError ? err.message : i18n.t("recurring.editor.errors.save"));
         },
       },
     );
@@ -95,16 +99,15 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
     <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col">
       <SheetHeader className="border-b">
         <SheetTitle>
-          {item.status === "suggested" ? "Correggi e conferma" : "Modifica ricorrenza"}
+          {item.status === "suggested"
+            ? i18n.t("recurring.row.fixAndConfirm")
+            : i18n.t("recurring.editor.editTitle")}
         </SheetTitle>
-        <SheetDescription>
-          Fanno parte della ricorrenza i movimenti della stessa controparte con importo entro la
-          tolleranza. Le tue scelte restano anche dopo le prossime sincronizzazioni.
-        </SheetDescription>
+        <SheetDescription>{i18n.t("recurring.editor.description")}</SheetDescription>
       </SheetHeader>
 
       <div className="flex-1 space-y-5 p-4">
-        <FormField label="Nome" htmlFor="recurring-name">
+        <FormField label={i18n.t("recurring.editor.name")} htmlFor="recurring-name">
           <Input
             id="recurring-name"
             value={name}
@@ -116,7 +119,7 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
           />
         </FormField>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Importo atteso (€)" htmlFor="recurring-amount">
+          <FormField label={i18n.t("recurring.editor.amount")} htmlFor="recurring-amount">
             <Input
               id="recurring-amount"
               value={amount}
@@ -128,9 +131,9 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
             />
           </FormField>
           <FormField
-            label="Tolleranza (%)"
+            label={i18n.t("recurring.editor.tolerance")}
             htmlFor="recurring-tolerance"
-            hint="Scarto ammesso sull'importo"
+            hint={i18n.t("recurring.editor.toleranceHint")}
           >
             <Input
               id="recurring-tolerance"
@@ -144,7 +147,7 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
           </FormField>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Frequenza" htmlFor="recurring-frequency">
+          <FormField label={i18n.t("recurring.editor.frequency")} htmlFor="recurring-frequency">
             <Select
               value={frequency}
               onValueChange={(v) => {
@@ -155,17 +158,17 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(FREQUENCY_LABELS) as Exclude<Frequency, "custom">[]).map((f) => (
+                {FIXED_FREQUENCIES.map((f) => (
                   <SelectItem key={f} value={f}>
-                    {FREQUENCY_LABELS[f]}
+                    {i18n.t(`recurring.frequency.${f}`)}
                   </SelectItem>
                 ))}
-                <SelectItem value="custom">Ogni tot giorni</SelectItem>
+                <SelectItem value="custom">{i18n.t("recurring.frequency.custom")}</SelectItem>
               </SelectContent>
             </Select>
           </FormField>
           {frequency === "custom" && (
-            <FormField label="Ogni quanti giorni" htmlFor="recurring-interval">
+            <FormField label={i18n.t("recurring.editor.interval")} htmlFor="recurring-interval">
               <Input
                 id="recurring-interval"
                 value={interval}
@@ -188,10 +191,14 @@ function RecurringForm({ item, onClose }: { item: Recurring; onClose: () => void
 
       <SheetFooter className="mt-auto flex-row justify-end gap-2 border-t">
         <Button type="button" variant="ghost" onClick={onClose}>
-          Annulla
+          {i18n.t("common.cancel")}
         </Button>
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? "Salvataggio…" : item.status === "suggested" ? "Conferma" : "Salva"}
+          {save.isPending
+            ? i18n.t("recurring.editor.saving")
+            : item.status === "suggested"
+              ? i18n.t("recurring.row.confirm")
+              : i18n.t("recurring.editor.save")}
         </Button>
       </SheetFooter>
     </form>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { api, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 
 export type Recurring = Schemas["RecurringRead"];
 export type RecurringSummary = Schemas["RecurringSummary"];
@@ -75,7 +76,7 @@ export function useForgetRecurring() {
       const { response } = await api.DELETE("/api/recurring/{recurring_id}", {
         params: { path: { recurring_id: id } },
       });
-      if (!response.ok) throw new Error("Operazione non riuscita");
+      if (!response.ok) throw new Error(i18n.t("recurring.operationFailed"));
     },
     onSuccess: () => {
       invalidatePlanning(client);

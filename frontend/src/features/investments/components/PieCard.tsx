@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatPercent } from "@/lib/format";
 
 import type { InvestmentPie } from "../queries";
+import { i18n } from "@/i18n";
 
 /**
  * Una Pie: valore, investito, risultato (non annualizzato) e, per ogni strumento, il peso
@@ -16,32 +17,36 @@ export function PieCard({ pie }: { pie: InvestmentPie }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChart aria-hidden className="size-4 text-muted-foreground" />
-          Pie «{pie.name}»
+          {i18n.t("investments.pie.title", { name: pie.name })}
         </CardTitle>
         <CardDescription>
           {pie.dividend_action === "REINVEST"
-            ? "Dividendi reinvestiti nella Pie"
+            ? i18n.t("investments.pie.reinvest")
             : pie.dividend_action === "TO_ACCOUNT_CASH"
-              ? "Dividendi in liquidità"
-              : "Composizione e risultato"}
+              ? i18n.t("investments.pie.toCash")
+              : i18n.t("investments.pie.composition")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-xs text-muted-foreground">Valore</dt>
+            <dt className="text-xs text-muted-foreground">
+              {i18n.t("investments.positions.value")}
+            </dt>
             <dd className="font-medium">
               <Money value={pie.value_eur} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Investito</dt>
+            <dt className="text-xs text-muted-foreground">{i18n.t("investments.pie.invested")}</dt>
             <dd>
               <Money value={pie.invested_eur} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Risultato</dt>
+            <dt className="text-xs text-muted-foreground">
+              {i18n.t("investments.positions.result")}
+            </dt>
             <dd>
               <Money value={pie.result_eur} signed tone="auto" />
               {pie.result_pct !== null && (
@@ -52,7 +57,9 @@ export function PieCard({ pie }: { pie: InvestmentPie }) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Liquidità da investire</dt>
+            <dt className="text-xs text-muted-foreground">
+              {i18n.t("investments.pie.cashToInvest")}
+            </dt>
             <dd>
               <Money value={pie.cash_eur} />
             </dd>
@@ -61,9 +68,10 @@ export function PieCard({ pie }: { pie: InvestmentPie }) {
 
         <div>
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Peso attuale e obiettivo</span>
+            <span>{i18n.t("investments.pie.weights")}</span>
             <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden className="h-3 w-0.5 bg-foreground/60" /> obiettivo
+              <span aria-hidden className="h-3 w-0.5 bg-foreground/60" />{" "}
+              {i18n.t("investments.pie.target")}
             </span>
           </div>
           <ul className="space-y-3">
@@ -80,7 +88,9 @@ export function PieCard({ pie }: { pie: InvestmentPie }) {
                       <span className="font-medium text-foreground">
                         {formatPercent(i.current_share_pct / 100)}
                       </span>{" "}
-                      su {formatPercent(i.expected_share_pct / 100)}
+                      {i18n.t("investments.pie.ofTarget", {
+                        pct: formatPercent(i.expected_share_pct / 100),
+                      })}
                       {Math.abs(drift) >= 0.5 && (
                         <> ({formatPercent(drift / 100, { signed: true })})</>
                       )}
@@ -88,7 +98,11 @@ export function PieCard({ pie }: { pie: InvestmentPie }) {
                   </div>
                   <div
                     role="img"
-                    aria-label={`${i.name ?? i.ticker}: ${formatPercent(i.current_share_pct / 100)} attuale, obiettivo ${formatPercent(i.expected_share_pct / 100)}`}
+                    aria-label={i18n.t("investments.pie.bar", {
+                      name: i.name ?? i.ticker,
+                      current: formatPercent(i.current_share_pct / 100),
+                      target: formatPercent(i.expected_share_pct / 100),
+                    })}
                     className="relative h-2 rounded-full bg-primary/15"
                   >
                     <div

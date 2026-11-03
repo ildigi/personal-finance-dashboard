@@ -1,5 +1,9 @@
 import type { Messages } from "../types";
 import { overview } from "./en/overview";
+import { rules } from "./en/rules";
+import { recurring } from "./en/recurring";
+import { budgets } from "./en/budgets";
+import { investments } from "./en/investments";
 import { networth } from "./en/networth";
 import { analytics } from "./en/analytics";
 import { transactions } from "./en/transactions";
@@ -349,6 +353,10 @@ export const en = {
     transactionsShort: "{{n}} txns",
   },
   ...overview,
+  ...rules,
+  ...recurring,
+  ...budgets,
+  ...investments,
   ...networth,
   ...analytics,
   ...transactions,

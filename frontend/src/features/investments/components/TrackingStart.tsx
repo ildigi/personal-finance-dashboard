@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/format";
 import { todayInRome } from "@/lib/period";
 
 import { useUpdateTrackingStart } from "../queries";
+import { i18n } from "@/i18n";
 
 /** "dal 1 set 2026" oppure "tutto lo storico": apre il pannello per cambiarla. */
 export function TrackingStartButton({
@@ -30,7 +31,9 @@ export function TrackingStartButton({
       onClick={onToggle}
     >
       <CalendarRange aria-hidden className="size-3.5" />
-      {start ? `dal ${formatDate(start)}` : "tutto lo storico"}
+      {start
+        ? i18n.t("investments.tracking.from", { date: formatDate(start) })
+        : i18n.t("investments.tracking.all")}
     </Button>
   );
 }
@@ -58,10 +61,9 @@ export function TrackingStartPanel({
   return (
     <Card id="tracking-start-panel" className="gap-3 px-4 py-4 sm:px-5">
       <div className="space-y-1">
-        <h2 className="text-sm font-medium">Da quando contare i rendimenti</h2>
+        <h2 className="text-sm font-medium">{i18n.t("investments.tracking.title")}</h2>
         <p className="text-xs text-muted-foreground">
-          Versamenti, ordini, dividendi e guadagni realizzati prima di questa data non contano.
-          Quello che c'era sul conto quel giorno vale come capitale di partenza.
+          {i18n.t("investments.tracking.description")}
         </p>
       </div>
       <form
@@ -73,7 +75,7 @@ export function TrackingStartPanel({
       >
         <div className="space-y-1.5">
           <Label htmlFor="tracking-start" className="text-xs text-muted-foreground">
-            Data di inizio
+            {i18n.t("investments.tracking.startDate")}
           </Label>
           <Input
             id="tracking-start"
@@ -87,7 +89,7 @@ export function TrackingStartPanel({
           />
         </div>
         <Button type="submit" size="sm" disabled={!value || value > today || update.isPending}>
-          Salva
+          {i18n.t("investments.tracking.save")}
         </Button>
         {start && (
           <Button
@@ -99,11 +101,11 @@ export function TrackingStartPanel({
               save(null);
             }}
           >
-            Usa tutto lo storico
+            {i18n.t("investments.tracking.useAll")}
           </Button>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          Annulla
+          {i18n.t("common.cancel")}
         </Button>
       </form>
       {update.isError && <p className="text-xs text-destructive">{update.error.message}</p>}

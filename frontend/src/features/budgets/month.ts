@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n";
 import { todayInRome } from "@/lib/period";
 
 /** Mese corrente "AAAA-MM" nel fuso di Roma. */
@@ -23,10 +24,14 @@ export function budgetStatusText(budget: {
   projected_over: boolean;
 }): string {
   if (budget.level === "over") {
-    return Number(budget.remaining_eur) === 0 ? "Budget esaurito" : "Budget superato";
+    return Number(budget.remaining_eur) === 0
+      ? i18n.t("budgets.status.exhausted")
+      : i18n.t("budgets.status.over");
   }
   if (budget.level === "warning") {
-    return `Soglia di avviso superata (${String(budget.alert_threshold_pct)}%)`;
+    return i18n.t("budgets.status.warning", { pct: budget.alert_threshold_pct });
   }
-  return budget.projected_over ? "A questo ritmo lo superi" : "In linea";
+  return budget.projected_over
+    ? i18n.t("budgets.status.projectedOver")
+    : i18n.t("budgets.status.onTrack");
 }

@@ -14,11 +14,31 @@ import { ChartLegend, ChartTooltipBox } from "@/components/charts/ChartTooltip";
 import { formatAxisMoney, formatMoney, formatMonth } from "@/lib/format";
 
 import type { InvestmentMonth } from "../queries";
+import { i18n } from "@/i18n";
 
+// Etichette lette a ogni uso (getter): seguono la lingua attuale.
 const SERIES = {
-  net: { key: "net", label: "Capitale versato", color: "var(--chart-1)" },
-  value: { key: "value", label: "Valore del conto", color: "var(--chart-3)" },
-  dividends: { key: "dividends", label: "Dividendi", color: "var(--chart-4)" },
+  net: {
+    key: "net",
+    get label() {
+      return i18n.t("investments.tiles.netDeposits");
+    },
+    color: "var(--chart-1)",
+  },
+  value: {
+    key: "value",
+    get label() {
+      return i18n.t("investments.capital.accountValue");
+    },
+    color: "var(--chart-3)",
+  },
+  dividends: {
+    key: "dividends",
+    get label() {
+      return i18n.t("investments.dividends.title");
+    },
+    color: "var(--chart-4)",
+  },
 };
 
 interface Row {
@@ -81,10 +101,22 @@ export function CapitalChart({ months }: { months: InvestmentMonth[] }) {
                       { ...SERIES.net, value: row.net },
                       ...(row.value !== null ? [{ ...SERIES.value, value: row.value }] : []),
                       ...(row.deposits
-                        ? [{ key: "dep", label: "Versato nel mese", value: row.deposits }]
+                        ? [
+                            {
+                              key: "dep",
+                              label: i18n.t("investments.capital.depositedInMonth"),
+                              value: row.deposits,
+                            },
+                          ]
                         : []),
                       ...(row.withdrawals
-                        ? [{ key: "wd", label: "Prelevato nel mese", value: -row.withdrawals }]
+                        ? [
+                            {
+                              key: "wd",
+                              label: i18n.t("investments.capital.withdrawnInMonth"),
+                              value: -row.withdrawals,
+                            },
+                          ]
                         : []),
                     ]}
                   />
@@ -170,25 +202,25 @@ function DataTable({ rows }: { rows: Row[] }) {
   return (
     <details className="text-sm">
       <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-        Tabella dei dati
+        {i18n.t("analytics.dataTable")}
       </summary>
       <table className="mt-2 w-full text-xs">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th scope="col" className="py-1.5 font-medium">
-              Mese
+              {i18n.t("analytics.month")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Versato nel mese
+              {i18n.t("investments.capital.depositedInMonth")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Capitale versato
+              {i18n.t("investments.tiles.netDeposits")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Valore
+              {i18n.t("investments.positions.value")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Dividendi
+              {i18n.t("investments.dividends.title")}
             </th>
           </tr>
         </thead>

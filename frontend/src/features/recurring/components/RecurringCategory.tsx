@@ -4,6 +4,7 @@ import { CategoryLabel } from "@/features/transactions/components/CategoryLabel"
 import type { TransactionKind } from "@/features/transactions/labels";
 import type { Lookups } from "@/features/transactions/lookups";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 /** Categoria di una ricorrenza; le entrate senza categoria (es. stipendio) sono "Entrata". */
 export function RecurringCategory({
@@ -19,7 +20,7 @@ export function RecurringCategory({
     return (
       <span className={cn("inline-flex items-center gap-1.5", className)}>
         <HandCoins aria-hidden className="size-4 shrink-0" />
-        Entrata
+        {i18n.t("recurring.income")}
       </span>
     );
   }
