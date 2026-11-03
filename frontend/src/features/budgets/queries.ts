@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 
 export type BudgetOverview = Schemas["BudgetOverview"];
 export type BudgetStatus = Schemas["BudgetStatus"];
@@ -65,6 +66,6 @@ export function useDeleteBudget() {
     const { response } = await api.DELETE("/api/budgets/{budget_id}", {
       params: { path: { budget_id: id } },
     });
-    if (!response.ok) throw new Error("Eliminazione non riuscita");
+    if (!response.ok) throw new Error(i18n.t("errors.deleteFailed"));
   });
 }

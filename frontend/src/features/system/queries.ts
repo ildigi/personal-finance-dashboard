@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { i18n } from "@/i18n";
 import { api, ApiError, unwrap, type Health } from "@/api/client";
 
 export const queryKeys = {
@@ -16,11 +17,11 @@ function isHealth(value: unknown): value is Health {
 /** Il 503 di /api/health (database irraggiungibile) ha comunque un corpo utile: lo si legge. */
 export async function fetchHealth(): Promise<Health> {
   const result = await api.GET("/api/health").catch(() => undefined);
-  if (!result) throw new ApiError(0, "Backend non raggiungibile");
+  if (!result) throw new ApiError(0, i18n.t("errors.backendUnreachable"));
   if (result.data) return result.data;
   const body: unknown = result.error;
   if (result.response.status === 503 && isHealth(body)) return body;
-  throw new ApiError(result.response.status, "Backend non raggiungibile");
+  throw new ApiError(result.response.status, i18n.t("errors.backendUnreachable"));
 }
 
 export function useHealth() {

@@ -10,24 +10,14 @@ const I18N_DEFAULT_CALLEES = i18nextDefaults.callees.exclude;
 const I18N_DEFAULT_ATTRIBUTES = i18nextDefaults["jsx-attributes"].exclude;
 const I18N_DEFAULT_WORDS = i18nextDefaults.words.exclude;
 
-/** File già tradotti (fase I1: shell e Impostazioni). */
-const I18N_FILES = [
-  "src/app/**/*.{ts,tsx}",
-  "src/api/client.ts",
-  "src/components/layout/!(LegalLayout).{ts,tsx}",
-  "src/components/ui/sheet.tsx",
-  "src/features/auth/AccessCard.tsx",
-  "src/features/auth/queries.ts",
-  "src/features/banks/**/*.{ts,tsx}",
-  "src/features/categories/**/*.{ts,tsx}",
-  "src/features/merchants/**/*.{ts,tsx}",
-  "src/features/sync/**/*.{ts,tsx}",
-  "src/features/transactions/components/CategoryPicker.tsx",
-  "src/lib/format.ts",
-  "src/lib/period.ts",
-  "src/lib/preferences.ts",
-  "src/pages/SettingsPage.tsx",
-];
+/** Tutto il codice dell'interfaccia (fase I2). */
+const I18N_FILES = ["src/**/*.{ts,tsx}"];
+
+/**
+ * Eccezioni: i file di traduzione (contengono i testi), i test (verificano i testi) e lo
+ * schema dell'API generato.
+ */
+const I18N_IGNORES = ["src/i18n/locales/**", "src/**/*.test.{ts,tsx}", "src/api/schema.d.ts"];
 
 export default tseslint.config(
   { ignores: ["dist", "coverage", "src/api/schema.d.ts"] },
@@ -60,6 +50,7 @@ export default tseslint.config(
     // Niente testi fissi nell'interfaccia: passano da `t()` (ADR 0006). La regola vale per i
     // file già tradotti e si allarga fase per fase (SPEC §18).
     files: I18N_FILES,
+    ignores: I18N_IGNORES,
     plugins: { i18next },
     rules: {
       "i18next/no-literal-string": [
@@ -73,12 +64,14 @@ export default tseslint.config(
               // classi CSS
               "cn",
               "cva",
-              // errori per chi sviluppa, mai mostrati come testo dell'interfaccia
-              "Error",
               // chiavi del browser e selettori
               "localStorage\\.\\w+",
               "matchMedia",
+              // locale tecniche di Intl (date in formato ISO, ora di Roma)
+              "Intl\\.\\w+",
               "querySelector(All)?",
+              // media query
+              "useMediaQuery",
               // percorsi dell'API (openapi-fetch) e chiavi delle query
               "api\\.(GET|POST|PUT|PATCH|DELETE)",
               "invalidateQueries",
@@ -102,22 +95,49 @@ export default tseslint.config(
               "data-\\w+",
               "autoComplete",
               "inputMode",
+              // grafici (colori, tratteggi) e formati dei campi
+              "stroke",
+              "fill",
+              "strokeDasharray",
+              "pattern",
             ],
           },
           "object-properties": {
-            exclude: ["[A-Z_-]+", "queryKey", "status", "type", "value", "path", "id"],
+            exclude: [
+              "[A-Z_-]+",
+              "queryKey",
+              "status",
+              "type",
+              "value",
+              "path",
+              "id",
+              // fuso orario di Intl
+              "timeZone",
+              // proprietà di stile dei grafici
+              "stroke",
+              "fill",
+              "color",
+            ],
           },
           words: {
             exclude: [
               ...I18N_DEFAULT_WORDS,
-              // identificatori: codici, chiavi, percorsi, classi CSS senza spazi
-              "^[\\w./:@#*-]+$",
+              // identificatori: codici, chiavi, percorsi, classi CSS (minuscole, senza spazi)
+              "^[a-z0-9_./:@#*-]+$",
+              // chiavi in camelCase (es. sezioni dei testi)
+              "^[a-z][a-zA-Z0-9]*$",
+              // colori dei grafici: variabili CSS
+              "^var\\(--[\\w-]+\\)$",
+              // esempi numerici nei campi ("123 456")
+              "^[\\d\\s]+$",
               // direttiva dei componenti shadcn/ui
               "^use client$",
               // separatori e simboli tipografici (" · ", "—", "€", "…")
               "^[\\s·—–…€%+()/:,.]+$",
             ],
           },
+          // nome della classe d'errore
+          "class-properties": { exclude: ["name"] },
         },
       ],
     },

@@ -151,7 +151,9 @@ export function AlertsCard({ className }: { className?: string }) {
                   />
                   <span className="min-w-0 flex-1 text-sm">
                     <span className="sr-only">
-                      {a.level === "critical" ? "Problema: " : "Avviso: "}
+                      {a.level === "critical"
+                        ? t("alerts.levelCritical")
+                        : t("alerts.levelWarning")}
                     </span>
                     {a.text}
                   </span>

@@ -71,6 +71,8 @@ export const overview = {
     title: "Needs attention",
     description: "Bank consents, syncs, budgets and classification",
     allGood: "All good: nothing needs attention.",
+    levelCritical: "Problem: ",
+    levelWarning: "Warning: ",
     syncFailed: "Last sync of {{name}} failed",
     consentExpired: "Bank consent for {{bank}} expired: new transactions are not coming in",
     consentExpiring_one: "Bank consent for {{bank}} expires in {{n}} day",

@@ -1,4 +1,5 @@
 import { overview } from "./it/overview";
+import { pages } from "./it/pages";
 import { rules } from "./it/rules";
 import { recurring } from "./it/recurring";
 import { budgets } from "./it/budgets";
@@ -354,6 +355,7 @@ export const it = {
     transactionsShort: "{{n}} mov.",
   },
   ...overview,
+  ...pages,
   ...rules,
   ...recurring,
   ...budgets,

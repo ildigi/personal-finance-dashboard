@@ -4,20 +4,21 @@ import { Link } from "react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { i18n } from "@/i18n";
 
 export function NotFoundPage() {
   return (
     <Card>
       <EmptyState
         icon={Compass}
-        title="Pagina non trovata"
+        title={i18n.t("notFound.title")}
         action={
           <Button asChild>
-            <Link to="/">Torna alla panoramica</Link>
+            <Link to="/">{i18n.t("notFound.back")}</Link>
           </Button>
         }
       >
-        L&apos;indirizzo non corrisponde a nessuna pagina della dashboard.
+        {i18n.t("notFound.text")}
       </EmptyState>
     </Card>
   );

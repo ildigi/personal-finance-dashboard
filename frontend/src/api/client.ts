@@ -47,6 +47,7 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string) {
     super(message);
+    // eslint-disable-next-line i18next/no-literal-string -- nome della classe, non testo
     this.name = "ApiError";
     this.status = status;
   }

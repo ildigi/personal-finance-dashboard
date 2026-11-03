@@ -1,72 +1,51 @@
+import { Trans } from "react-i18next";
+
 import { LegalLayout, LegalSection } from "@/components/layout/LegalLayout";
+import { i18n } from "@/i18n";
+
+const STRONG = { strong: <strong /> };
 
 /** Informativa sulla privacy (indirizzo registrato su Enable Banking come "Privacy URL"). */
 export function PrivacyPage() {
   return (
-    <LegalLayout title="Informativa sulla privacy">
-      <LegalSection title="Chi usa questa app">
-        <p>
-          Questa è una dashboard personale per la gestione delle proprie finanze, usata soltanto dal
-          suo proprietario. Funziona in locale sul computer del proprietario (in futuro potrà
-          funzionare su un suo server privato). Non è un servizio offerto ad altre persone.
-        </p>
-        <p>
-          Il titolare del trattamento è il proprietario della dashboard, che è anche l&apos;unica
-          persona di cui vengono trattati i dati.
-        </p>
+    <LegalLayout title={i18n.t("legal.privacy.title")}>
+      <LegalSection title={i18n.t("legal.privacy.who.title")}>
+        <p>{i18n.t("legal.privacy.who.p1")}</p>
+        <p>{i18n.t("legal.privacy.who.p2")}</p>
       </LegalSection>
 
-      <LegalSection title="Quali dati vengono letti">
+      <LegalSection title={i18n.t("legal.privacy.data.title")}>
         <ul>
           <li>
-            <strong>Conti bancari</strong>, tramite Enable Banking (servizio di informazione sui
-            conti previsto dalla direttiva PSD2): elenco dei conti, saldi e movimenti dei soli conti
-            del proprietario.
+            <Trans i18nKey="legal.privacy.data.banks" components={STRONG} />
           </li>
           <li>
-            <strong>Investimenti su Trading 212</strong>, tramite l&apos;API ufficiale in sola
-            lettura.
+            <Trans i18nKey="legal.privacy.data.broker" components={STRONG} />
           </li>
         </ul>
         <p>
-          L&apos;accesso è <strong>in sola lettura</strong>: l&apos;app non può disporre pagamenti
-          né spostare denaro. Non vede mai le password della banca: l&apos;accesso e
-          l&apos;autenticazione forte avvengono direttamente nell&apos;app o nel sito della banca.
+          <Trans i18nKey="legal.privacy.data.readOnly" components={STRONG} />
         </p>
       </LegalSection>
 
-      <LegalSection title="Perché">
-        <p>
-          Solo per uso personale: tenere un budget, classificare le spese e analizzare
-          l&apos;andamento di conti e investimenti.
-        </p>
+      <LegalSection title={i18n.t("legal.privacy.why.title")}>
+        <p>{i18n.t("legal.privacy.why.p1")}</p>
       </LegalSection>
 
-      <LegalSection title="Dove sono conservati">
+      <LegalSection title={i18n.t("legal.privacy.where.title")}>
         <ul>
-          <li>In un database PostgreSQL locale, sul computer del proprietario.</li>
-          <li>I token della sessione di consenso sono conservati cifrati.</li>
-          <li>
-            I dati non vengono venduti, condivisi o inviati a terzi, a parte i fornitori necessari
-            per ottenerli (Enable Banking e la banca).
-          </li>
-          <li>
-            Nessuno strumento di analisi o tracciamento e nessun cookie di profilazione. Il browser
-            ricorda solo preferenze locali, come il tema e la modalità privacy (in localStorage).
-          </li>
+          <li>{i18n.t("legal.privacy.where.db")}</li>
+          <li>{i18n.t("legal.privacy.where.tokens")}</li>
+          <li>{i18n.t("legal.privacy.where.thirdParties")}</li>
+          <li>{i18n.t("legal.privacy.where.tracking")}</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="Durata del consenso e revoca">
+      <LegalSection title={i18n.t("legal.privacy.consent.title")}>
         <p>
-          Il consenso dato alla banca dura al massimo 180 giorni. Si può revocare in qualsiasi
-          momento da <strong>Impostazioni → Scollega</strong>, che chiude la sessione anche presso
-          Enable Banking, oppure direttamente dalla banca.
+          <Trans i18nKey="legal.privacy.consent.p1" components={STRONG} />
         </p>
-        <p>
-          Al momento dello scollegamento si possono anche cancellare i dati già scaricati, con
-          «Elimina conti e movimenti».
-        </p>
+        <p>{i18n.t("legal.privacy.consent.p2")}</p>
       </LegalSection>
     </LegalLayout>
   );

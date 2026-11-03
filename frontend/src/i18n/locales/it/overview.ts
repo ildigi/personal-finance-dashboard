@@ -69,6 +69,8 @@ export const overview = {
     title: "Da sistemare",
     description: "Consensi, sincronizzazioni, budget e classificazione",
     allGood: "Tutto in ordine: niente da sistemare.",
+    levelCritical: "Problema: ",
+    levelWarning: "Avviso: ",
     syncFailed: "Ultima sincronizzazione di {{name}} non riuscita",
     consentExpired: "Consenso di {{bank}} scaduto: i movimenti nuovi non arrivano",
     consentExpiring_one: "Consenso di {{bank}} in scadenza tra {{n}} giorno",

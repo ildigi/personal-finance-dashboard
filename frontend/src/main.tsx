@@ -9,6 +9,7 @@ import { createAppRouter } from "./app/router";
 
 const router = createAppRouter();
 const container = document.getElementById("root");
+// eslint-disable-next-line i18next/no-literal-string -- errore di programmazione, prima che l'app esista
 if (!container) throw new Error("Elemento #root mancante");
 
 createRoot(container).render(

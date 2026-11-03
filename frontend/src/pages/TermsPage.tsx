@@ -1,41 +1,31 @@
+import { Trans } from "react-i18next";
+
 import { LegalLayout, LegalSection } from "@/components/layout/LegalLayout";
+import { i18n } from "@/i18n";
 
 /** Termini di utilizzo (indirizzo registrato su Enable Banking come "Terms URL"). */
 export function TermsPage() {
   return (
-    <LegalLayout title="Termini di utilizzo">
-      <LegalSection title="Uso personale">
-        <p>
-          Questa dashboard è destinata all&apos;uso personale e non commerciale del solo
-          proprietario. Non offre alcun servizio a terzi e non collega conti di altre persone.
-        </p>
+    <LegalLayout title={i18n.t("legal.terms.title")}>
+      <LegalSection title={i18n.t("legal.terms.personal.title")}>
+        <p>{i18n.t("legal.terms.personal.p1")}</p>
       </LegalSection>
 
-      <LegalSection title="Sola lettura">
-        <p>
-          L&apos;app legge conti, saldi, movimenti e investimenti, ma non può disporre pagamenti né
-          modificare nulla presso la banca o il broker.
-        </p>
+      <LegalSection title={i18n.t("legal.terms.readOnly.title")}>
+        <p>{i18n.t("legal.terms.readOnly.p1")}</p>
       </LegalSection>
 
-      <LegalSection title="Nessuna garanzia sui dati">
+      <LegalSection title={i18n.t("legal.terms.noWarranty.title")}>
         <ul>
-          <li>
-            Le cifre provengono da banche e broker e possono essere incomplete, in ritardo o
-            inesatte.
-          </li>
-          <li>La classificazione dei movimenti è automatica e può sbagliare.</li>
-          <li>
-            Quanto mostrato non è una consulenza finanziaria: per le decisioni fanno fede gli
-            estratti ufficiali della banca e del broker.
-          </li>
+          <li>{i18n.t("legal.terms.noWarranty.figures")}</li>
+          <li>{i18n.t("legal.terms.noWarranty.classification")}</li>
+          <li>{i18n.t("legal.terms.noWarranty.advice")}</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="Revoca">
+      <LegalSection title={i18n.t("legal.terms.revoke.title")}>
         <p>
-          Il proprietario può revocare il consenso in qualsiasi momento da{" "}
-          <strong>Impostazioni → Scollega</strong> oppure direttamente dalla banca.
+          <Trans i18nKey="legal.terms.revoke.p1" components={{ strong: <strong /> }} />
         </p>
       </LegalSection>
     </LegalLayout>

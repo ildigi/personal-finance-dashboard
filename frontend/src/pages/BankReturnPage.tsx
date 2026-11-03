@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBankCallback } from "@/features/banks/queries";
 import { describeSummary } from "@/features/sync/queries";
+import { i18n } from "@/i18n";
 
 /**
  * Qui la banca rimanda dopo il consenso, con `code` e `state` (o `error`). Si chiama il
@@ -53,31 +54,31 @@ export function BankReturnPage() {
             </span>
           )}
           {!state
-            ? "Nessun collegamento in corso"
+            ? i18n.t("bankReturn.noFlow")
             : callback.isError
-              ? "Collegamento non riuscito"
+              ? i18n.t("bankReturn.failed")
               : result
-                ? `${result.institution} collegata`
-                : "Collegamento della banca…"}
+                ? i18n.t("bankReturn.connected", { bank: result.institution })
+                : i18n.t("bankReturn.connecting")}
         </CardTitle>
         <CardDescription>
           {!state
-            ? "Questa pagina si apre al ritorno dalla banca, dopo l'autorizzazione."
+            ? i18n.t("bankReturn.noFlowHint")
             : callback.isError
               ? callback.error.message
               : result
-                ? `${String(result.accounts)} ${result.accounts === 1 ? "conto autorizzato" : "conti autorizzati"} · ${describeSummary(result.sync)}`
-                : "Salvo il consenso e scarico conti, saldi e movimenti."}
+                ? `${i18n.t("bankReturn.accounts", { count: result.accounts })} · ${describeSummary(result.sync)}`
+                : i18n.t("bankReturn.saving")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         {result && (
           <Button asChild>
-            <Link to="/movimenti">Vai ai movimenti</Link>
+            <Link to="/movimenti">{i18n.t("bankReturn.toTransactions")}</Link>
           </Button>
         )}
         <Button asChild variant={result ? "outline" : "default"}>
-          <Link to="/impostazioni">Torna alle impostazioni</Link>
+          <Link to="/impostazioni">{i18n.t("bankReturn.toSettings")}</Link>
         </Button>
       </CardContent>
     </Card>

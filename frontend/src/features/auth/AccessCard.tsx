@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/format";
 import { useAuthSessions, useAuthStatus, useLogout } from "./queries";
 
 /** Riconoscibile nell'elenco: browser e sistema, senza dettagli superflui. */
+/* eslint-disable i18next/no-literal-string -- nomi propri di browser e sistemi, uguali in ogni lingua */
 function device(agent: string | null): string {
   if (!agent) return i18n.t("access.unknownDevice");
   const browser = agent.includes("Edg/")
@@ -34,6 +35,7 @@ function device(agent: string | null): string {
             : "";
   return os ? i18n.t("access.deviceOn", { browser, os }) : browser;
 }
+/* eslint-enable i18next/no-literal-string */
 
 export function AccessCard() {
   const { t } = useTranslation();

@@ -1,5 +1,6 @@
 import { KeyRound, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { Trans } from "react-i18next";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
 
 import { ApiError } from "@/api/client";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStatus, useLogin } from "@/features/auth/queries";
+import { i18n } from "@/i18n";
 
 /** Solo percorsi interni: niente redirect verso altri siti tramite l'indirizzo. */
 function safeNext(value: string | null): string {
@@ -27,7 +29,10 @@ export function LoginPage() {
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    document.title = "Accesso · Finanze";
+    document.title = i18n.t("common.documentTitle", {
+      page: i18n.t("login.documentTitle"),
+      app: i18n.t("common.appName"),
+    });
   }, []);
 
   if (status.data && (!status.data.enabled || status.data.authenticated)) {
@@ -59,23 +64,24 @@ export function LoginPage() {
         <CardHeader className="items-center text-center">
           <BrandMark className="mx-auto mb-2 size-10" />
           <CardTitle>
-            <h1 className="text-xl">Accedi a Finanze</h1>
+            <h1 className="text-xl">{i18n.t("login.title")}</h1>
           </CardTitle>
-          <CardDescription>Password e codice dell'app di autenticazione</CardDescription>
+          <CardDescription>{i18n.t("login.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {notConfigured ? (
             <p className="text-sm text-muted-foreground">
-              L'accesso è attivo ma non è ancora configurato. Sul server esegui{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-xs whitespace-nowrap">
-                python -m app.auth.cli setup
-              </code>
-              .
+              <Trans
+                i18nKey="login.notConfigured"
+                components={{
+                  code: <code className="rounded bg-muted px-1 py-0.5 text-xs whitespace-nowrap" />,
+                }}
+              />
             </p>
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{i18n.t("login.password")}</Label>
                 <div className="relative">
                   <LockKeyhole
                     aria-hidden
@@ -96,7 +102,7 @@ export function LoginPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="code">Codice</Label>
+                <Label htmlFor="code">{i18n.t("login.code")}</Label>
                 <div className="relative">
                   <KeyRound
                     aria-hidden
@@ -124,7 +130,7 @@ export function LoginPage() {
               </p>
               <Button type="submit" className="w-full" disabled={login.isPending}>
                 {login.isPending && <LoaderCircle aria-hidden className="animate-spin" />}
-                Accedi
+                {i18n.t("login.submit")}
               </Button>
             </form>
           )}

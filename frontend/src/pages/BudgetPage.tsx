@@ -135,7 +135,7 @@ export function BudgetPage() {
                 })
               : undefined
           }
-          pendingNote={data ? "—" : "Caricamento…"}
+          pendingNote={data ? "—" : i18n.t("analytics.loading")}
         />
         <StatTile
           label={
@@ -148,7 +148,7 @@ export function BudgetPage() {
               ? i18n.t("budgets.tiles.day", { day: data.days_elapsed, days: data.days_in_month })
               : i18n.t("budgets.tiles.monthClosed")
           }
-          pendingNote={data ? "—" : "Caricamento…"}
+          pendingNote={data ? "—" : i18n.t("analytics.loading")}
         />
         <StatTile
           label={i18n.t("budgets.tiles.alerts")}
