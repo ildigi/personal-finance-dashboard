@@ -9,3 +9,4 @@ Una decisione per file: contesto, decisione, conseguenze. Le decisioni non si ri
 | [0003](0003-open-banking-no-csv.md) | Banche via Open Banking, niente CSV | Accettata |
 | [0004](0004-read-only.md) | Integrazioni esclusivamente read-only | Accettata |
 | [0005](0005-postgres-nativo.md) | PostgreSQL nativo, niente Docker in locale | Accettata |
+| [0006](0006-i18n.md) | Interfaccia in inglese e italiano (i18n) | Accettata |
