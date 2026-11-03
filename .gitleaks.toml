@@ -26,6 +26,17 @@ regexes = [
   '''^FAKE[A-Z]+[0-9]*$''',
 ]
 
+# Chiavi delle traduzioni nel frontend (i18nKey="legal.privacy.consent.p1"): sono nomi di
+# testi, non segreti. Vale solo per la regola generica sulle chiavi API e solo per valori
+# fatti di parole minuscole separate da punti.
+[[allowlists]]
+description = "Chiavi delle traduzioni (i18nKey)"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = [
+  '''^i18nKey="[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+"$''',
+]
+
 # IBAN italiani e di altri paesi SEPA: non devono mai finire nel codice
 [[rules]]
 id = "iban"
