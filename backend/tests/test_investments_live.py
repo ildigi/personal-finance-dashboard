@@ -120,7 +120,7 @@ def test_live_refresh_is_throttled_and_skips_during_sync(
     assert first["as_of"] is not None
     # Subito dopo: niente nuova chiamata al broker, nessun errore.
     again = client.post(f"/api/investments/{pid}/live").json()
-    assert (again["refreshed"], again["message"]) == (False, None)
+    assert (again["refreshed"], again["message_code"]) == (False, None)
 
     live.reset_throttle()
     portfolio = db.get(Portfolio, pid)
@@ -133,7 +133,7 @@ def test_live_refresh_is_throttled_and_skips_during_sync(
         busy = client.post(f"/api/investments/{pid}/live").json()
     finally:
         lock.release()
-    assert (busy["refreshed"], busy["message"]) == (False, "Sincronizzazione in corso")
+    assert (busy["refreshed"], busy["message_code"]) == (False, "live.sync_running")
 
 
 def test_live_refresh_reports_broker_errors(
@@ -148,7 +148,7 @@ def test_live_refresh_reports_broker_errors(
     state["client"] = FakeClient(summary={**SUMMARY, "currency": "GBP"})
     result = client.post(f"/api/investments/{pid}/live").json()
     assert result["refreshed"] is False
-    assert "EUR" in result["message"]
+    assert result["message_code"] == "broker.not_eur"
     assert client.get(f"/api/investments/{pid}/summary").status_code == 200
 
 

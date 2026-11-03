@@ -190,7 +190,7 @@ class FakeEBClient:
 
     def create_session(self, code: str) -> dict[str, Any]:
         if code == "bad":
-            raise EnableBankingError("Errore 422 da Enable Banking su POST /sessions")
+            raise EnableBankingError("bank.http_error", status=422, endpoint="POST /sessions")
         session: dict[str, Any] = json.loads(json.dumps(self.data["session"]))
         return session
 
@@ -199,7 +199,7 @@ class FakeEBClient:
 
     def balances(self, uid: str) -> list[dict[str, Any]]:
         if self.data.get("expired"):
-            raise ConsentExpiredError("Consenso scaduto o revocato, va rinnovato")
+            raise ConsentExpiredError("bank.consent_revoked")
         return list(self.data["balances"][uid])
 
     def transactions(self, uid: str, date_from: str) -> Iterator[dict[str, Any]]:

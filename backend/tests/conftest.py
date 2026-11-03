@@ -209,7 +209,7 @@ def _no_ecb_download(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.integrations.ecb import EcbError
 
     def offline(since: object, today: object) -> NoReturn:
-        raise EcbError("rete disattivata nei test")
+        raise EcbError("fx.ecb_unavailable", error="rete disattivata nei test")
 
     monkeypatch.setattr(fx, "fetch_rates", offline)
 

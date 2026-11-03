@@ -67,7 +67,7 @@ def test_create_infers_category_from_subcategory(
 @pytest.mark.parametrize(
     ("overrides", "fragment"),
     [
-        ({"amount": -12.5}, "stringa"),
+        ({"amount": -12.5}, "amount_as_string"),
         ({"amount": "1.234"}, "decimal"),
         ({"currency": "USD"}, "amount_eur"),
         ({"kind": "spesa"}, "kind"),

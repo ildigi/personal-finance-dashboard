@@ -86,7 +86,7 @@ def test_ensure_rates_downloads_once_and_converts(db: Session) -> None:
 
 def test_ensure_rates_survives_an_offline_ecb(db: Session) -> None:
     def offline(since: date, today: date) -> EcbRates:
-        raise EcbError("Cambi BCE non disponibili")
+        raise EcbError("fx.ecb_unavailable", error="offline")
 
     assert (
         fx.ensure_rates(db, [("USD", date(2026, 9, 21))], date(2026, 9, 22), fetcher=offline) == 0

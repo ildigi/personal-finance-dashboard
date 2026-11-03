@@ -428,7 +428,7 @@ def test_uncategorized_is_its_own_line_not_altro(
         "/api/analytics/expenses", params={"date_from": "2026-09-01", "date_to": "2026-09-30"}
     ).json()
     lines = {c["name"]: (c["category_id"], c["total_eur"]) for c in body["categories"]}
-    assert lines["Da classificare"] == (None, "30.00")
+    assert lines[None] == (None, "30.00")  # senza nome: il testo lo sceglie il frontend
     altro = _category(seeded, "altro")
     assert lines["Altro"] == (altro.id, "2.00")
     assert body["unclassified_count"] == 1
