@@ -46,7 +46,6 @@ export function todayInRome(now: Date = new Date()): string {
 function parts(iso: string): [number, number, number] {
   const [y, m, d] = iso.split("-").map(Number);
   if (y === undefined || m === undefined || d === undefined)
-     
     throw new Error(`Data non valida: ${iso}`);
   return [y, m, d];
 }

@@ -1,4 +1,5 @@
 import { overview } from "./it/overview";
+import { messages } from "./it/messages";
 import { pages } from "./it/pages";
 import { rules } from "./it/rules";
 import { recurring } from "./it/recurring";
@@ -355,6 +356,7 @@ export const it = {
     transactionsShort: "{{n}} mov.",
   },
   ...overview,
+  ...messages,
   ...pages,
   ...rules,
   ...recurring,

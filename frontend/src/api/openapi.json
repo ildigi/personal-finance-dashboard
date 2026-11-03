@@ -1297,8 +1297,16 @@
             "title": "Icon"
           },
           "name": {
-            "title": "Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nullo per i movimenti da classificare",
+            "title": "Name"
           },
           "previous_eur": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -1559,6 +1567,14 @@
         ],
         "title": "DatabaseHealth",
         "type": "object"
+      },
+      "DescriptionCode": {
+        "enum": [
+          "fx_cost",
+          "fx_gain",
+          "money_transfer"
+        ],
+        "type": "string"
       },
       "Direction": {
         "enum": [
@@ -2306,7 +2322,7 @@
             "description": "Istante dell'ultima istantanea",
             "title": "As Of"
           },
-          "message": {
+          "message_code": {
             "anyOf": [
               {
                 "type": "string"
@@ -2315,8 +2331,13 @@
                 "type": "null"
               }
             ],
-            "description": "Perché non è stato aggiornato, se c'è un errore",
-            "title": "Message"
+            "description": "Perché non è stato aggiornato, se c'è un errore (codice di messaggio)",
+            "title": "Message Code"
+          },
+          "message_params": {
+            "additionalProperties": true,
+            "title": "Message Params",
+            "type": "object"
           },
           "refreshed": {
             "description": "Falso se troppo ravvicinato, in corso o non possibile",
@@ -2327,7 +2348,8 @@
         "required": [
           "refreshed",
           "as_of",
-          "message"
+          "message_code",
+          "message_params"
         ],
         "title": "LiveRefresh",
         "type": "object"
@@ -4861,8 +4883,16 @@
             "type": "integer"
           },
           "name": {
-            "title": "Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nullo = senza sottocategoria (il testo lo sceglie il frontend)",
+            "title": "Name"
           },
           "subcategory_id": {
             "anyOf": [
@@ -5016,6 +5046,22 @@
             ],
             "title": "Error"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_params": {
+            "additionalProperties": true,
+            "title": "Error Params",
+            "type": "object"
+          },
           "fetched": {
             "title": "Fetched",
             "type": "integer"
@@ -5038,13 +5084,26 @@
           "created",
           "updated",
           "details",
-          "error"
+          "error",
+          "error_code",
+          "error_params"
         ],
         "title": "SyncJobRead",
         "type": "object"
       },
       "SyncLogRead": {
         "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
           "error_message": {
             "anyOf": [
               {
@@ -5055,6 +5114,18 @@
               }
             ],
             "title": "Error Message"
+          },
+          "error_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Params"
           },
           "finished_at": {
             "anyOf": [
@@ -5131,7 +5202,9 @@
           "items_fetched",
           "items_created",
           "items_updated",
-          "error_message"
+          "error_message",
+          "error_code",
+          "error_params"
         ],
         "title": "SyncLogRead",
         "type": "object"
@@ -5550,6 +5623,29 @@
             ],
             "title": "Classification Note"
           },
+          "classification_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Params"
+          },
+          "classification_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Reason"
+          },
           "classification_source": {
             "$ref": "#/components/schemas/ClassificationSource"
           },
@@ -5587,6 +5683,18 @@
           "description_clean": {
             "title": "Description Clean",
             "type": "string"
+          },
+          "description_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DescriptionCode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Movimenti scritti dalla dashboard o col testo scelto da lei: il frontend ne mostra la\ndescrizione nella lingua dell'utente. La descrizione salvata non cambia (fa parte\ndell'impronta anti-doppioni ed è riconosciuta dalla regola `fx_conversion_cost`).",
+            "readOnly": true
           },
           "description_raw": {
             "title": "Description Raw",
@@ -5842,6 +5950,8 @@
           "income_type_id",
           "classification_source",
           "rule_id",
+          "classification_reason",
+          "classification_params",
           "classification_note",
           "transfer_pair_id",
           "recurring_id",
@@ -5854,7 +5964,8 @@
           "provider_category",
           "mcc",
           "raw",
-          "overrides"
+          "overrides",
+          "description_code"
         ],
         "title": "TransactionDetail",
         "type": "object"
@@ -5972,6 +6083,29 @@
             ],
             "title": "Classification Note"
           },
+          "classification_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Params"
+          },
+          "classification_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Reason"
+          },
           "classification_source": {
             "$ref": "#/components/schemas/ClassificationSource"
           },
@@ -6009,6 +6143,18 @@
           "description_clean": {
             "title": "Description Clean",
             "type": "string"
+          },
+          "description_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DescriptionCode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Movimenti scritti dalla dashboard o col testo scelto da lei: il frontend ne mostra la\ndescrizione nella lingua dell'utente. La descrizione salvata non cambia (fa parte\ndell'impronta anti-doppioni ed è riconosciuta dalla regola `fx_conversion_cost`).",
+            "readOnly": true
           },
           "description_raw": {
             "title": "Description Raw",
@@ -6223,6 +6369,8 @@
           "income_type_id",
           "classification_source",
           "rule_id",
+          "classification_reason",
+          "classification_params",
           "classification_note",
           "transfer_pair_id",
           "recurring_id",
@@ -6231,7 +6379,8 @@
           "is_manual",
           "tags",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "description_code"
         ],
         "title": "TransactionRead",
         "type": "object"
@@ -10350,5 +10499,127 @@
         ]
       }
     }
-  }
+  },
+  "x-message-codes": [
+    "account.has_transactions",
+    "amount_as_string",
+    "auth.foreign_origin",
+    "auth.invalid_credentials",
+    "auth.locked",
+    "auth.not_configured",
+    "auth.not_configured_setup",
+    "auth.required",
+    "bank.access_denied",
+    "bank.account_not_in_consent",
+    "bank.app_unauthorized",
+    "bank.authorization_incomplete",
+    "bank.authorize_target",
+    "bank.bad_response",
+    "bank.consent_expired",
+    "bank.consent_revoked",
+    "bank.credentials_invalid",
+    "bank.credentials_missing",
+    "bank.endpoint_forbidden",
+    "bank.flow_expired",
+    "bank.http_error",
+    "bank.invalid_amount",
+    "bank.no_redirect",
+    "bank.not_authorized",
+    "bank.not_connected",
+    "bank.period_rejected",
+    "bank.private_key_missing",
+    "bank.provider_error",
+    "bank.rate_limited",
+    "bank.session_unreadable",
+    "bank.too_many_pages",
+    "bank.unavailable",
+    "bank.unreachable",
+    "broker.bad_response",
+    "broker.credentials_invalid",
+    "broker.credentials_missing",
+    "broker.endpoint_forbidden",
+    "broker.http_error",
+    "broker.key_invalid",
+    "broker.not_eur",
+    "broker.not_found",
+    "broker.permission_missing",
+    "broker.too_many_pages",
+    "broker.unavailable",
+    "broker.unreachable",
+    "budget.ended",
+    "budget.exists",
+    "budget.expense_only",
+    "budget.month_not_started",
+    "category.in_use",
+    "category.merge_same",
+    "category.not_found",
+    "category.system_not_archivable",
+    "category.system_not_deletable",
+    "category.system_not_mergeable",
+    "conflict",
+    "field_required",
+    "fx.ecb_unavailable",
+    "fx.ecb_unreadable",
+    "fx.rate_missing",
+    "live.source_disabled",
+    "live.sync_running",
+    "live.trading212_only",
+    "merchant.merge_same",
+    "merchant.name_required",
+    "not_found",
+    "portfolio.not_found",
+    "portfolio.start_in_future",
+    "range.invalid",
+    "range.too_long",
+    "reason.cashback_provider",
+    "reason.dividend_keyword",
+    "reason.investment_match",
+    "reason.manual",
+    "reason.mcc",
+    "reason.merchant_default",
+    "reason.own_counterparty",
+    "reason.paid_with_paypal",
+    "reason.provider_category",
+    "reason.refund_keyword",
+    "reason.refund_of",
+    "reason.rule",
+    "reason.salary_recurring",
+    "reason.transfer_keyword",
+    "reason.transfer_manual",
+    "reason.transfer_own_iban",
+    "reason.transfer_paypal_withdrawal",
+    "reason.transfer_received",
+    "reason.transfer_rule",
+    "reason.travel_away",
+    "reason.travel_day",
+    "recurring.interval_required",
+    "rule.action_required",
+    "rule.amount_range",
+    "rule.condition_required",
+    "rule.invalid_regex",
+    "rule.system_not_deletable",
+    "rule.system_not_editable",
+    "rule.system_order",
+    "rule.unknown",
+    "source.disabled",
+    "source.manual_not_syncable",
+    "source.mock_in_production",
+    "source.unknown_mock",
+    "source.unknown_provider",
+    "subcategory.in_use",
+    "subcategory.merge_other_category",
+    "subcategory.merge_same",
+    "subcategory.not_found",
+    "subcategory.wrong_category",
+    "transaction.amount_eur_required",
+    "transaction.amount_eur_update",
+    "transaction.no_corrections",
+    "transaction.some_missing",
+    "transaction.synced_fields",
+    "transaction.synced_not_deletable",
+    "transaction.tags_unknown",
+    "transfer.needs_out_and_in",
+    "transfer.same_account",
+    "unexpected"
+  ]
 }

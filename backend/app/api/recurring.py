@@ -155,7 +155,7 @@ def patch_recurring(
     recurring_id: int, payload: RecurringUpdate, session: DbSession
 ) -> RecurringRead:
     """Conferma, rifiuta, termina o correggi (correggere una proposta la conferma)."""
-    row = get_or_404(session, RecurringTransaction, recurring_id, "Ricorrenza")
+    row = get_or_404(session, RecurringTransaction, recurring_id)
     changes = payload.model_dump(exclude_unset=True, exclude={"status"})
     for field, value in changes.items():
         if value is not None:
@@ -177,7 +177,7 @@ def patch_recurring(
 def delete_recurring(recurring_id: int, session: DbSession) -> Response:
     """Dimentica la ricorrenza e la tua decisione: se la serie c'è ancora, torna come proposta
     (così si "ripristina" una ricorrenza rifiutata)."""
-    row = get_or_404(session, RecurringTransaction, recurring_id, "Ricorrenza")
+    row = get_or_404(session, RecurringTransaction, recurring_id)
     session.delete(row)
     session.flush()
     refresh_recurring(session)

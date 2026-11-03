@@ -4,6 +4,7 @@ import { api, unwrap, type Schemas } from "@/api/client";
 import { i18n } from "@/i18n";
 import { queryKeys } from "@/features/system/queries";
 import { transactionKeys } from "@/features/transactions/queries";
+import { messageText } from "@/i18n/messages";
 
 export type Source = Schemas["SourceRead"];
 export type SyncSummary = Schemas["SyncSummaryRead"];
@@ -86,7 +87,10 @@ export function useSetupMockData() {
 /** "12 nuovi, 3 aggiornati" a partire dal riepilogo di una sync. */
 export function describeSummary(summary: SyncSummary): string {
   if (summary.status === "error") {
-    return summary.jobs.find((j) => j.error)?.error ?? i18n.t("connections.summary.failed");
+    const failed = summary.jobs.find((j) => j.error_code ?? j.error);
+    if (failed?.error_code)
+      return messageText(failed.error_code, failed.error_params, failed.error);
+    return failed?.error ?? i18n.t("connections.summary.failed");
   }
   const tx = summary.jobs.find((j) => j.job === "transactions");
   const orders = summary.jobs.find((j) => j.job === "orders");

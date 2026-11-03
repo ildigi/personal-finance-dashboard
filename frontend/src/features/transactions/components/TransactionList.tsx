@@ -7,7 +7,12 @@ import { todayInRome } from "@/lib/period";
 import { cn } from "@/lib/utils";
 
 import { statusLabel } from "../labels";
-import { accountLabel, describeClassification, type Lookups } from "../lookups";
+import {
+  accountLabel,
+  describeClassification,
+  transactionDescription,
+  type Lookups,
+} from "../lookups";
 import type { Transaction } from "../queries";
 
 function groupByDay(rows: Transaction[]): [string, Transaction[]][] {
@@ -77,7 +82,7 @@ export function TransactionList({
                     <RowIcon tx={tx} lookups={lookups} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
-                        {tx.merchant_name ?? tx.description_clean}
+                        {tx.merchant_name ?? transactionDescription(tx, lookups)}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {describeClassification(tx, lookups)} ·{" "}

@@ -55,7 +55,7 @@ def test_local_default_is_open(client: TestClient) -> None:
 def test_enabled_but_not_configured_blocks_everything(client: TestClient, auth_on: None) -> None:
     response = client.get("/api/accounts")
     assert response.status_code == 503
-    assert "setup" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "auth.not_configured_setup"
     assert client.get("/api/health").status_code == 200  # lo stato resta visibile
     assert client.get("/api/auth/status").json()["configured"] is False
 

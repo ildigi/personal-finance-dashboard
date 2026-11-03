@@ -39,6 +39,31 @@ export function accountLabel(account: Account | undefined): string {
   return `${account.institution} · ${account.name}`;
 }
 
+interface Described {
+  account_id: number;
+  description_clean: string;
+  description_code?: Schemas["TransactionRead"]["description_code"];
+}
+
+/**
+ * Descrizione da mostrare: quella dei movimenti scritti dalla dashboard (costo del cambio,
+ * trasferimento di denaro) nella lingua dell'utente; per gli altri, quella della banca.
+ */
+export function transactionDescription(tx: Described, lookups: Lookups): string {
+  switch (tx.description_code) {
+    case "fx_cost":
+      return i18n.t("generated.fx_cost", {
+        institution: lookups.accountById.get(tx.account_id)?.institution ?? "",
+      });
+    case "fx_gain":
+      return i18n.t("generated.fx_gain");
+    case "money_transfer":
+      return i18n.t("generated.money_transfer");
+    default:
+      return tx.description_clean;
+  }
+}
+
 interface Classified {
   kind: Schemas["TransactionKind"];
   category_id: number | null;

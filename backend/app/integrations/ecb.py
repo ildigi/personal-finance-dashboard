@@ -16,6 +16,8 @@ from decimal import Decimal, InvalidOperation
 
 import httpx
 
+from app.core.messages import AppError
+
 BASE = "https://www.ecb.europa.eu/stats/eurofxref"
 URL_HISTORY = f"{BASE}/eurofxref-hist.zip"
 TIMEOUT = httpx.Timeout(30.0, connect=10.0)
@@ -24,7 +26,7 @@ TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 EcbRates = dict[date, dict[str, Decimal]]
 
 
-class EcbError(RuntimeError):
+class EcbError(AppError, RuntimeError):
     pass
 
 
@@ -61,9 +63,9 @@ def fetch_rates(
             response = client.get(URL_HISTORY)
             response.raise_for_status()
     except httpx.HTTPError as exc:
-        raise EcbError(f"Cambi BCE non disponibili ({type(exc).__name__})") from None
+        raise EcbError("fx.ecb_unavailable", error=type(exc).__name__) from None
     try:
         rates = parse_history_zip(response.content)
     except (zipfile.BadZipFile, StopIteration, ValueError):
-        raise EcbError("File dei cambi BCE non leggibile") from None
+        raise EcbError("fx.ecb_unreadable") from None
     return {d: r for d, r in rates.items() if since <= d <= today}

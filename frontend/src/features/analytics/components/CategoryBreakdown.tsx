@@ -84,7 +84,9 @@ export function CategoryBreakdown({
                   ) : (
                     <CategoryIcon name={c.icon} className="shrink-0 text-muted-foreground" />
                   )}
-                  <span className="truncate text-sm font-medium">{c.name}</span>
+                  <span className="truncate text-sm font-medium">
+                    {c.name ?? i18n.t("transactions.unclassified")}
+                  </span>
                   <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                     {i18n.t("analytics.transactionsShort", { n: formatCount(c.count) })}
                   </span>
@@ -129,7 +131,7 @@ export function CategoryBreakdown({
                       className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/40"
                     >
                       <span className="truncate">
-                        {s.name}
+                        {s.name ?? i18n.t("analytics.noSubcategory")}
                         <span className="ml-2 text-xs text-muted-foreground">
                           {i18n.t("analytics.transactionsShort", { n: formatCount(s.count) })}
                         </span>
@@ -143,7 +145,7 @@ export function CategoryBreakdown({
                   >
                     {c.category_id === null
                       ? i18n.t("analytics.seeUnclassified")
-                      : i18n.t("analytics.seeCategory", { name: c.name })}
+                      : i18n.t("analytics.seeCategory", { name: c.name ?? "" })}
                     <ChevronRight aria-hidden className="size-3.5" />
                   </Link>
                 </div>

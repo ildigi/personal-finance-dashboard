@@ -51,25 +51,25 @@ def validate_references(
 ) -> RuleActions:
     """Controlla che gli id citati esistano; ricava la categoria dalla sottocategoria."""
 
-    def exists(model: type[object], pk: int | None, label: str) -> None:
+    def exists(model: type[object], pk: int | None) -> None:
         if pk is not None and session.get(model, pk) is None:
-            raise TransactionError(f"{label} {pk} inesistente")
+            raise TransactionError("not_found", id=pk)
 
-    exists(Merchant, conditions.merchant_id, "Merchant")
-    exists(Account, conditions.account_id, "Conto")
-    exists(Merchant, actions.merchant_id, "Merchant")
-    exists(IncomeClassification, actions.income_type_id, "Tipologia di entrata")
+    exists(Merchant, conditions.merchant_id)
+    exists(Account, conditions.account_id)
+    exists(Merchant, actions.merchant_id)
+    exists(IncomeClassification, actions.income_type_id)
     for tag_id in actions.tag_ids or []:
-        exists(Tag, tag_id, "Tag")
+        exists(Tag, tag_id)
 
     if actions.subcategory_id is not None:
         sub = session.get(Subcategory, actions.subcategory_id)
         if sub is None:
-            raise TransactionError(f"Sottocategoria {actions.subcategory_id} inesistente")
+            raise TransactionError("subcategory.not_found", id=actions.subcategory_id)
         if actions.category_id is not None and actions.category_id != sub.category_id:
-            raise TransactionError("La sottocategoria non appartiene alla categoria indicata")
+            raise TransactionError("subcategory.wrong_category")
         return actions.model_copy(update={"category_id": sub.category_id})
-    exists(Category, actions.category_id, "Categoria")
+    exists(Category, actions.category_id)
     return actions
 
 
@@ -93,7 +93,7 @@ def preview_rule(session: Session, request: RulePreviewRequest) -> RulePreview:
     if request.rule_id is not None:
         existing = session.get(TransactionRule, request.rule_id)
         if existing is None:
-            raise TransactionError(f"Regola {request.rule_id} inesistente")
+            raise TransactionError("not_found", id=request.rule_id)
         origin = RuleOrigin(existing.origin)
     candidate = CompiledRule(
         id=PREVIEW_RULE_ID,

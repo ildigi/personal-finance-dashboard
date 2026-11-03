@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import DbSession, get_or_404
 from app.classification.engine import classify_all, simulate
+from app.core.messages import AppError, http_error
 from app.models import Transaction, TransactionRule
 from app.models.enums import ClassificationSource, RuleOrigin
 from app.schemas.rules import (
@@ -28,8 +29,8 @@ from app.services.transactions import TransactionError
 router = APIRouter(tags=["rules"])
 
 
-def _unprocessable(exc: Exception) -> HTTPException:
-    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+def _unprocessable(exc: AppError) -> HTTPException:
+    return http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, exc)
 
 
 def _reclassify_and_read(session: DbSession, rule: TransactionRule) -> RuleRead:
@@ -67,16 +68,13 @@ def create_rule(payload: RuleCreate, session: DbSession) -> RuleRead:
 
 @router.patch("/rules/{rule_id}", response_model=RuleRead)
 def update_rule(rule_id: int, payload: RuleUpdate, session: DbSession) -> RuleRead:
-    rule = get_or_404(session, TransactionRule, rule_id, "Regola")
+    rule = get_or_404(session, TransactionRule, rule_id)
     changes = payload.model_dump(exclude_unset=True)
     for field in ("name", "priority", "is_active", "conditions", "actions"):
         if field in changes and changes[field] is None:
-            raise _unprocessable(ValueError(f"Il campo {field} non può essere vuoto"))
+            raise _unprocessable(AppError("field_required", field=field))
     if rule.origin == RuleOrigin.SEED and changes.keys() & {"conditions", "actions"}:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "Le regole di sistema non si modificano: disattivale e creane una tua",
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "rule.system_not_editable")
     if payload.conditions is not None or payload.actions is not None:
         conditions = payload.conditions or RuleConditions.model_validate(rule.conditions)
         actions = payload.actions or RuleActions.model_validate(rule.actions)
@@ -97,11 +95,9 @@ def update_rule(rule_id: int, payload: RuleUpdate, session: DbSession) -> RuleRe
 
 @router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_rule(rule_id: int, session: DbSession) -> Response:
-    rule = get_or_404(session, TransactionRule, rule_id, "Regola")
+    rule = get_or_404(session, TransactionRule, rule_id)
     if rule.origin == RuleOrigin.SEED:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Le regole di sistema non si eliminano: disattivale"
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "rule.system_not_deletable")
     session.delete(rule)
     session.flush()
     classify_all(session)
@@ -115,9 +111,9 @@ def reorder_rules(payload: RuleReorder, session: DbSession) -> list[RuleRead]:
     rules = {r.id: r for r in session.scalars(select(TransactionRule))}
     missing = [i for i in payload.rule_ids if i not in rules]
     if missing:
-        raise _unprocessable(ValueError(f"Regole inesistenti: {missing}"))
+        raise _unprocessable(AppError("rule.unknown", ids=", ".join(map(str, missing))))
     if any(rules[i].origin == RuleOrigin.SEED for i in payload.rule_ids):
-        raise _unprocessable(ValueError("Le regole di sistema hanno un ordine fisso"))
+        raise _unprocessable(AppError("rule.system_order"))
     for position, rule_id in enumerate(payload.rule_ids, start=1):
         rules[rule_id].priority = position * 10
     session.flush()

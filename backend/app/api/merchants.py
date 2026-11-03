@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 from sqlalchemy import Select, case, desc, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, get_or_404
 from app.classification.engine import classify_all
 from app.classification.text import match_text
+from app.core.messages import http_error
 from app.models import (
     Category,
     ManualOverride,
@@ -84,7 +85,7 @@ def list_merchants(
 
 @router.get("/{merchant_id}", response_model=MerchantWithStats)
 def get_merchant(merchant_id: int, session: DbSession) -> MerchantWithStats:
-    get_or_404(session, Merchant, merchant_id, "Merchant")
+    get_or_404(session, Merchant, merchant_id)
     return _with_stats(session.execute(_stats_query().where(Merchant.id == merchant_id)).one())
 
 
@@ -94,26 +95,23 @@ def _check_default_category(
     if subcategory_id is not None:
         sub = session.get(Subcategory, subcategory_id)
         if sub is None:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Sottocategoria inesistente")
+            raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "subcategory.not_found")
         if category_id is not None and category_id != sub.category_id:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "La sottocategoria non appartiene alla categoria indicata",
-            )
+            raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "subcategory.wrong_category")
         return sub.category_id, sub.id
     if category_id is not None and session.get(Category, category_id) is None:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Categoria inesistente")
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "category.not_found")
     return category_id, None
 
 
 @router.patch("/{merchant_id}", response_model=MerchantRead)
 def update_merchant(merchant_id: int, payload: MerchantUpdate, session: DbSession) -> Merchant:
     """Le modifiche valgono anche per il passato: i movimenti vengono riclassificati."""
-    merchant = get_or_404(session, Merchant, merchant_id, "Merchant")
+    merchant = get_or_404(session, Merchant, merchant_id)
     changes = payload.model_dump(exclude_unset=True)
     if "name" in changes:
         if changes["name"] is None:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Il nome è obbligatorio")
+            raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "merchant.name_required")
         merchant.name = changes["name"]
     if "aliases" in changes:
         merchant.aliases = sorted(
@@ -143,10 +141,10 @@ def _replace_merchant_in_json(data: dict[str, Any], old: int, new: int) -> dict[
 @router.post("/{merchant_id}/merge", response_model=MergeResult)
 def merge_merchant(merchant_id: int, payload: MerchantMerge, session: DbSession) -> MergeResult:
     """Unisce questo merchant in un altro (es. "AMZN Mktp" in "Amazon")."""
-    source = get_or_404(session, Merchant, merchant_id, "Merchant")
-    target = get_or_404(session, Merchant, payload.into_id, "Merchant")
+    source = get_or_404(session, Merchant, merchant_id)
+    target = get_or_404(session, Merchant, payload.into_id)
     if source.id == target.id:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Scegli un merchant diverso")
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "merchant.merge_same")
 
     # Le varianti del merchant eliminato diventano alias di quello che resta.
     extra = {*source.aliases, source.normalized_key.replace("-", " "), match_text(source.name)}

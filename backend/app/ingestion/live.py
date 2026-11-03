@@ -15,12 +15,13 @@ import logging
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.messages import Params
 from app.ingestion import broker as broker_ingest
 from app.ingestion.locks import source_lock
 from app.integrations.registry import ConnectorUnavailableError, connector_for
@@ -41,7 +42,8 @@ _guard = threading.Lock()
 class LiveResult:
     refreshed: bool
     as_of: datetime | None
-    message: str | None = None
+    message_code: str | None = None
+    message_params: Params = field(default_factory=dict)
 
 
 def _latest_at(session: Session, portfolio_id: int) -> datetime | None:
@@ -78,15 +80,15 @@ def refresh_live(
     portfolio, source = row
     as_of = _latest_at(session, portfolio_id)
     if source.provider != Provider.TRADING212:
-        return LiveResult(False, as_of, "Aggiornamento in tempo reale solo per Trading 212")
+        return LiveResult(False, as_of, "live.trading212_only")
     if source.status == SourceStatus.DISABLED:
-        return LiveResult(False, as_of, "La sorgente è disattivata")
+        return LiveResult(False, as_of, "live.source_disabled")
     if not _claim(portfolio_id, clock):
         return LiveResult(False, as_of)
 
     lock = source_lock(source.id)
     if not lock.acquire(blocking=False):
-        return LiveResult(False, as_of, "Sincronizzazione in corso")
+        return LiveResult(False, as_of, "live.sync_running")
     try:
         today = today_rome()
         connector = connector_for(source, today)
@@ -106,7 +108,7 @@ def refresh_live(
     except (Trading212Error, ConnectorUnavailableError) as exc:
         session.rollback()
         log.warning("Aggiornamento del portafoglio %s non riuscito: %s", portfolio_id, exc)
-        return LiveResult(False, as_of, str(exc))
+        return LiveResult(False, as_of, exc.code, exc.params)
     finally:
         lock.release()
     return LiveResult(True, _latest_at(session, portfolio_id))

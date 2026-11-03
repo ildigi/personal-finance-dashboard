@@ -106,7 +106,11 @@ class Transaction(IdMixin, TimestampMixin, Base):
     rule_id: Mapped[int | None] = mapped_column(
         ForeignKey("transaction_rules.id", ondelete="SET NULL")
     )
-    # Spiegazione leggibile del perché (es. "MCC 5411", "Abbinato a un tuo conto").
+    # Perché ha questa classificazione: codice `reason.*` di `app.core.messages` e parametri.
+    classification_reason: Mapped[str | None]
+    classification_params: Mapped[dict[str, Any] | None]
+    # Spiegazione in italiano delle righe classificate prima dei codici: resta finché la
+    # prossima classificazione non la sostituisce.
     classification_note: Mapped[str | None]
 
     # --- Collegamenti -------------------------------------------------------------

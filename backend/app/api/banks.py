@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Query, Request, status
 
 from app.api.deps import DbSession, get_or_404
 from app.core.config import get_settings
+from app.core.messages import http_error
 from app.ingestion import enablebanking_setup as setup
 from app.ingestion.runner import SyncSummary, run_sync
 from app.integrations.enablebanking.client import EnableBankingError
@@ -56,7 +57,7 @@ def list_banks(country: Annotated[str, Query(pattern=r"^[A-Z]{2}$")] = "IT") -> 
     try:
         banks = setup.list_banks(country)
     except EnableBankingError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     return [BankRead.model_validate(b, from_attributes=True) for b in banks]
 
 
@@ -65,9 +66,9 @@ def authorize(payload: AuthorizeRequest, session: DbSession) -> AuthorizeRespons
     """Prepara il consenso e restituisce l'indirizzo della banca (login e SCA lì)."""
     aspsp_name, country, psu_type = payload.aspsp_name, payload.country, payload.psu_type
     if payload.source_id is not None:
-        source = get_or_404(session, AccountSource, payload.source_id, "Sorgente")
+        source = get_or_404(session, AccountSource, payload.source_id)
         if source.provider != Provider.ENABLEBANKING:
-            raise HTTPException(status.HTTP_409_CONFLICT, "Non è una banca collegata")
+            raise http_error(status.HTTP_409_CONFLICT, "bank.not_connected")
         try:
             previous = setup.session_data(source)
         except setup.AuthorizationError:
@@ -84,7 +85,7 @@ def authorize(payload: AuthorizeRequest, session: DbSession) -> AuthorizeRespons
             source_id=payload.source_id,
         )
     except (EnableBankingError, setup.AuthorizationError) as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     return AuthorizeResponse(url=url)
 
 
@@ -92,9 +93,9 @@ def authorize(payload: AuthorizeRequest, session: DbSession) -> AuthorizeRespons
 def disconnect(source_id: int, session: DbSession, delete_data: bool = False) -> DisconnectResponse:
     """Scollega una banca: revoca il consenso; con `delete_data` elimina conti e movimenti,
     altrimenti li tiene e disattiva la sorgente."""
-    source = get_or_404(session, AccountSource, source_id, "Sorgente")
+    source = get_or_404(session, AccountSource, source_id)
     if source.provider != Provider.ENABLEBANKING:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Non è una banca collegata")
+        raise http_error(status.HTTP_409_CONFLICT, "bank.not_connected")
     deleted = setup.disconnect(session, source, delete_data=delete_data)
     session.commit()
     return DisconnectResponse(deleted_transactions=deleted)
@@ -104,13 +105,15 @@ def disconnect(source_id: int, session: DbSession, delete_data: bool = False) ->
 def callback(payload: CallbackRequest, request: Request, session: DbSession) -> CallbackResponse:
     """Ritorno dalla banca: salva la sessione (cifrata) e sincronizza subito."""
     if payload.error or not payload.code:
-        detail = payload.error_description or payload.error or "autorizzazione non completata"
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"La banca ha risposto: {detail}")
+        detail = payload.error_description or payload.error
+        if not detail:
+            raise http_error(status.HTTP_400_BAD_REQUEST, "bank.authorization_incomplete")
+        raise http_error(status.HTTP_400_BAD_REQUEST, "bank.provider_error", message=detail)
     try:
         source = setup.complete_authorization(session, code=payload.code, state=payload.state)
     except (EnableBankingError, setup.AuthorizationError) as exc:
         session.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     session.commit()
     accounts = len(setup.session_data(source).get("accounts") or [])
     summary: SyncSummary = run_sync(session, source, psu_headers=request_psu_headers(request))

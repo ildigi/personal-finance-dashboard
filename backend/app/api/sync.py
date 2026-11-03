@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Query, Request, status
 from sqlalchemy import select
 
 from app.api.banks import request_psu_headers
 from app.api.deps import DbSession, get_or_404
 from app.core.config import get_settings
+from app.core.messages import http_error
 from app.ingestion.mock_setup import ensure_mock_sources
 from app.ingestion.runner import SyncSummary, run_sync
 from app.ingestion.trading212_setup import (
@@ -33,17 +34,17 @@ router = APIRouter(tags=["sync"])
 def sync_source(source_id: int, request: Request, session: DbSession) -> SyncSummary:
     """Sincronizza subito una sorgente (sola lettura presso il provider). Chiesta da te:
     per le banche vale come lettura con l'utente presente."""
-    source = get_or_404(session, AccountSource, source_id, "Sorgente")
+    source = get_or_404(session, AccountSource, source_id)
     if source.status == SourceStatus.DISABLED:
-        raise HTTPException(status.HTTP_409_CONFLICT, "La sorgente è disattivata")
+        raise http_error(status.HTTP_409_CONFLICT, "source.disabled")
     try:
         connector = connector_for(source, today_rome())
     except ConsentRequiredError as exc:
         source.status = SourceStatus.EXPIRED
         session.commit()
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     except ConnectorUnavailableError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     close = getattr(connector, "close", None)
     if close is not None:
         close()
@@ -66,7 +67,7 @@ def connect_trading212(session: DbSession) -> SyncSummary:
     try:
         source = ensure_trading212_source(session)
     except Trading212Error as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     session.commit()
     return run_sync(session, source)
 
@@ -89,9 +90,7 @@ def setup_mock_data(session: DbSession) -> list[SyncSummary]:
     In produzione solo con la modalità demo attiva."""
     settings = get_settings()
     if settings.app_env == "production" and not settings.demo_mode:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Dati di prova non disponibili in produzione"
-        )
+        raise http_error(status.HTTP_403_FORBIDDEN, "source.mock_in_production")
     sources = ensure_mock_sources(session)
     session.commit()
     return [run_sync(session, source) for source in sources if source.provider == Provider.MOCK]

@@ -360,7 +360,7 @@ def test_disallowed_paths_are_refused_before_any_request() -> None:
 
     with _client(handler) as c:
         for path in ("/orders/market", "/orders", "/pies/1/duplicate", "/history/exports"):
-            with pytest.raises(Trading212Error, match="non consentito"):
+            with pytest.raises(Trading212Error, match=r"broker\.endpoint_forbidden"):
                 c._get(path)
 
 
@@ -390,7 +390,7 @@ def test_foreign_next_page_path_is_refused() -> None:
             200, json={"items": [], "nextPagePath": "https://evil.example/api/v0/equity/x"}
         )
 
-    with _client(handler) as c, pytest.raises(Trading212Error, match="paginazione"):
+    with _client(handler) as c, pytest.raises(Trading212Error, match=r"broker\.bad_response"):
         list(c.history_dividends())
 
 
@@ -427,7 +427,12 @@ def test_calls_to_the_same_endpoint_are_spaced() -> None:
 
 @pytest.mark.parametrize(
     ("status", "message"),
-    [(401, "non valida"), (403, "Permesso mancante"), (404, "non trovata"), (400, "Errore 400")],
+    [
+        (401, r"broker\.key_invalid"),
+        (403, r"broker\.permission_missing"),
+        (404, r"broker\.not_found"),
+        (400, r"broker\.http_error"),
+    ],
 )
 def test_errors_are_readable_and_never_contain_the_key(status: int, message: str) -> None:
     with (
@@ -442,13 +447,13 @@ def test_errors_are_readable_and_never_contain_the_key(status: int, message: str
 
 def test_load_credentials(tmp_path: Path) -> None:
     path = tmp_path / "trading212.env"
-    with pytest.raises(Trading212Error, match="non trovato"):
+    with pytest.raises(Trading212Error, match=r"broker\.credentials_missing"):
         load_credentials(path)
     path.write_text("T212_API_KEY=abc\n", encoding="utf-8")
-    with pytest.raises(Trading212Error, match="mancanti"):
+    with pytest.raises(Trading212Error, match=r"broker\.credentials_invalid"):
         load_credentials(path)
     path.write_text("T212_API_KEY=abc\nT212_API_SECRET=def\nT212_ENV=prod\n", encoding="utf-8")
-    with pytest.raises(Trading212Error, match="live"):
+    with pytest.raises(Trading212Error, match="T212_ENV"):
         load_credentials(path)
     path.write_text("T212_API_KEY= abc \nT212_API_SECRET=def\n", encoding="utf-8")
     creds = load_credentials(path)
@@ -485,7 +490,7 @@ def test_cash_and_positions() -> None:
 
 
 def test_non_eur_account_is_refused() -> None:
-    with pytest.raises(Trading212Error, match="EUR"):
+    with pytest.raises(Trading212Error, match=r"broker\.not_eur"):
         connector(summary={**SUMMARY, "currency": "GBP"}).get_cash()
 
 
@@ -646,4 +651,4 @@ def test_connect_without_credentials(
     assert client.get("/api/sources/trading212/status").json()["credentials_found"] is False
     response = client.post("/api/sources/trading212")
     assert response.status_code == 409
-    assert "non trovato" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "broker.credentials_missing"

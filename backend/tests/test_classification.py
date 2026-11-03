@@ -142,7 +142,7 @@ def test_match_with_own_iban_and_fx_tolerance() -> None:
     out = _cand(1, 1, MONDAY, "-100.00", "Bonifico", iban="LT001")
     inc = _cand(2, 2, MONDAY, "98.50", "Transfer", currency="USD")
     matches = match_transfers([out, inc], my_ibans={"LT001"}, keywords=[])
-    assert matches[0].reason == "IBAN di un tuo conto"
+    assert matches[0].reason == "own_iban"
     # Oltre il 2% non è più lo stesso trasferimento.
     far = _cand(3, 2, MONDAY, "97.00", "Transfer", currency="USD")
     assert match_transfers([out, far], my_ibans={"LT001"}, keywords=[]) == []
@@ -213,11 +213,11 @@ def test_rule_conditions(conditions: dict[str, object], expected: bool) -> None:
 
 
 def test_rules_need_at_least_one_condition_and_valid_regex() -> None:
-    with pytest.raises(ValueError, match="almeno una condizione"):
+    with pytest.raises(ValueError, match=r"rule\.condition_required"):
         RuleConditions.model_validate({})
-    with pytest.raises(ValueError, match="regolare non valida"):
+    with pytest.raises(ValueError, match=r"rule\.invalid_regex"):
         RuleConditions.model_validate({"description_regex": "(unclosed"})
-    with pytest.raises(ValueError, match="almeno un'azione"):
+    with pytest.raises(ValueError, match=r"rule\.action_required"):
         RuleActions.model_validate({})
 
 
@@ -374,7 +374,7 @@ def test_seed_rules(db: Session, two_accounts: tuple[Account, Account]) -> None:
         assert (_code(db, tx), tx.kind) == (code, kind), name
         assert tx.classification_source == ClassificationSource.RULE
         assert tx.rule_id is not None
-        assert tx.classification_note
+        assert tx.classification_reason == "reason.rule"
 
 
 def test_income_types(db: Session, two_accounts: tuple[Account, Account]) -> None:
@@ -605,7 +605,8 @@ def test_card_payments_away_from_home_go_to_travel(
     assert _code(db, home_bar) == "ristoranti"
     assert _code(db, pharmacy) == "salute"
     assert _code(db, rome_bar) == _code(db, rome_mcd) == "viaggi/cibo"
-    assert rome_bar.classification_note == "Pagato fuori casa (BAR CIARDI ROMA RM)"
+    assert rome_bar.classification_reason == "reason.travel_away"
+    assert rome_bar.classification_params == {"place": "BAR CIARDI ROMA RM"}
     # Sede legale nella causale o acquisto online: restano nella loro categoria.
     assert _code(db, gym) == "sport"
     assert _code(db, online) == "giochi"
@@ -657,7 +658,8 @@ def test_trip_days_send_card_payments_without_city_to_travel(
     assert _code(db, rome_bus) == "viaggi/bus_metro"
     assert _code(db, museum) == "viaggi/visite"
     assert _code(db, ice_cream) == "viaggi"
-    assert ice_cream.classification_note == "Pagato durante un viaggio (11/08/2026)"
+    assert ice_cream.classification_reason == "reason.travel_day"
+    assert ice_cream.classification_params == {"date": "2026-08-11"}
     assert _code(db, netflix) == "abbonamenti/altri_servizi"
     assert _code(db, friend) == "spese_divise"
     assert _code(db, later) is None

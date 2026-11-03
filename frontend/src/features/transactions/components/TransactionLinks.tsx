@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import { sourceLabel } from "../labels";
 import { accountLabel, type Lookups } from "../lookups";
 import { useTransaction, type TransactionDetail } from "../queries";
+import { messageText } from "@/i18n/messages";
 
 function LinkedRow({
   id,
@@ -61,6 +62,10 @@ export function TransactionLinks({
   const { t } = useTranslation();
   const dismiss = useDismissTransfer();
   const pair = tx.transfer_pair_id;
+  // Codice con parametri; le righe classificate prima dei codici hanno ancora la nota in italiano.
+  const why = tx.classification_reason
+    ? messageText(tx.classification_reason, tx.classification_params)
+    : tx.classification_note;
   return (
     <section aria-labelledby="why-heading" className="space-y-3">
       <h3 id="why-heading" className="text-sm font-medium">
@@ -68,10 +73,9 @@ export function TransactionLinks({
       </h3>
       <p className="text-sm">
         <span className="font-medium">{sourceLabel(tx.classification_source)}</span>
-        {tx.classification_note &&
-          tx.classification_note !== sourceLabel(tx.classification_source) && (
-            <span className="text-muted-foreground"> · {tx.classification_note}</span>
-          )}
+        {why && why !== sourceLabel(tx.classification_source) && (
+          <span className="text-muted-foreground"> · {why}</span>
+        )}
       </p>
       {tx.rule_id !== null && (
         <Link

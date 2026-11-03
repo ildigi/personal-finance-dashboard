@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.models.enums import Frequency, RecurringStatus
 from app.schemas.common import ApiModel, MoneyIn, NonEmptyStr, OrmModel
@@ -125,7 +126,7 @@ class RecurringUpdate(ApiModel):
     @model_validator(mode="after")
     def _custom_needs_interval(self) -> RecurringUpdate:
         if self.frequency == Frequency.CUSTOM and self.interval_days is None:
-            raise ValueError("Con frequenza personalizzata serve interval_days")
+            raise PydanticCustomError("recurring.interval_required", "interval_days required")
         return self
 
 

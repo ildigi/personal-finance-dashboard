@@ -43,7 +43,8 @@ describe("Accesso", () => {
   it("mostra l'errore e svuota il codice se è sbagliato", async () => {
     mockBackend({
       "/api/auth/status": () => json(LOCKED),
-      "POST /api/auth/login": () => json({ detail: "Password o codice non validi" }, 401),
+      "POST /api/auth/login": () =>
+        json({ detail: { code: "auth.invalid_credentials", params: {} } }, 401),
     });
     const { user } = await renderApp("/accesso");
     await user.type(await screen.findByLabelText("Password"), "sbagliata");

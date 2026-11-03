@@ -242,6 +242,7 @@ def test_failed_sync_is_logged_and_rolled_back(
     assert log.error_message is not None
     assert "ConnectionError" in log.error_message
     assert "IT00X0000000000000000000000" not in log.error_message  # IBAN mascherato
+    assert log.error_code == "unexpected"
 
 
 # --- Broker -----------------------------------------------------------------------------------

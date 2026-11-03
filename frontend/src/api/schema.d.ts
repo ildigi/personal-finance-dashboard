@@ -1714,8 +1714,11 @@ export interface components {
             count: number;
             /** Icon */
             icon: string | null;
-            /** Name */
-            name: string;
+            /**
+             * Name
+             * @description Nullo per i movimenti da classificare
+             */
+            name: string | null;
             /** Previous Eur */
             previous_eur: string;
             /** Share Pct */
@@ -1800,6 +1803,8 @@ export interface components {
              */
             up_to_date?: boolean;
         };
+        /** @enum {string} */
+        DescriptionCode: "fx_cost" | "fx_gain" | "money_transfer";
         /**
          * Direction
          * @enum {string}
@@ -2094,10 +2099,14 @@ export interface components {
              */
             as_of: string | null;
             /**
-             * Message
-             * @description Perché non è stato aggiornato, se c'è un errore
+             * Message Code
+             * @description Perché non è stato aggiornato, se c'è un errore (codice di messaggio)
              */
-            message: string | null;
+            message_code: string | null;
+            /** Message Params */
+            message_params: {
+                [key: string]: unknown;
+            };
             /**
              * Refreshed
              * @description Falso se troppo ravvicinato, in corso o non possibile
@@ -2962,8 +2971,11 @@ export interface components {
         SubcategoryTotal: {
             /** Count */
             count: number;
-            /** Name */
-            name: string;
+            /**
+             * Name
+             * @description Nullo = senza sottocategoria (il testo lo sceglie il frontend)
+             */
+            name: string | null;
             /** Subcategory Id */
             subcategory_id: number | null;
             /** Total Eur */
@@ -3013,6 +3025,12 @@ export interface components {
             };
             /** Error */
             error: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Params */
+            error_params: {
+                [key: string]: unknown;
+            };
             /** Fetched */
             fetched: number;
             job: components["schemas"]["SyncJob"];
@@ -3022,8 +3040,14 @@ export interface components {
         };
         /** SyncLogRead */
         SyncLogRead: {
+            /** Error Code */
+            error_code: string | null;
             /** Error Message */
             error_message: string | null;
+            /** Error Params */
+            error_params: {
+                [key: string]: unknown;
+            } | null;
             /** Finished At */
             finished_at: string | null;
             /** Id */
@@ -3179,6 +3203,12 @@ export interface components {
             category_id: number | null;
             /** Classification Note */
             classification_note: string | null;
+            /** Classification Params */
+            classification_params: {
+                [key: string]: unknown;
+            } | null;
+            /** Classification Reason */
+            classification_reason: string | null;
             classification_source: components["schemas"]["ClassificationSource"];
             /** Counterparty Iban */
             counterparty_iban: string | null;
@@ -3193,6 +3223,12 @@ export interface components {
             currency: string;
             /** Description Clean */
             description_clean: string;
+            /**
+             * @description Movimenti scritti dalla dashboard o col testo scelto da lei: il frontend ne mostra la
+             *     descrizione nella lingua dell'utente. La descrizione salvata non cambia (fa parte
+             *     dell'impronta anti-doppioni ed è riconosciuta dalla regola `fx_conversion_cost`).
+             */
+            readonly description_code: components["schemas"]["DescriptionCode"] | null;
             /** Description Raw */
             description_raw: string;
             /** External Id */
@@ -3297,6 +3333,12 @@ export interface components {
             category_id: number | null;
             /** Classification Note */
             classification_note: string | null;
+            /** Classification Params */
+            classification_params: {
+                [key: string]: unknown;
+            } | null;
+            /** Classification Reason */
+            classification_reason: string | null;
             classification_source: components["schemas"]["ClassificationSource"];
             /** Counterparty Iban */
             counterparty_iban: string | null;
@@ -3311,6 +3353,12 @@ export interface components {
             currency: string;
             /** Description Clean */
             description_clean: string;
+            /**
+             * @description Movimenti scritti dalla dashboard o col testo scelto da lei: il frontend ne mostra la
+             *     descrizione nella lingua dell'utente. La descrizione salvata non cambia (fa parte
+             *     dell'impronta anti-doppioni ed è riconosciuta dalla regola `fx_conversion_cost`).
+             */
+            readonly description_code: components["schemas"]["DescriptionCode"] | null;
             /** Description Raw */
             description_raw: string;
             /** External Id */

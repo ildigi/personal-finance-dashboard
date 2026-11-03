@@ -49,9 +49,9 @@ def test_fetch_errors_are_readable() -> None:
     def down(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503)
 
-    with pytest.raises(EcbError, match="non disponibili"):
+    with pytest.raises(EcbError, match=r"fx\.ecb_unavailable"):
         fetch_rates(date(2026, 9, 1), date(2026, 9, 22), transport=httpx.MockTransport(down))
-    with pytest.raises(EcbError, match="non leggibile"):
+    with pytest.raises(EcbError, match=r"fx\.ecb_unreadable"):
         fetch_rates(
             date(2026, 9, 1),
             date(2026, 9, 22),

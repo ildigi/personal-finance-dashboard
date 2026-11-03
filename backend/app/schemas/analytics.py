@@ -24,14 +24,16 @@ class Averages(BaseModel):
 
 class SubcategoryTotal(BaseModel):
     subcategory_id: int | None
-    name: str
+    name: str | None = Field(
+        description="Nullo = senza sottocategoria (il testo lo sceglie il frontend)"
+    )
     total_eur: Decimal
     count: int
 
 
 class CategoryTotal(BaseModel):
     category_id: int | None = Field(description="Nullo = movimenti da classificare")
-    name: str
+    name: str | None = Field(description="Nullo per i movimenti da classificare")
     icon: str | None
     color: str | None
     total_eur: Decimal

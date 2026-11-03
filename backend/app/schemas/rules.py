@@ -16,6 +16,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticCustomError
 
 from app.models.enums import Direction, RuleOrigin, TransactionKind
 from app.schemas.common import ApiModel, OrmModel, _reject_float
@@ -50,7 +51,9 @@ class RuleConditions(ApiModel):
             try:
                 re.compile(value)
             except re.error as exc:
-                raise ValueError(f"Espressione regolare non valida: {exc}") from exc
+                raise PydanticCustomError(
+                    "rule.invalid_regex", "invalid regular expression", {"error": str(exc)}
+                ) from exc
         return value
 
     @field_validator("counterparty_iban")
@@ -61,13 +64,13 @@ class RuleConditions(ApiModel):
     @model_validator(mode="after")
     def _not_empty(self) -> RuleConditions:
         if not self.model_dump(exclude_none=True):
-            raise ValueError("Serve almeno una condizione")
+            raise PydanticCustomError("rule.condition_required", "at least one condition")
         if (
             self.amount_min is not None
             and self.amount_max is not None
             and self.amount_min > self.amount_max
         ):
-            raise ValueError("amount_min non può superare amount_max")
+            raise PydanticCustomError("rule.amount_range", "amount_min above amount_max")
         return self
 
 
@@ -82,7 +85,7 @@ class RuleActions(ApiModel):
     @model_validator(mode="after")
     def _not_empty(self) -> RuleActions:
         if not self.model_dump(exclude_none=True):
-            raise ValueError("Serve almeno un'azione")
+            raise PydanticCustomError("rule.action_required", "at least one action")
         return self
 
 

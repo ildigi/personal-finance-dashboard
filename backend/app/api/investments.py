@@ -5,9 +5,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession
+from app.core.messages import http_error
 from app.ingestion.live import refresh_live
 from app.schemas.investments import (
     InvestmentActivity,
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/investments", tags=["investments"])
 
 def _check(session: DbSession, portfolio_id: int) -> None:
     if not any(p.id == portfolio_id for p in list_portfolios(session)):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Portafoglio {portfolio_id} non trovato")
+        raise http_error(status.HTTP_404_NOT_FOUND, "portfolio.not_found", id=portfolio_id)
 
 
 @router.get("/portfolios", response_model=list[PortfolioRead])
@@ -45,9 +46,7 @@ def update_portfolio(
     """Imposta (o toglie) la data di inizio dei rendimenti."""
     _check(session, portfolio_id)
     if payload.tracking_start is not None and payload.tracking_start > today_rome():
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "La data di inizio non può essere nel futuro"
-        )
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "portfolio.start_in_future")
     set_tracking_start(session, portfolio_id, payload.tracking_start)
     session.commit()
     return next(p for p in list_portfolios(session) if p.id == portfolio_id)
@@ -66,7 +65,12 @@ def live_refresh(portfolio_id: int, session: DbSession) -> LiveRefresh:
     Il backend lo concede al massimo ogni 10 secondi; ordini e Pie restano alla sync."""
     _check(session, portfolio_id)
     result = refresh_live(session, portfolio_id)
-    return LiveRefresh(refreshed=result.refreshed, as_of=result.as_of, message=result.message)
+    return LiveRefresh(
+        refreshed=result.refreshed,
+        as_of=result.as_of,
+        message_code=result.message_code,
+        message_params=result.message_params,
+    )
 
 
 @router.get("/{portfolio_id}/activity", response_model=InvestmentActivity)

@@ -28,6 +28,8 @@ import httpx
 from dotenv import dotenv_values
 from pydantic import SecretStr
 
+from app.core.messages import AppError
+
 log = logging.getLogger(__name__)
 
 BASE_URLS = {
@@ -55,7 +57,7 @@ TIMEOUT = httpx.Timeout(20.0, connect=10.0)
 Environment = Literal["live", "demo"]
 
 
-class Trading212Error(RuntimeError):
+class Trading212Error(AppError, RuntimeError):
     """Errore leggibile, senza dati sensibili (finisce nei log di sincronizzazione)."""
 
 
@@ -69,15 +71,17 @@ class Credentials:
 def load_credentials(path: Path) -> Credentials:
     """Legge `T212_API_KEY`, `T212_API_SECRET`, `T212_ENV` dal file dei segreti."""
     if not path.is_file():
-        raise Trading212Error(f"File delle credenziali Trading 212 non trovato: {path.name}")
+        raise Trading212Error("broker.credentials_missing", file=path.name)
     values = dotenv_values(path)
     key = (values.get("T212_API_KEY") or "").strip()
     secret = (values.get("T212_API_SECRET") or "").strip()
     env = (values.get("T212_ENV") or "live").strip().lower()
     if not key or not secret:
-        raise Trading212Error("Chiave o secret di Trading 212 mancanti nel file delle credenziali")
+        raise Trading212Error(
+            "broker.credentials_invalid", setting="T212_API_KEY / T212_API_SECRET"
+        )
     if env not in BASE_URLS:
-        raise Trading212Error("T212_ENV deve essere 'live' oppure 'demo'")
+        raise Trading212Error("broker.credentials_invalid", setting="T212_ENV")
     return Credentials(SecretStr(key), SecretStr(secret), env)  # type: ignore[arg-type]
 
 
@@ -184,13 +188,13 @@ class Trading212Client:
     def _get_object(self, path: str) -> dict[str, Any]:
         data = self._get(path)
         if not isinstance(data, dict):
-            raise Trading212Error(f"Risposta inattesa da {_endpoint_key(path)}")
+            raise Trading212Error("broker.bad_response", endpoint=_endpoint_key(path))
         return data
 
     def _get_list(self, path: str) -> list[dict[str, Any]]:
         data = self._get(path)
         if not isinstance(data, list):
-            raise Trading212Error(f"Risposta inattesa da {_endpoint_key(path)}")
+            raise Trading212Error("broker.bad_response", endpoint=_endpoint_key(path))
         return data
 
     def _paginate(self, path: str) -> Iterator[dict[str, Any]]:
@@ -199,34 +203,32 @@ class Trading212Client:
         for _ in range(MAX_PAGES):
             page = self._get(path, params) if next_path is None else self._get_next(next_path)
             if not isinstance(page, dict):
-                raise Trading212Error(f"Risposta inattesa da {path}")
+                raise Trading212Error("broker.bad_response", endpoint=path)
             yield from page.get("items") or []
             next_path = page.get("nextPagePath")
             if not next_path:
                 return
             params = None
-        raise Trading212Error(f"Troppe pagine da {path}: interrotto per sicurezza")
+        raise Trading212Error("broker.too_many_pages", endpoint=path)
 
     def _get_next(self, next_path: str) -> Any:
         """`nextPagePath` è un percorso completo con la query (es. `/api/v0/...?cursor=…`)."""
         url = httpx.URL(next_path)
         if url.host or not url.path.startswith(PREFIX):
-            raise Trading212Error("Percorso di paginazione inatteso")
+            raise Trading212Error("broker.bad_response", endpoint=next_path)
         return self._get(url.path[len(PREFIX) :], dict(url.params))
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         key = _endpoint_key(path)
         if key not in READ_ENDPOINTS:
-            raise Trading212Error(f"Endpoint non consentito: {key}")
+            raise Trading212Error("broker.endpoint_forbidden", endpoint=key)
         for attempt in range(4):
             self._pace(key)
             try:
                 response = self._http.request("GET", PREFIX + path, params=params)
             except httpx.HTTPError as exc:
                 if attempt == 3:
-                    raise Trading212Error(
-                        f"Trading 212 non raggiungibile ({type(exc).__name__})"
-                    ) from None
+                    raise Trading212Error("broker.unreachable", error=type(exc).__name__) from None
                 self._sleep(2.0 * (attempt + 1))
                 continue
             if response.status_code == 429 or response.status_code >= 500:
@@ -235,9 +237,7 @@ class Trading212Client:
                 self._sleep(self._retry_after(response, attempt))
                 continue
             return self._parse(response, key)
-        raise Trading212Error(
-            f"Trading 212 non risponde ({response.status_code}) su {key}: riprova più tardi"
-        )
+        raise Trading212Error("broker.unavailable", status=response.status_code, endpoint=key)
 
     def _pace(self, key: str) -> None:
         wait = self._pacer.wait_time(key)
@@ -257,17 +257,14 @@ class Trading212Client:
     def _parse(response: httpx.Response, key: str) -> Any:
         status = response.status_code
         if status == 401:
-            raise Trading212Error("Chiave Trading 212 non valida o revocata (401)")
+            raise Trading212Error("broker.key_invalid")
         if status == 403:
-            raise Trading212Error(
-                f"Permesso mancante per {key} (403): controlla i permessi di lettura della chiave"
-                " o la restrizione IP"
-            )
+            raise Trading212Error("broker.permission_missing", endpoint=key)
         if status == 404:
-            raise Trading212Error(f"Risorsa non trovata su Trading 212: {key}")
+            raise Trading212Error("broker.not_found", endpoint=key)
         if status >= 400:
-            raise Trading212Error(f"Errore {status} da Trading 212 su {key}")
+            raise Trading212Error("broker.http_error", status=status, endpoint=key)
         try:
             return response.json()
         except ValueError:
-            raise Trading212Error(f"Risposta non valida da Trading 212 su {key}") from None
+            raise Trading212Error("broker.bad_response", endpoint=key) from None

@@ -4,12 +4,13 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import ColumnElement, and_, case, func, or_, select, true
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbSession, get_or_404
 from app.classification.engine import classify_all, simulate
+from app.core.messages import http_error
 from app.models import ManualOverride, Tag, Transaction, TransactionTag
 from app.models.enums import OverrideField, TagSource, TransactionKind, TransactionStatus
 from app.schemas.rules import LearnRequest, LearnResult, LearnScope, LearnSuggestion
@@ -216,7 +217,7 @@ def _detail(session: DbSession, tx: Transaction) -> TransactionDetail:
 
 @router.get("/{transaction_id}", response_model=TransactionDetail)
 def get_transaction(transaction_id: int, session: DbSession) -> TransactionDetail:
-    return _detail(session, get_or_404(session, Transaction, transaction_id, "Movimento"))
+    return _detail(session, get_or_404(session, Transaction, transaction_id))
 
 
 @router.post("", response_model=TransactionDetail, status_code=status.HTTP_201_CREATED)
@@ -225,7 +226,7 @@ def create_transaction(payload: TransactionCreate, session: DbSession) -> Transa
     try:
         tx = create_manual_transaction(session, payload)
     except TransactionError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, exc) from exc
     session.commit()
     session.refresh(tx)
     return _detail(session, tx)
@@ -236,15 +237,15 @@ def patch_transaction(
     transaction_id: int, payload: TransactionUpdate, session: DbSession
 ) -> TransactionDetail:
     """Correzione manuale: sopravvive alle sincronizzazioni successive."""
-    tx = get_or_404(session, Transaction, transaction_id, "Movimento")
+    tx = get_or_404(session, Transaction, transaction_id)
     was_linked = tx.transfer_pair_id is not None or tx.refund_of_id is not None
     corrections_before = classification_override_count(session, [tx.id])
     try:
         update_transaction(session, tx, payload)
     except TransactionError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, exc) from exc
     except TransactionConflictError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     # Il tipo cambiato può sciogliere una coppia o un rimborso: si ricalcolano i collegamenti.
     relinked = "kind" in payload.model_fields_set and (was_linked or payload.kind in _LINKED_KINDS)
     # Una correzione annullata (tornando al valore di prima) va sostituita dalla classificazione
@@ -260,7 +261,7 @@ def patch_transaction(
 @router.delete("/{transaction_id}/overrides", response_model=TransactionDetail)
 def reset_transaction_classification(transaction_id: int, session: DbSession) -> TransactionDetail:
     """Ripristina la classificazione automatica: toglie le correzioni (le note restano)."""
-    tx = get_or_404(session, Transaction, transaction_id, "Movimento")
+    tx = get_or_404(session, Transaction, transaction_id)
     reset_classification(session, tx)
     classify_all(session)
     session.commit()
@@ -276,16 +277,17 @@ def bulk_update(payload: TransactionBulkUpdate, session: DbSession) -> BulkResul
     """Azioni multiple: categoria, tipo, tipologia di entrata, tag."""
     txs = list(session.scalars(select(Transaction).where(Transaction.id.in_(payload.ids))))
     if len(txs) != len(set(payload.ids)):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Alcuni movimenti non esistono")
+        raise http_error(status.HTTP_404_NOT_FOUND, "transaction.some_missing")
     fields = payload.model_dump(
         include={"kind", "category_id", "subcategory_id", "income_type_id"}, exclude_unset=True
     )
     tag_ids = {*payload.add_tag_ids, *payload.remove_tag_ids}
     known_tags = set(session.scalars(select(Tag.id).where(Tag.id.in_(tag_ids))))
     if tag_ids - known_tags:
-        raise HTTPException(
+        raise http_error(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            f"Tag inesistenti: {sorted(tag_ids - known_tags)}",
+            "transaction.tags_unknown",
+            ids=", ".join(map(str, sorted(tag_ids - known_tags))),
         )
     update = TransactionUpdate(**fields)
     corrections_before = classification_override_count(session, payload.ids)
@@ -306,7 +308,7 @@ def bulk_update(payload: TransactionBulkUpdate, session: DbSession) -> BulkResul
                 if row is not None:
                     session.delete(row)
     except TransactionError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, exc) from exc
     if "kind" in fields or classification_override_count(session, payload.ids) < corrections_before:
         classify_all(session)
     session.commit()
@@ -319,7 +321,7 @@ def bulk_update(payload: TransactionBulkUpdate, session: DbSession) -> BulkResul
 @router.get("/{transaction_id}/learn", response_model=LearnSuggestion | None)
 def get_learn_suggestion(transaction_id: int, session: DbSession) -> LearnSuggestion | None:
     """Dopo una correzione: proposta di applicarla ai movimenti simili o di creare una regola."""
-    tx = get_or_404(session, Transaction, transaction_id, "Movimento")
+    tx = get_or_404(session, Transaction, transaction_id)
     proposal = learn_proposal(session, tx)
     if proposal is None:
         return None
@@ -336,12 +338,10 @@ def get_learn_suggestion(transaction_id: int, session: DbSession) -> LearnSugges
 
 @router.post("/{transaction_id}/learn", response_model=LearnResult)
 def learn(transaction_id: int, payload: LearnRequest, session: DbSession) -> LearnResult:
-    tx = get_or_404(session, Transaction, transaction_id, "Movimento")
+    tx = get_or_404(session, Transaction, transaction_id)
     proposal = learn_proposal(session, tx)
     if proposal is None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Nessuna correzione da applicare per questo movimento"
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "transaction.no_corrections")
     if payload.scope == LearnScope.PAST:
         updated = apply_to_past(session, proposal)
         session.commit()
@@ -360,11 +360,9 @@ def learn(transaction_id: int, payload: LearnRequest, session: DbSession) -> Lea
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transaction(transaction_id: int, session: DbSession) -> Response:
     """Solo i movimenti inseriti a mano si possono eliminare."""
-    tx = get_or_404(session, Transaction, transaction_id, "Movimento")
+    tx = get_or_404(session, Transaction, transaction_id)
     if not tx.is_manual:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "I movimenti sincronizzati non si possono eliminare"
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "transaction.synced_not_deletable")
     session.delete(tx)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -388,16 +386,12 @@ def transfer_suggestions(session: DbSession) -> list[TransferSuggestion]:
 
 
 def _pair_txs(session: DbSession, payload: TransactionPair) -> tuple[Transaction, Transaction]:
-    out = get_or_404(session, Transaction, payload.out_id, "Movimento")
-    inc = get_or_404(session, Transaction, payload.in_id, "Movimento")
+    out = get_or_404(session, Transaction, payload.out_id)
+    inc = get_or_404(session, Transaction, payload.in_id)
     if out.amount_eur >= 0 or inc.amount_eur <= 0:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "Serve un movimento in uscita e uno in entrata"
-        )
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "transfer.needs_out_and_in")
     if out.account_id == inc.account_id:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "I due movimenti sono sullo stesso conto"
-        )
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "transfer.same_account")
     return out, inc
 
 

@@ -147,7 +147,7 @@ def test_learn_from_correction_creates_rule_for_past_and_future(
     uscite = _category(mock_db, "uscite")
     patched = client.patch(f"/api/transactions/{txs[0].id}", json={"category_id": uscite.id})
     assert patched.status_code == 200
-    assert patched.json()["classification_note"] == "Correzione manuale"
+    assert patched.json()["classification_reason"] == "reason.manual"
 
     suggestion = client.get(f"/api/transactions/{txs[0].id}/learn").json()
     assert suggestion["subject"] == "Netflix"

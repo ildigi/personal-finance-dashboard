@@ -9,6 +9,7 @@ export const analytics = {
     month: "Month",
     total: "Total",
     others: "Others",
+    noSubcategory: "No subcategory",
     category: "Category",
     dataTable: "Data table",
     monthsShown: "Months shown",

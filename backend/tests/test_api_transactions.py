@@ -104,7 +104,7 @@ def test_create_rejects_mismatched_subcategory(
         },
     )
     assert response.status_code == 422
-    assert "non appartiene" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "subcategory.wrong_category"
 
 
 def test_create_foreign_currency(client: TestClient, account: Account) -> None:

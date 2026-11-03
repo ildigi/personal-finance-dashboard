@@ -8,12 +8,13 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.messages import AppError
 from app.models import FxRate
 
 CENT = Decimal("0.01")
 
 
-class FxRateMissingError(LookupError):
+class FxRateMissingError(AppError, LookupError):
     pass
 
 
@@ -27,7 +28,7 @@ def rate_to_eur(session: Session, currency: str, day: date) -> Decimal:
         .limit(1)
     )
     if rate is None:
-        raise FxRateMissingError(f"Nessun cambio {currency}/EUR disponibile al {day.isoformat()}")
+        raise FxRateMissingError("fx.rate_missing", currency=currency, date=day.isoformat())
     return rate
 
 

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 import type { TransactionFilters } from "../filters";
 import { statusLabel } from "../labels";
-import { accountLabel, type Lookups } from "../lookups";
+import { accountLabel, transactionDescription, type Lookups } from "../lookups";
 import type { Transaction } from "../queries";
 import { CategoryLabel } from "./CategoryLabel";
 
@@ -157,7 +157,7 @@ export function TransactionTable({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate font-medium" title={row.original.description_raw}>
-                {row.original.merchant_name ?? row.original.description_clean}
+                {row.original.merchant_name ?? transactionDescription(row.original, lookups)}
               </span>
               {row.original.status === "pending" && (
                 <Badge variant="outline" className="shrink-0 text-[10px] text-muted-foreground">
@@ -173,7 +173,7 @@ export function TransactionTable({
             {(row.original.merchant_name ?? row.original.counterparty_name) && (
               <div className="truncate text-xs text-muted-foreground">
                 {row.original.merchant_name
-                  ? row.original.description_clean
+                  ? transactionDescription(row.original, lookups)
                   : row.original.counterparty_name}
               </div>
             )}

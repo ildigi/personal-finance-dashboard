@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, ApiError, unwrap, type Schemas } from "@/api/client";
+import { api, ApiError, detailOf, unwrap, type Schemas } from "@/api/client";
 import { i18n } from "@/i18n";
 
 export type AuthStatus = Schemas["AuthStatus"];
@@ -36,15 +36,9 @@ async function noContent(request: Promise<{ error?: unknown; response: Response 
     throw new ApiError(0, i18n.t("errors.backendUnreachable"));
   }
   if (result.response.ok) return;
-  const detail =
-    result.error && typeof result.error === "object" && "detail" in result.error
-      ? result.error.detail
-      : null;
   throw new ApiError(
     result.response.status,
-    typeof detail === "string"
-      ? detail
-      : i18n.t("errors.status", { status: result.response.status }),
+    detailOf(result.error) ?? i18n.t("errors.status", { status: result.response.status }),
   );
 }
 

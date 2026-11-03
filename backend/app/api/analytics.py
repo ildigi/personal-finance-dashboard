@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession
+from app.core.messages import http_error
 from app.schemas.analytics import ExpensesSummary, IncomeSummary, MerchantTotal, MonthlySeries
 from app.services.analytics import (
     expenses_summary,
@@ -24,11 +25,9 @@ MAX_RANGE_DAYS = 3 * 366
 
 def _check_range(date_from: date, date_to: date) -> None:
     if date_from > date_to:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "date_from non può essere dopo date_to"
-        )
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "range.invalid")
     if (date_to - date_from).days > MAX_RANGE_DAYS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Intervallo troppo lungo")
+        raise http_error(status.HTTP_422_UNPROCESSABLE_CONTENT, "range.too_long")
 
 
 @router.get("/expenses", response_model=ExpensesSummary)

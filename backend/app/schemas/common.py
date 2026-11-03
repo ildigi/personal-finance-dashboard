@@ -4,12 +4,13 @@ from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, WithJsonSchema
+from pydantic_core import PydanticCustomError
 
 
 def _reject_float(value: object) -> object:
     # Un float JSON ha già perso precisione: gli importi arrivano come stringhe ("12.50").
     if isinstance(value, float):
-        raise ValueError('gli importi vanno inviati come stringa, es. "12.50"')
+        raise PydanticCustomError("amount_as_string", "amounts must be strings")
     return value
 
 

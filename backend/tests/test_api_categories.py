@@ -102,7 +102,7 @@ def test_category_in_use_cannot_be_deleted(
     make_synced_transaction(seeded, account, category_id=sport.id)
     response = client.delete(f"/api/categories/{sport.id}")
     assert response.status_code == 409
-    assert "archiviala" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "category.in_use"
 
 
 # --- Eliminazione delle sottocategorie ------------------------------------------------------
@@ -181,7 +181,7 @@ def test_subcategory_in_use_moves_into_sibling(
     # In uso: niente eliminazione diretta, serve una destinazione.
     refused = client.delete(f"/api/subcategories/{cibo}")
     assert refused.status_code == 409
-    assert "sposta" in refused.json()["detail"]
+    assert refused.json()["detail"]["code"] == "subcategory.in_use"
 
     response = client.post(f"/api/subcategories/{cibo}/merge", json={"into_id": salute})
     assert response.status_code == 200, response.text
@@ -261,7 +261,7 @@ def test_subcategory_merge_validation(client: TestClient, seeded: Session) -> No
     assert same.status_code == 409
     other = client.post(f"/api/subcategories/{cibo}/merge", json={"into_id": altro})
     assert other.status_code == 409
-    assert "stessa categoria" in other.json()["detail"]
+    assert other.json()["detail"]["code"] == "subcategory.merge_other_category"
     missing = client.post(f"/api/subcategories/{cibo}/merge", json={"into_id": 999_999})
     assert missing.status_code == 404
     assert client.post(f"/api/subcategories/{salute}/merge", json={}).status_code == 422

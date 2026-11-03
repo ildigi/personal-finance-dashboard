@@ -89,4 +89,4 @@ def test_account_with_transactions_cannot_be_deleted(
     make_synced_transaction(db, account)
     response = client.delete(f"/api/accounts/{account.id}")
     assert response.status_code == 409
-    assert "disattivalo" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "account.has_transactions"

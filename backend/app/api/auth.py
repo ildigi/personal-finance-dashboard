@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Request, Response, status
 from sqlalchemy import select
 
 from app.api.deps import DbSession
@@ -20,6 +20,7 @@ from app.auth.service import (
     verify_login,
 )
 from app.core.config import get_settings
+from app.core.messages import http_error
 from app.models import AuthSession
 from app.schemas.auth import AuthStatus, LoginRequest, SessionRead
 
@@ -42,17 +43,17 @@ def login(payload: LoginRequest, request: Request, session: DbSession) -> Respon
     check_origin(request)
     wait = limiter.retry_after()
     if wait:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            f"Troppi tentativi sbagliati: riprova tra {max(1, wait // 60)} minuti",
-            headers={"Retry-After": str(wait)},
+        error = http_error(
+            status.HTTP_429_TOO_MANY_REQUESTS, "auth.locked", minutes=max(1, wait // 60)
         )
+        error.headers = {"Retry-After": str(wait)}
+        raise error
     if not is_configured(session):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Accesso non ancora configurato")
+        raise http_error(status.HTTP_409_CONFLICT, "auth.not_configured")
     if not verify_login(session, payload.password, payload.code):
         session.commit()
         limiter.failure()
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Password o codice non validi")
+        raise http_error(status.HTTP_401_UNAUTHORIZED, "auth.invalid_credentials")
     limiter.success()
     issued = open_session(session, request.headers.get("user-agent"))
     session.commit()

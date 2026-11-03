@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from app.core.messages import AppError
 from app.models import (
     Budget,
     Category,
@@ -21,7 +22,7 @@ from app.models import (
 from app.models.enums import OverrideField
 
 
-class MergeError(ValueError):
+class MergeError(AppError, ValueError):
     pass
 
 
@@ -83,9 +84,9 @@ def _merge_open_budgets(
 def merge_categories(session: Session, source: Category, target: Category) -> int:
     """Restituisce il numero di movimenti spostati. Il commit è a carico del chiamante."""
     if source.id == target.id:
-        raise MergeError("Scegli una categoria diversa")
+        raise MergeError("category.merge_same")
     if source.is_system:
-        raise MergeError("Le categorie di sistema non si uniscono ad altre")
+        raise MergeError("category.system_not_mergeable")
 
     sub_map = {sub.id: _target_subcategory(session, target, sub).id for sub in source.subcategories}
 
@@ -229,9 +230,9 @@ def merge_subcategory(session: Session, source: Subcategory, target: Subcategory
     commit e riclassificazione sono a carico del chiamante."""
     if target is not None:
         if target.id == source.id:
-            raise MergeError("Scegli una sottocategoria diversa")
+            raise MergeError("subcategory.merge_same")
         if target.category_id != source.category_id:
-            raise MergeError("La sottocategoria di destinazione deve essere della stessa categoria")
+            raise MergeError("subcategory.merge_other_category")
     new_id = target.id if target is not None else None
     new_text = str(new_id) if new_id is not None else None
     old_text = str(source.id)

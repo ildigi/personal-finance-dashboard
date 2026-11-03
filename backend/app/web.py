@@ -15,9 +15,11 @@ import hashlib
 import re
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+
+from app.core.messages import http_error
 
 _INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.DOTALL)
 
@@ -57,7 +59,7 @@ def mount_frontend(app: FastAPI, static_dir: Path | None) -> None:
     @app.get("/{path:path}", include_in_schema=False, response_model=None)
     def frontend(path: str) -> HTMLResponse | FileResponse:
         if path.startswith("api/") or path == "api":
-            raise HTTPException(status_code=404, detail="Non trovato")
+            raise http_error(404, "not_found")
         if path in root_files:
             return FileResponse(static_dir / path)
         return HTMLResponse(

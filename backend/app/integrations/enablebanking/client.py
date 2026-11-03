@@ -33,6 +33,7 @@ from dotenv import dotenv_values
 from pydantic import SecretStr
 
 from app.core.logging import mask_iban
+from app.core.messages import AppError
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ ENDPOINTS: frozenset[tuple[str, str]] = frozenset(
 _ID = re.compile(r"^[A-Za-z0-9-]{8,}$")
 
 
-class EnableBankingError(RuntimeError):
+class EnableBankingError(AppError, RuntimeError):
     """Errore leggibile, senza dati sensibili (finisce nei log di sincronizzazione)."""
 
 
@@ -77,23 +78,21 @@ class Credentials:
 
 def load_credentials(env_file: Path) -> Credentials:
     if not env_file.is_file():
-        raise EnableBankingError(
-            f"File delle credenziali Enable Banking non trovato: {env_file.name}"
-        )
+        raise EnableBankingError("bank.credentials_missing", file=env_file.name)
     values = dotenv_values(env_file)
     app_id = (values.get("EB_APPLICATION_ID") or "").strip()
     key_name = (values.get("EB_KEY_FILE") or "enablebanking.pem").strip()
     environment = (values.get("EB_ENV") or "sandbox").strip().lower()
     if not app_id:
-        raise EnableBankingError("EB_APPLICATION_ID mancante nel file delle credenziali")
+        raise EnableBankingError("bank.credentials_invalid", setting="EB_APPLICATION_ID")
     if environment not in ("sandbox", "production"):
-        raise EnableBankingError("EB_ENV deve essere 'sandbox' oppure 'production'")
+        raise EnableBankingError("bank.credentials_invalid", setting="EB_ENV")
     key_path = env_file.parent / Path(key_name).name  # solo nella cartella dei segreti
     if not key_path.is_file():
-        raise EnableBankingError(f"Chiave privata Enable Banking non trovata: {key_path.name}")
+        raise EnableBankingError("bank.private_key_missing", file=key_path.name)
     key = key_path.read_text(encoding="utf-8")
     if "PRIVATE KEY" not in key:
-        raise EnableBankingError("Il file della chiave non contiene una chiave privata")
+        raise EnableBankingError("bank.private_key_missing", file=key_path.name)
     return Credentials(app_id, SecretStr(key), environment)
 
 
@@ -199,7 +198,7 @@ class EnableBankingClient:
             if not key:
                 return
             params = {"date_from": date_from, "continuation_key": key}
-        raise EnableBankingError("Troppe pagine di movimenti: interrotto per sicurezza")
+        raise EnableBankingError("bank.too_many_pages")
 
     # --- Meccanica ----------------------------------------------------------------------
 
@@ -232,7 +231,7 @@ class EnableBankingClient:
     ) -> dict[str, Any]:
         key = endpoint_key(path)
         if (method, key) not in ENDPOINTS:
-            raise EnableBankingError(f"Endpoint non consentito: {method} {key}")
+            raise EnableBankingError("bank.endpoint_forbidden", endpoint=f"{method} {key}")
         headers = {"Authorization": f"Bearer {self._jwt()}"}
         if psu:
             headers.update(self._psu_headers)
@@ -244,9 +243,7 @@ class EnableBankingClient:
                 )
             except httpx.HTTPError as exc:
                 if attempt == 2:
-                    raise EnableBankingError(
-                        f"Enable Banking non raggiungibile ({type(exc).__name__})"
-                    ) from None
+                    raise EnableBankingError("bank.unreachable", error=type(exc).__name__) from None
                 self._sleep(2.0 * (attempt + 1))
                 continue
             if response.status_code >= 500 and attempt < 2:
@@ -254,7 +251,7 @@ class EnableBankingClient:
                 continue
             break
         if response is None:  # pragma: no cover - il ciclo assegna sempre o solleva
-            raise EnableBankingError(f"Nessuna risposta da {key}")
+            raise EnableBankingError("bank.unreachable", error=key)
         return self._parse(response, method, key)
 
     @staticmethod
@@ -278,23 +275,22 @@ class EnableBankingClient:
             try:
                 data = response.json()
             except ValueError:
-                raise EnableBankingError(f"Risposta non valida da {key}") from None
+                raise EnableBankingError("bank.bad_response", endpoint=key) from None
             if not isinstance(data, dict):
-                raise EnableBankingError(f"Risposta inattesa da {key}")
+                raise EnableBankingError("bank.bad_response", endpoint=key)
             return data
         detail = cls._detail(response)
-        suffix = f": {detail}" if detail else ""
+        # Il testo del provider resta un parametro: non si traduce.
         if status == 401 and key.startswith(("/accounts", "/sessions/")):
-            raise ConsentExpiredError(f"Consenso scaduto o revocato, va rinnovato{suffix}")
+            raise ConsentExpiredError("bank.consent_revoked", detail=detail or None)
         if status == 401:
-            raise EnableBankingError(f"Applicazione Enable Banking non autorizzata (401){suffix}")
+            raise EnableBankingError("bank.app_unauthorized", detail=detail or None)
         if status == 403:
-            raise ConsentExpiredError(f"Accesso negato dalla banca (403){suffix}")
+            raise ConsentExpiredError("bank.access_denied", detail=detail or None)
         if status == 429:
-            raise EnableBankingError(
-                "Limite di accessi raggiunto (429): la banca concede poche letture al giorno"
-                + suffix
-            )
+            raise EnableBankingError("bank.rate_limited", detail=detail or None)
         if status == 422 and key.endswith("/transactions"):
-            raise EnableBankingError(f"Periodo dei movimenti non accettato dalla banca{suffix}")
-        raise EnableBankingError(f"Errore {status} da Enable Banking su {method} {key}{suffix}")
+            raise EnableBankingError("bank.period_rejected", detail=detail or None)
+        raise EnableBankingError(
+            "bank.http_error", status=status, endpoint=f"{method} {key}", detail=detail or None
+        )

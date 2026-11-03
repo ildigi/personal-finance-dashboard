@@ -64,10 +64,10 @@ def test_manual_and_future_sources_cannot_sync(client: TestClient, db: Session) 
     # Trading 212 senza il file delle credenziali (nei test non c'è mai).
     response = client.post(f"/api/sources/{t212.id}/sync")
     assert response.status_code == 409
-    assert "non trovato" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "broker.credentials_missing"
     response = client.post(f"/api/sources/{bank.id}/sync")
     assert response.status_code == 409
-    assert "collega il conto" in response.json()["detail"]  # consenso mai dato
+    assert response.json()["detail"]["code"] == "bank.not_authorized"  # consenso mai dato
 
 
 def test_mock_setup_endpoint(client: TestClient) -> None:

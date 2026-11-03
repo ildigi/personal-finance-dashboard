@@ -18,6 +18,7 @@ from typing import Any
 
 from app.integrations.base import AccountKind, ProviderAccount, ProviderBalance, ProviderTransaction
 from app.integrations.enablebanking.client import EnableBankingClient, EnableBankingError
+from app.schemas.transactions import MONEY_TRANSFER_LABEL
 from app.services.dates import ROME
 
 _ACCOUNT_TYPES: dict[str, AccountKind] = {
@@ -34,7 +35,7 @@ def _amount(value: Any) -> Decimal:
     try:
         return Decimal(str(value))
     except (InvalidOperation, ValueError):
-        raise EnableBankingError("Importo non valido nella risposta della banca") from None
+        raise EnableBankingError("bank.invalid_amount") from None
 
 
 def _date(value: Any) -> date | None:
@@ -47,7 +48,7 @@ def _readable(text: Any) -> str | None:
 
 
 #: Descrizione dei movimenti senza causale né controparte, dal codice dell'operazione.
-_CODE_LABELS = {"MONEY_TRANSFER": "Trasferimento di denaro"}
+_CODE_LABELS = {"MONEY_TRANSFER": MONEY_TRANSFER_LABEL}
 
 
 def session_account(account: dict[str, Any]) -> dict[str, Any]:
@@ -87,7 +88,7 @@ class EnableBankingConnector:
         try:
             return str(self._uid[external_id])
         except KeyError:
-            raise EnableBankingError("Conto non presente nel consenso attuale") from None
+            raise EnableBankingError("bank.account_not_in_consent") from None
 
     def list_accounts(self) -> list[ProviderAccount]:
         return [

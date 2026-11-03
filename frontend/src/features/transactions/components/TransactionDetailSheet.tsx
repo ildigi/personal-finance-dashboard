@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatDateTime, maskIban } from "@/lib/format";
 
 import { kindLabel, statusLabel } from "../labels";
-import { accountLabel, type Lookups } from "../lookups";
+import { accountLabel, transactionDescription, type Lookups } from "../lookups";
 import {
   useDeleteTransaction,
   useResetClassification,
@@ -177,7 +177,9 @@ export function TransactionDetailSheet({
               <SheetTitle className="text-3xl font-semibold tracking-tight">
                 <Money value={tx.amount} currency={tx.currency} signed tone="auto" />
               </SheetTitle>
-              <p className="text-sm font-medium">{tx.merchant_name ?? tx.description_clean}</p>
+              <p className="text-sm font-medium">
+                {tx.merchant_name ?? transactionDescription(tx, lookups)}
+              </p>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <Badge variant="secondary">{kindLabel(tx.kind)}</Badge>
                 <Badge variant="outline">{statusLabel(tx.status)}</Badge>

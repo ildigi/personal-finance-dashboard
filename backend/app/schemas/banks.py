@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import Field, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.schemas.common import ApiModel, OrmModel
 from app.schemas.sync import SyncSummaryRead
@@ -37,7 +38,7 @@ class AuthorizeRequest(ApiModel):
     @model_validator(mode="after")
     def _bank_or_source(self) -> AuthorizeRequest:
         if self.aspsp_name is None and self.source_id is None:
-            raise ValueError("Indica la banca (aspsp_name) o la sorgente da rinnovare (source_id)")
+            raise PydanticCustomError("bank.authorize_target", "aspsp_name or source_id required")
         return self
 
 

@@ -97,7 +97,8 @@ const ACTIVITY: Schemas["InvestmentActivity"] = {
 const LIVE: Schemas["LiveRefresh"] = {
   refreshed: false,
   as_of: "2026-10-05T12:00:00Z",
-  message: null,
+  message_code: null,
+  message_params: {},
 };
 
 function backend(overrides: Record<string, Handler> = {}) {

@@ -20,6 +20,7 @@ from app.classification.paypal import funded_purchase_ids
 from app.classification.text import clean_description
 from app.models import Account, Balance, Transaction
 from app.models.enums import TransactionStatus
+from app.schemas.transactions import FX_ADJUSTMENT_PREFIX
 from app.services.transactions import compute_dedupe_hash, default_kind
 
 log = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ GAIN_LABEL = "Differenza di cambio a favore"
 
 
 def adjustment_external_id(account: Account, day: date) -> str:
-    return f"fx-adjust-{account.id}-{day.isoformat()}"
+    return f"{FX_ADJUSTMENT_PREFIX}{account.id}-{day.isoformat()}"
 
 
 def reconcile_fx(

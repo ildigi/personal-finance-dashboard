@@ -89,10 +89,7 @@ class Trading212Connector:
         if self._summary is None:
             summary = self.client.account_summary()
             if summary.get("currency") != "EUR":
-                raise Trading212Error(
-                    "Il conto Trading 212 non è in EUR: per ora la dashboard gestisce "
-                    "solo conti in euro"
-                )
+                raise Trading212Error("broker.not_eur")
             self._summary = summary
         return self._summary
 
@@ -234,7 +231,7 @@ class Trading212Connector:
             if kind is None or amount == 0:
                 continue
             if t.get("currency", "EUR") != "EUR":
-                raise Trading212Error("Movimento di cassa non in EUR: non gestito")
+                raise Trading212Error("broker.not_eur")
             flows.append(
                 ProviderCashFlow(
                     external_id=str(t["reference"]),

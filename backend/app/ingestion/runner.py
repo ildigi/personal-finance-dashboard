@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.classification.engine import classify_all
 from app.core.logging import mask_iban
+from app.core.messages import AppError, Params, coded
 from app.ingestion import bank as bank_ingest
 from app.ingestion import broker as broker_ingest
 from app.ingestion.bank import JobStats
@@ -42,6 +43,8 @@ class JobResult:
     updated: int = 0
     details: dict[str, int] = field(default_factory=dict)
     error: str | None = None
+    error_code: str | None = None
+    error_params: Params = field(default_factory=dict)
 
 
 @dataclass
@@ -88,6 +91,8 @@ class _Recorder:
                 items_created=result.created,
                 items_updated=result.updated,
                 error_message=result.error,
+                error_code=result.error_code,
+                error_params=result.error_params or None,
             )
             for job, result in self.results.items()
         ]
@@ -229,7 +234,14 @@ def _run_sync(
         message = _safe_message(exc)
         log.warning("Sincronizzazione della sorgente %s fallita: %s", source_id, message)
         finished = datetime.now(UTC)
-        failed = JobResult(job=rec.current, status=SyncStatus.ERROR, error=message)
+        code, params = (exc.code, exc.params) if isinstance(exc, AppError) else coded("unexpected")
+        failed = JobResult(
+            job=rec.current,
+            status=SyncStatus.ERROR,
+            error=message,
+            error_code=code,
+            error_params=params,
+        )
         rec.results = {rec.current: failed}
         reloaded = session.get(AccountSource, source_id)
         if reloaded is not None:

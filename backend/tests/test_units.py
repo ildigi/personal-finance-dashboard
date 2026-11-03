@@ -71,7 +71,7 @@ def test_money_accepts_strings_and_integers() -> None:
 
 
 def test_money_rejects_floats() -> None:
-    with pytest.raises(ValidationError, match="stringa"):
+    with pytest.raises(ValidationError, match="amounts must be strings"):
         _tx(amount=-12.5)
 
 

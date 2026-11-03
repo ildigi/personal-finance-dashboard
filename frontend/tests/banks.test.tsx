@@ -178,7 +178,10 @@ describe("Banche (Open Banking)", () => {
   it("se la banca rifiuta mostra il motivo", async () => {
     backend({
       "POST /api/banks/callback": () =>
-        json({ detail: "La banca ha risposto: access_denied" }, 400),
+        json(
+          { detail: { code: "bank.provider_error", params: { message: "access_denied" } } },
+          400,
+        ),
     });
     await renderApp("/impostazioni/ritorno-banca?error=access_denied&state=xyz");
     expect(await screen.findByText("Collegamento non riuscito")).toBeInTheDocument();

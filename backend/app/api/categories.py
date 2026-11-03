@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import ColumnElement, exists, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbSession, apply_patch, get_or_404
 from app.classification.engine import classify_all
+from app.core.messages import http_error
 from app.models import (
     Budget,
     Category,
@@ -40,11 +41,6 @@ from app.services.categories import (
 )
 
 router = APIRouter(tags=["categories"])
-
-_IN_USE = (
-    "è usata da movimenti, budget, ricorrenze, merchant o regole: "
-    "archiviala o uniscila a un'altra invece di eliminarla"
-)
 
 
 def _is_used(session: DbSession, *conditions: ColumnElement[bool]) -> bool:
@@ -87,14 +83,14 @@ def create_category(payload: CategoryCreate, session: DbSession) -> Category:
 
 @router.get("/categories/{category_id}", response_model=CategoryRead)
 def get_category(category_id: int, session: DbSession) -> Category:
-    return get_or_404(session, Category, category_id, "Categoria")
+    return get_or_404(session, Category, category_id)
 
 
 @router.patch("/categories/{category_id}", response_model=CategoryRead)
 def update_category(category_id: int, payload: CategoryUpdate, session: DbSession) -> Category:
-    category = get_or_404(session, Category, category_id, "Categoria")
+    category = get_or_404(session, Category, category_id)
     if category.is_system and payload.is_archived:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Le categorie di sistema non si archiviano")
+        raise http_error(status.HTTP_409_CONFLICT, "category.system_not_archivable")
     apply_patch(
         category,
         payload,
@@ -106,9 +102,9 @@ def update_category(category_id: int, payload: CategoryUpdate, session: DbSessio
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_category(category_id: int, session: DbSession) -> Response:
-    category = get_or_404(session, Category, category_id, "Categoria")
+    category = get_or_404(session, Category, category_id)
     if category.is_system:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Le categorie di sistema non si eliminano")
+        raise http_error(status.HTTP_409_CONFLICT, "category.system_not_deletable")
     if _is_used(
         session,
         Transaction.category_id == category.id,
@@ -116,7 +112,7 @@ def delete_category(category_id: int, session: DbSession) -> Response:
         RecurringTransaction.category_id == category.id,
         Merchant.default_category_id == category.id,
     ) or _used_by_rules(session, "category_id", category.id):
-        raise HTTPException(status.HTTP_409_CONFLICT, f"La categoria {_IN_USE}")
+        raise http_error(status.HTTP_409_CONFLICT, "category.in_use")
     for sub in list(category.subcategories):
         session.delete(sub)
     session.flush()
@@ -131,12 +127,12 @@ def merge_category(
 ) -> CategoryMergeResult:
     """Unisce questa categoria in un'altra: movimenti, budget, merchant e regole passano
     alla destinazione; le sottocategorie confluiscono in quelle omonime (o vengono create)."""
-    source = get_or_404(session, Category, category_id, "Categoria")
-    target = get_or_404(session, Category, payload.into_id, "Categoria")
+    source = get_or_404(session, Category, category_id)
+    target = get_or_404(session, Category, payload.into_id)
     try:
         moved = merge_categories(session, source, target)
     except MergeError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     classify_all(session)
     session.commit()
     session.refresh(target)
@@ -156,7 +152,7 @@ def merge_category(
 def create_subcategory(
     category_id: int, payload: SubcategoryCreate, session: DbSession
 ) -> Subcategory:
-    get_or_404(session, Category, category_id, "Categoria")
+    get_or_404(session, Category, category_id)
     sub = Subcategory(category_id=category_id, **payload.model_dump())
     session.add(sub)
     session.commit()
@@ -167,7 +163,7 @@ def create_subcategory(
 def update_subcategory(
     subcategory_id: int, payload: SubcategoryUpdate, session: DbSession
 ) -> Subcategory:
-    sub = get_or_404(session, Subcategory, subcategory_id, "Sottocategoria")
+    sub = get_or_404(session, Subcategory, subcategory_id)
     apply_patch(sub, payload, non_nullable=frozenset({"name", "is_archived"}))
     session.commit()
     return sub
@@ -175,7 +171,7 @@ def update_subcategory(
 
 @router.get("/subcategories/{subcategory_id}/usage", response_model=SubcategoryUsage)
 def get_subcategory_usage(subcategory_id: int, session: DbSession) -> SubcategoryUsage:
-    sub = get_or_404(session, Subcategory, subcategory_id, "Sottocategoria")
+    sub = get_or_404(session, Subcategory, subcategory_id)
     usage = subcategory_usage(session, sub)
     return SubcategoryUsage(**asdict(usage), in_use=usage.in_use)
 
@@ -183,13 +179,9 @@ def get_subcategory_usage(subcategory_id: int, session: DbSession) -> Subcategor
 @router.delete("/subcategories/{subcategory_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_subcategory(subcategory_id: int, session: DbSession) -> Response:
     """Solo se nulla la usa; altrimenti `POST /subcategories/{id}/merge`."""
-    sub = get_or_404(session, Subcategory, subcategory_id, "Sottocategoria")
+    sub = get_or_404(session, Subcategory, subcategory_id)
     if subcategory_usage(session, sub).in_use:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "La sottocategoria è usata da movimenti, budget, ricorrenze, merchant, regole o "
-            "correzioni: sposta prima ciò che la usa su un'altra sottocategoria",
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "subcategory.in_use")
     session.delete(sub)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -201,20 +193,18 @@ def merge_subcategory_into(
 ) -> SubcategoryMergeResult:
     """Elimina la sottocategoria spostando movimenti, regole, budget, ricorrenze, merchant e
     correzioni su un'altra della stessa categoria (o su nessuna), poi riclassifica."""
-    source = get_or_404(session, Subcategory, subcategory_id, "Sottocategoria")
+    source = get_or_404(session, Subcategory, subcategory_id)
     target = (
-        get_or_404(session, Subcategory, payload.into_id, "Sottocategoria")
-        if payload.into_id is not None
-        else None
+        get_or_404(session, Subcategory, payload.into_id) if payload.into_id is not None else None
     )
     category_id = source.category_id
     try:
         moved = merge_subcategory(session, source, target)
     except MergeError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        raise http_error(status.HTTP_409_CONFLICT, exc) from exc
     classify_all(session)
     session.commit()
-    category = get_or_404(session, Category, category_id, "Categoria")
+    category = get_or_404(session, Category, category_id)
     session.refresh(category)
     return SubcategoryMergeResult(
         category=CategoryRead.model_validate(category), moved_transactions=moved

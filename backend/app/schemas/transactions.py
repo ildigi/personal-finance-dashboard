@@ -4,7 +4,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.models.enums import ClassificationSource, TransactionKind, TransactionStatus
 from app.schemas.common import (
@@ -16,6 +17,13 @@ from app.schemas.common import (
     Page,
     RateIn,
 )
+
+# Codici delle descrizioni scritte dalla dashboard (vedi `TransactionRead.description_code`).
+type DescriptionCode = Literal["fx_cost", "fx_gain", "money_transfer"]
+#: Prefisso dell'ID dei movimenti "Costo del cambio" (`ingestion/reconcile.py`).
+FX_ADJUSTMENT_PREFIX = "fx-adjust-"
+#: Descrizione dei prelievi PayPal senza causale (`integrations/enablebanking/connector.py`).
+MONEY_TRANSFER_LABEL = "Trasferimento di denaro"
 
 TransactionSort = Literal["date_desc", "date_asc", "amount_desc", "amount_asc"]
 
@@ -46,7 +54,7 @@ class TransactionCreate(ApiModel):
     @model_validator(mode="after")
     def _check_eur(self) -> TransactionCreate:
         if self.currency != "EUR" and self.amount_eur is None:
-            raise ValueError("amount_eur è obbligatorio per i movimenti non in EUR")
+            raise PydanticCustomError("transaction.amount_eur_required", "amount_eur required")
         return self
 
 
@@ -109,6 +117,8 @@ class TransactionRead(OrmModel):
     income_type_id: int | None
     classification_source: ClassificationSource
     rule_id: int | None
+    classification_reason: str | None
+    classification_params: dict[str, Any] | None
     classification_note: str | None
     transfer_pair_id: int | None
     recurring_id: int | None
@@ -118,6 +128,18 @@ class TransactionRead(OrmModel):
     tags: list[TagRead]
     created_at: datetime
     updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def description_code(self) -> DescriptionCode | None:
+        """Movimenti scritti dalla dashboard o col testo scelto da lei: il frontend ne mostra la
+        descrizione nella lingua dell'utente. La descrizione salvata non cambia (fa parte
+        dell'impronta anti-doppioni ed è riconosciuta dalla regola `fx_conversion_cost`)."""
+        if (self.external_id or "").startswith(FX_ADJUSTMENT_PREFIX):
+            return "fx_cost" if self.amount < 0 else "fx_gain"
+        if self.description_raw == MONEY_TRANSFER_LABEL:
+            return "money_transfer"
+        return None
 
 
 class ManualOverrideRead(OrmModel):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import Field
 
@@ -176,7 +177,10 @@ class LiveRefresh(OrmModel):
 
     refreshed: bool = Field(description="Falso se troppo ravvicinato, in corso o non possibile")
     as_of: datetime | None = Field(description="Istante dell'ultima istantanea")
-    message: str | None = Field(description="Perché non è stato aggiornato, se c'è un errore")
+    message_code: str | None = Field(
+        description="Perché non è stato aggiornato, se c'è un errore (codice di messaggio)"
+    )
+    message_params: dict[str, Any] = Field(default_factory=dict)
 
 
 class InvestmentActivity(OrmModel):

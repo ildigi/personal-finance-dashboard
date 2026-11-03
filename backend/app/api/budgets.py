@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.deps import DbSession, get_or_404
+from app.core.messages import http_error
 from app.models import Budget
 from app.schemas.planning import (
     BudgetCreate,
@@ -33,13 +34,13 @@ from app.services.dates import today_rome
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
 
-def _http(exc: Exception) -> HTTPException:
+def _http(exc: BudgetError | BudgetConflictError) -> HTTPException:
     code = (
         status.HTTP_409_CONFLICT
         if isinstance(exc, BudgetConflictError)
         else status.HTTP_422_UNPROCESSABLE_CONTENT
     )
-    return HTTPException(code, str(exc))
+    return http_error(code, exc)
 
 
 @router.get("", response_model=BudgetOverview)
@@ -82,7 +83,7 @@ def post_budget(payload: BudgetCreate, session: DbSession) -> BudgetStatus:
 def patch_budget(budget_id: int, payload: BudgetUpdate, session: DbSession) -> BudgetStatus:
     """Il nuovo importo vale dal mese corrente: la risposta può avere un `id` diverso."""
     today = today_rome()
-    budget = get_or_404(session, Budget, budget_id, "Budget")
+    budget = get_or_404(session, Budget, budget_id)
     try:
         current = update_budget(session, budget, payload, today)
     except BudgetConflictError as exc:
@@ -94,7 +95,7 @@ def patch_budget(budget_id: int, payload: BudgetUpdate, session: DbSession) -> B
 @router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_budget(budget_id: int, session: DbSession) -> Response:
     """Toglie il budget dal mese corrente in poi; i mesi passati restano nello storico."""
-    budget = get_or_404(session, Budget, budget_id, "Budget")
+    budget = get_or_404(session, Budget, budget_id)
     end_budget(session, budget, today_rome())
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

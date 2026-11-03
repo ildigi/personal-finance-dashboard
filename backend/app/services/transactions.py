@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.classification.text import clean_description, collapse_whitespace
+from app.core.messages import AppError
 from app.models import (
     Account,
     Category,
@@ -47,11 +48,11 @@ NON_NULLABLE_FIELDS = frozenset(
 )
 
 
-class TransactionError(ValueError):
+class TransactionError(AppError, ValueError):
     """Errore di validazione applicativa (tradotto in 422 dall'API)."""
 
 
-class TransactionConflictError(Exception):
+class TransactionConflictError(AppError):
     """Operazione non consentita sullo stato attuale (tradotta in 409)."""
 
 
@@ -87,31 +88,31 @@ def _resolve_category(
     if subcategory_id is not None:
         sub = session.get(Subcategory, subcategory_id)
         if sub is None:
-            raise TransactionError(f"Sottocategoria {subcategory_id} inesistente")
+            raise TransactionError("subcategory.not_found", id=subcategory_id)
         if category_id is not None and sub.category_id != category_id:
-            raise TransactionError("La sottocategoria non appartiene alla categoria indicata")
+            raise TransactionError("subcategory.wrong_category")
         return sub.category_id, subcategory_id
     if category_id is not None and session.get(Category, category_id) is None:
-        raise TransactionError(f"Categoria {category_id} inesistente")
+        raise TransactionError("category.not_found", id=category_id)
     return category_id, None
 
 
-def _ensure_exists(session: Session, model: type[object], pk: int | None, label: str) -> None:
+def _ensure_exists(session: Session, model: type[object], pk: int | None) -> None:
     if pk is not None and session.get(model, pk) is None:
-        raise TransactionError(f"{label} {pk} inesistente")
+        raise TransactionError("not_found", id=pk)
 
 
 def create_manual_transaction(session: Session, data: TransactionCreate) -> Transaction:
     account = session.get(Account, data.account_id)
     if account is None:
-        raise TransactionError(f"Conto {data.account_id} inesistente")
+        raise TransactionError("not_found", id=data.account_id)
 
     category_id, subcategory_id = _resolve_category(session, data.category_id, data.subcategory_id)
-    _ensure_exists(session, IncomeClassification, data.income_type_id, "Tipologia di entrata")
+    _ensure_exists(session, IncomeClassification, data.income_type_id)
 
     amount_eur = data.amount if data.currency == "EUR" else data.amount_eur
     if amount_eur is None:
-        raise TransactionError("amount_eur è obbligatorio per i movimenti non in EUR")
+        raise TransactionError("transaction.amount_eur_required")
 
     explicit = data.kind is not None or category_id is not None
     tx = Transaction(
@@ -212,6 +213,8 @@ def reset_classification(session: Session, tx: Transaction) -> int:
         # Anche i movimenti inseriti a mano tornano alla classificazione automatica.
         tx.classification_source = ClassificationSource.NONE
         tx.classification_note = None
+        tx.classification_reason = None
+        tx.classification_params = None
     session.flush()
     return removed
 
@@ -221,13 +224,12 @@ def update_transaction(session: Session, tx: Transaction, data: TransactionUpdat
 
     for field in NON_NULLABLE_FIELDS & changes.keys():
         if changes[field] is None:
-            raise TransactionError(f"Il campo {field} non può essere vuoto")
+            raise TransactionError("field_required", field=field)
 
     manual_only = MANUAL_ONLY_FIELDS & changes.keys()
     if manual_only and not tx.is_manual:
         raise TransactionConflictError(
-            "Date, importi e descrizione dei movimenti sincronizzati non sono modificabili: "
-            f"{', '.join(sorted(manual_only))}"
+            "transaction.synced_fields", fields=", ".join(sorted(manual_only))
         )
 
     # --- Categoria / sottocategoria -------------------------------------------------
@@ -247,9 +249,9 @@ def update_transaction(session: Session, tx: Transaction, data: TransactionUpdat
         )
 
     if "income_type_id" in changes:
-        _ensure_exists(session, IncomeClassification, changes["income_type_id"], "Tipologia")
+        _ensure_exists(session, IncomeClassification, changes["income_type_id"])
     if "merchant_id" in changes:
-        _ensure_exists(session, Merchant, changes["merchant_id"], "Merchant")
+        _ensure_exists(session, Merchant, changes["merchant_id"])
 
     # --- Classificazione e note: correzioni persistenti --------------------------------
     # Prima si calcolano le differenze e si registrano gli override, poi si applicano
@@ -275,7 +277,9 @@ def update_transaction(session: Session, tx: Transaction, data: TransactionUpdat
     if classification_changed:
         tx.classification_source = ClassificationSource.MANUAL
         tx.rule_id = None
-        tx.classification_note = "Correzione manuale"
+        tx.classification_note = None
+        tx.classification_reason = "reason.manual"
+        tx.classification_params = {}
 
     # --- Dati del movimento (solo manuali) -------------------------------------------
     if manual_only:
@@ -287,7 +291,7 @@ def update_transaction(session: Session, tx: Transaction, data: TransactionUpdat
         if tx.currency == "EUR":
             tx.amount_eur = tx.amount
         elif changes.keys() & {"amount", "currency"} and "amount_eur" not in changes:
-            raise TransactionError("Per i movimenti non in EUR va aggiornato anche amount_eur")
+            raise TransactionError("transaction.amount_eur_update")
         tx.dedupe_hash = compute_dedupe_hash(
             tx.account_id, tx.booking_date, tx.amount, tx.currency, tx.description_raw
         )

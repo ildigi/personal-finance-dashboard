@@ -38,8 +38,11 @@ class SyncLog(IdMixin, TimestampMixin, Base):
     items_fetched: Mapped[int | None]
     items_created: Mapped[int | None]
     items_updated: Mapped[int | None]
-    # Mai dati sensibili: solo tipo di errore e messaggio sintetico.
+    # Mai dati sensibili: solo tipo di errore e messaggio sintetico (per chi legge i log).
     error_message: Mapped[str | None]
+    # Lo stesso errore per l'interfaccia: codice di `app.core.messages` e parametri.
+    error_code: Mapped[str | None]
+    error_params: Mapped[dict[str, Any] | None]
 
 
 class NetWorthSnapshot(IdMixin, TimestampMixin, Base):

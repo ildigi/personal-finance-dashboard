@@ -7,6 +7,7 @@ export const analytics = {
     month: "Mese",
     total: "Totale",
     others: "Altre",
+    noSubcategory: "Senza sottocategoria",
     category: "Categoria",
     dataTable: "Tabella dei dati",
     monthsShown: "Mesi mostrati",

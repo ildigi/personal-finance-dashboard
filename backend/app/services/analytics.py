@@ -48,7 +48,6 @@ from app.schemas.analytics import (
 
 ZERO = Decimal("0.00")
 SPENDING_KINDS = (TransactionKind.EXPENSE, TransactionKind.FEE, TransactionKind.REFUND)
-UNCATEGORIZED_LABEL = "Da classificare"
 SUBSCRIPTIONS_CODE = "abbonamenti"
 
 
@@ -280,9 +279,7 @@ def expenses_summary(
         sub_items = [
             SubcategoryTotal(
                 subcategory_id=sub_id,
-                name=subcategories[sub_id].name
-                if sub_id in subcategories
-                else "Senza sottocategoria",
+                name=subcategories[sub_id].name if sub_id in subcategories else None,
                 total_eur=sub_amount,
                 count=sub_n,
             )
@@ -292,7 +289,7 @@ def expenses_summary(
         items.append(
             CategoryTotal(
                 category_id=cat_id,
-                name=category.name if category else UNCATEGORIZED_LABEL,
+                name=category.name if category else None,
                 icon=category.icon if category else None,
                 color=category.color if category else None,
                 total_eur=amount,

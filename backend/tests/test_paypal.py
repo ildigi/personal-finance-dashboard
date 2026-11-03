@@ -60,7 +60,7 @@ def test_purchase_paid_with_paypal_is_counted_once(db: Session) -> None:
     db.commit()
     assert on_paypal.kind == TransactionKind.EXPENSE
     assert on_bank.kind == TransactionKind.INTERNAL_TRANSFER
-    assert on_bank.classification_note == "Pagato con PayPal: la spesa è contata sul conto PayPal"
+    assert on_bank.classification_reason == "reason.paid_with_paypal"
     # Senza l'acquisto su PayPal (storico più corto) la spesa resta quella della banca.
     assert other.kind == TransactionKind.EXPENSE
 

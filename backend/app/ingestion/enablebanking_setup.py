@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.crypto import DecryptionError, decrypt_json, encrypt_json
+from app.core.messages import AppError
 from app.integrations.enablebanking.client import (
     Credentials,
     EnableBankingClient,
@@ -44,7 +45,7 @@ STATE_TTL_SECONDS = 30 * 60
 MAX_CONSENT = timedelta(days=180)
 
 
-class AuthorizationError(RuntimeError):
+class AuthorizationError(AppError, RuntimeError):
     """Consenso non completato: messaggio leggibile."""
 
 
@@ -137,7 +138,7 @@ def start_authorization(
     with make_client() as client:
         bank = next((a for a in client.aspsps(country) if a.get("name") == aspsp_name), None)
         if bank is None:
-            raise AuthorizationError(f"Banca non disponibile: {aspsp_name}")
+            raise AuthorizationError("bank.unavailable", bank=aspsp_name)
         maximum = timedelta(seconds=int(bank.get("maximum_consent_validity") or 0))
         validity = min(maximum, MAX_CONSENT) if maximum else timedelta(days=90)
         state = encrypt_json(
@@ -158,7 +159,7 @@ def start_authorization(
         )
     url = result.get("url")
     if not url:
-        raise AuthorizationError("Enable Banking non ha restituito l'indirizzo della banca")
+        raise AuthorizationError("bank.no_redirect")
     return str(url)
 
 
@@ -176,9 +177,7 @@ def complete_authorization(
     try:
         context = decrypt_json(state, ttl=STATE_TTL_SECONDS)
     except DecryptionError:
-        raise AuthorizationError(
-            "Collegamento scaduto o non valido: riparti da Impostazioni → Connessioni"
-        ) from None
+        raise AuthorizationError("bank.flow_expired") from None
     own_client = client is None
     client = client or make_client()
     try:
@@ -262,10 +261,8 @@ def disconnect(session: Session, source: AccountSource, *, delete_data: bool) ->
 
 def session_data(source: AccountSource) -> dict[str, Any]:
     if not source.session_data_encrypted:
-        raise AuthorizationError("Banca non ancora autorizzata: collega il conto")
+        raise AuthorizationError("bank.not_authorized")
     try:
         return decrypt_json(source.session_data_encrypted)
     except DecryptionError:
-        raise AuthorizationError(
-            "Sessione della banca illeggibile (chiave di cifratura cambiata?): ricollega il conto"
-        ) from None
+        raise AuthorizationError("bank.session_unreadable") from None

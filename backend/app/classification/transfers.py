@@ -53,7 +53,8 @@ class TransferCandidate:
 class TransferMatch:
     out_id: int
     in_id: int
-    reason: str | None  # None = nessun indizio: solo proposta
+    # Indizio: "own_iban", "keyword:<parola>", "rule"; None = nessun indizio, solo proposta.
+    reason: str | None
 
     @property
     def confident(self) -> bool:
@@ -90,12 +91,12 @@ def _clue(
     keywords: list[str],
 ) -> str | None:
     if out.counterparty_iban in my_ibans or inc.counterparty_iban in my_ibans:
-        return "IBAN di un tuo conto"
+        return "own_iban"
     for keyword in keywords:
         if contains_phrase(out.text, keyword) or contains_phrase(inc.text, keyword):
-            return f"parola chiave «{keyword}»"
+            return f"keyword:{keyword}"
     if out.rule_says_transfer or inc.rule_says_transfer:
-        return "regola"
+        return "rule"
     return None
 
 

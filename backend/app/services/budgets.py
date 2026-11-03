@@ -21,6 +21,7 @@ from decimal import Decimal
 from sqlalchemy import case, false, func, select
 from sqlalchemy.orm import Session
 
+from app.core.messages import AppError
 from app.models import Budget, Category, RecurringTransaction, Subcategory, Transaction
 from app.models.enums import CategoryKind, Direction, RecurringStatus
 from app.recurring.service import upcoming
@@ -45,11 +46,11 @@ CENT = Decimal("0.01")
 Scope = tuple[int, int | None]  # (categoria, sottocategoria o None = tutta la categoria)
 
 
-class BudgetError(ValueError):
+class BudgetError(AppError, ValueError):
     """Richiesta non valida (422)."""
 
 
-class BudgetConflictError(ValueError):
+class BudgetConflictError(AppError, ValueError):
     """Esiste già un budget aperto per la stessa categoria (409)."""
 
 
@@ -166,7 +167,7 @@ def budget_overview(session: Session, month: date, today: date) -> BudgetOvervie
     start, end = month_bounds(month)
     current_start, _ = month_bounds(today)
     if start > current_start:
-        raise BudgetError("Il mese non è ancora iniziato")
+        raise BudgetError("budget.month_not_started")
     is_current = start == current_start
     days_in_month = end.day
     elapsed = today.day if is_current else days_in_month
@@ -349,19 +350,19 @@ def _open_line(session: Session, scope: Scope) -> Budget | None:
 def validate_scope(session: Session, category_id: int, subcategory_id: int | None) -> None:
     category = session.get(Category, category_id)
     if category is None:
-        raise BudgetError(f"Categoria {category_id} non trovata")
+        raise BudgetError("category.not_found", id=category_id)
     if category.kind != CategoryKind.EXPENSE or category.excluded_from_spending:
-        raise BudgetError("Il budget si imposta solo sulle categorie di spesa")
+        raise BudgetError("budget.expense_only")
     if subcategory_id is not None:
         sub = session.get(Subcategory, subcategory_id)
         if sub is None or sub.category_id != category_id:
-            raise BudgetError("La sottocategoria non appartiene alla categoria")
+            raise BudgetError("subcategory.wrong_category")
 
 
 def create_budget(session: Session, payload: BudgetCreate, today: date) -> Budget:
     validate_scope(session, payload.category_id, payload.subcategory_id)
     if _open_line(session, (payload.category_id, payload.subcategory_id)) is not None:
-        raise BudgetConflictError("Questa categoria ha già un budget")
+        raise BudgetConflictError("budget.exists")
     budget = Budget(
         category_id=payload.category_id,
         subcategory_id=payload.subcategory_id,
@@ -377,7 +378,7 @@ def create_budget(session: Session, payload: BudgetCreate, today: date) -> Budge
 
 def update_budget(session: Session, budget: Budget, payload: BudgetUpdate, today: date) -> Budget:
     if budget.valid_to is not None:
-        raise BudgetConflictError("Questo budget è terminato: creane uno nuovo")
+        raise BudgetConflictError("budget.ended")
     if payload.alert_threshold_pct is not None:
         budget.alert_threshold_pct = payload.alert_threshold_pct
     if payload.amount is None or payload.amount == budget.amount:

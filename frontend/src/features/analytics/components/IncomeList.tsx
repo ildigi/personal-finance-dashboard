@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Lookups } from "@/features/transactions/lookups";
+import { transactionDescription, type Lookups } from "@/features/transactions/lookups";
 import { useUpdateTransaction } from "@/features/transactions/queries";
 import { formatDate } from "@/lib/format";
 import type { DateRange } from "@/lib/period";
@@ -60,10 +60,10 @@ export function IncomeList({ range, lookups }: { range: DateRange; lookups: Look
         >
           <div className="min-w-0">
             <div className="truncate text-sm font-medium">
-              {tx.merchant_name ?? tx.counterparty_name ?? tx.description_clean}
+              {tx.merchant_name ?? tx.counterparty_name ?? transactionDescription(tx, lookups)}
             </div>
             <div className="truncate text-xs text-muted-foreground">
-              {formatDate(tx.booking_date, "short")} · {tx.description_clean}
+              {formatDate(tx.booking_date, "short")} · {transactionDescription(tx, lookups)}
             </div>
           </div>
           <Money

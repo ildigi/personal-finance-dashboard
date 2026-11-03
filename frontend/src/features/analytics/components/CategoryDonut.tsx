@@ -38,7 +38,7 @@ export function CategoryDonut({
   const slices: Slice[] = [
     ...top.map((c) => ({
       key: String(c.category_id),
-      label: c.name,
+      label: c.name ?? i18n.t("transactions.unclassified"),
       value: Number(c.total_eur),
       color: colors.colorOf(c.category_id),
     })),

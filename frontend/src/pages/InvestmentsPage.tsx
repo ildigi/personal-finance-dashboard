@@ -41,6 +41,7 @@ import { formatDate, formatPercent, formatRelative, sign } from "@/lib/format";
 import { useInvestmentScope, type InvestmentScope } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 import { i18n } from "@/i18n";
+import { messageText } from "@/i18n/messages";
 
 function ReturnTile({ summary, scope }: { summary: InvestmentSummary; scope: InvestmentScope }) {
   if (scope === "active") {
@@ -143,7 +144,9 @@ export function InvestmentsPage() {
   const allLabel = start
     ? i18n.t("investments.allSince", { date: formatDate(start, "short") })
     : i18n.t("investments.all");
-  const liveMessage = live.data?.message ?? null;
+  const liveMessage = live.data?.message_code
+    ? messageText(live.data.message_code, live.data.message_params)
+    : null;
   const isLive = live.isSuccess && liveMessage === null;
   const months = activity.data ? fillMonths(activity.data.months, currentMonth()) : [];
   const hasDividends = months.some((m) => Number(m.dividends_eur) > 0);

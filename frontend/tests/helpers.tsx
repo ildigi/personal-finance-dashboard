@@ -122,7 +122,9 @@ export function mockBackend(overrides: Record<string, Handler> = {}): ReturnType
   const fetchMock = vi.fn((input: Request) => {
     const url = new URL(input.url);
     const handler = handlers[`${input.method} ${url.pathname}`] ?? handlers[url.pathname];
-    return Promise.resolve(handler ? handler(url, input) : json({ detail: "Not Found" }, 404));
+    return Promise.resolve(
+      handler ? handler(url, input) : json({ detail: { code: "not_found", params: {} } }, 404),
+    );
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;

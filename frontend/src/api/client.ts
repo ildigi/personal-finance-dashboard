@@ -7,6 +7,7 @@
 import createClient from "openapi-fetch";
 
 import { i18n } from "@/i18n";
+import { messageText } from "@/i18n/messages";
 
 import type { components, paths } from "./schema";
 
@@ -58,10 +59,36 @@ export class ApiError extends Error {
   }
 }
 
-function detailOf(error: unknown): string | null {
-  if (error && typeof error === "object" && "detail" in error) {
-    const { detail } = error;
-    if (typeof detail === "string") return detail;
+interface CodedDetail {
+  code: string;
+  params?: Record<string, unknown>;
+}
+
+interface ValidationIssue {
+  type: string;
+  msg?: string;
+  ctx?: Record<string, unknown>;
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/**
+ * Testo leggibile del corpo d'errore dell'API. Il backend manda un codice con parametri
+ * (`{"detail": {"code", "params"}}`, ADR 0006); gli errori di validazione di FastAPI sono un
+ * elenco con il codice in `type`. Un testo semplice (righe vecchie, proxy) si mostra com'è.
+ */
+export function detailOf(error: unknown): string | null {
+  if (!isObject(error) || !("detail" in error)) return null;
+  const { detail } = error;
+  if (typeof detail === "string") return detail;
+  if (isObject(detail) && typeof detail.code === "string") {
+    const coded = detail as unknown as CodedDetail;
+    return messageText(coded.code, coded.params);
+  }
+  if (Array.isArray(detail) && isObject(detail[0]) && typeof detail[0].type === "string") {
+    const issue = detail[0] as unknown as ValidationIssue;
+    return messageText(issue.type, issue.ctx, issue.msg);
   }
   return null;
 }

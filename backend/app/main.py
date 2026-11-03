@@ -106,7 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content={
-                "detail": "Operazione in conflitto con i dati esistenti",
+                "detail": {"code": "conflict", "params": {}},
                 "constraint": constraint,
             },
         )

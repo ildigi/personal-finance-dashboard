@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import case, exists, select
 from sqlalchemy.dialects.postgresql import distinct_on
 
 from app.api.deps import DbSession, apply_patch, get_or_404
+from app.core.messages import http_error
 from app.models import Account, AccountSource, Balance, Transaction
 from app.schemas.accounts import (
     AccountCreate,
@@ -36,12 +37,12 @@ def create_source(payload: SourceCreate, session: DbSession) -> AccountSource:
 
 @router.get("/sources/{source_id}", response_model=SourceRead)
 def get_source(source_id: int, session: DbSession) -> AccountSource:
-    return get_or_404(session, AccountSource, source_id, "Sorgente")
+    return get_or_404(session, AccountSource, source_id)
 
 
 @router.patch("/sources/{source_id}", response_model=SourceRead)
 def update_source(source_id: int, payload: SourceUpdate, session: DbSession) -> AccountSource:
-    source = get_or_404(session, AccountSource, source_id, "Sorgente")
+    source = get_or_404(session, AccountSource, source_id)
     apply_patch(source, payload, non_nullable=frozenset({"display_name", "status"}))
     session.commit()
     return source
@@ -93,7 +94,7 @@ def list_accounts(session: DbSession, include_inactive: bool = False) -> list[Ac
 
 @router.post("/accounts", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
 def create_account(payload: AccountCreate, session: DbSession) -> Account:
-    get_or_404(session, AccountSource, payload.source_id, "Sorgente")
+    get_or_404(session, AccountSource, payload.source_id)
     account = Account(**payload.model_dump())
     session.add(account)
     session.commit()
@@ -102,12 +103,12 @@ def create_account(payload: AccountCreate, session: DbSession) -> Account:
 
 @router.get("/accounts/{account_id}", response_model=AccountRead)
 def get_account(account_id: int, session: DbSession) -> AccountRead:
-    return _with_balances(session, [get_or_404(session, Account, account_id, "Conto")])[0]
+    return _with_balances(session, [get_or_404(session, Account, account_id)])[0]
 
 
 @router.patch("/accounts/{account_id}", response_model=AccountRead)
 def update_account(account_id: int, payload: AccountUpdate, session: DbSession) -> Account:
-    account = get_or_404(session, Account, account_id, "Conto")
+    account = get_or_404(session, Account, account_id)
     apply_patch(
         account,
         payload,
@@ -120,12 +121,9 @@ def update_account(account_id: int, payload: AccountUpdate, session: DbSession) 
 @router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(account_id: int, session: DbSession) -> Response:
     """Elimina un conto solo se non ha movimenti (i saldi storici vanno via in cascata)."""
-    account = get_or_404(session, Account, account_id, "Conto")
+    account = get_or_404(session, Account, account_id)
     if session.scalar(select(exists().where(Transaction.account_id == account.id))):
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "Il conto ha dei movimenti: disattivalo (is_active=false) invece di eliminarlo",
-        )
+        raise http_error(status.HTTP_409_CONFLICT, "account.has_transactions")
     session.delete(account)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

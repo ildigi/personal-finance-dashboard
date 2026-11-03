@@ -66,6 +66,7 @@ from app.classification.transfers import (
     normalize_iban,
 )
 from app.core.config import get_settings
+from app.core.messages import Params, coded
 from app.models import (
     Account,
     Category,
@@ -108,7 +109,7 @@ _REFUND_RE = re.compile(r"\b(refund|rimborso|rimborsi|storno|stornato|reso|charg
 _DIVIDEND_RE = re.compile(r"\b(dividend[oi]?|dividends|cedola)\b", re.I)
 _TRANSFER_IN_RE = re.compile(r"\b(bonifico|bonif|sepa credit|transfer from|giroconto)\b", re.I)
 
-_MANUAL_PAIR = "abbinato a mano"
+_MANUAL_PAIR = "manual"
 
 _CLASSIFICATION_OVERRIDES = frozenset(
     {
@@ -130,7 +131,10 @@ class Decision:
     income_type_id: int | None = None
     source: str = ClassificationSource.NONE
     rule_id: int | None = None
-    note: str | None = None
+    # Perché: codice `reason.*` di `app.core.messages` e parametri (il testo lo sceglie il
+    # frontend).
+    reason: str | None = None
+    reason_params: Params = field(default_factory=dict)
     transfer_pair_id: int | None = None
     refund_of_id: int | None = None
     rule_tag_ids: frozenset[int] = frozenset()
@@ -394,7 +398,7 @@ def _transfers(
 
     paypal_pairs, funding, paypal_out = _paypal(ctx, excluded | set(pairs))
     for a, b in paypal_pairs.items():
-        pairs[a] = (b, "prelievo da PayPal")
+        pairs[a] = (b, "paypal_withdrawal")
     excluded |= set(funding)
 
     candidates = [
@@ -545,7 +549,14 @@ def _apply_rule(ctx: _Context, decision: Decision, rule: CompiledRule) -> None:
         decision.rule_tag_ids = frozenset(t for t in a.tag_ids if t in ctx.tag_ids)
     decision.source = ClassificationSource.RULE
     decision.rule_id = rule.id
-    decision.note = f"Regola «{rule.name}»"
+    decision.reason, decision.reason_params = coded("reason.rule", rule=rule.name)
+
+
+def _transfer_reason(clue: str) -> tuple[str, Params]:
+    """Perché due movimenti sono un trasferimento: dall'indizio dell'abbinamento."""
+    if clue.startswith("keyword:"):
+        return coded("reason.transfer_keyword", keyword=clue.removeprefix("keyword:"))
+    return coded(f"reason.transfer_{clue}")
 
 
 def _fallback_category(ctx: _Context, decision: Decision, tx: Transaction) -> None:
@@ -559,14 +570,16 @@ def _fallback_category(ctx: _Context, decision: Decision, tx: Transaction) -> No
             decision.category_id, decision.subcategory_id = cat, sub
             if decision.source == ClassificationSource.NONE:
                 decision.source = ClassificationSource.MERCHANT
-                decision.note = f"Categoria predefinita di {merchant.name}"
+                decision.reason, decision.reason_params = coded(
+                    "reason.merchant_default", merchant=merchant.name
+                )
             return
 
-    for ref, note in (
-        (category_for_mcc(tx.mcc), f"Codice MCC {tx.mcc}"),
+    for ref, reason in (
+        (category_for_mcc(tx.mcc), coded("reason.mcc", mcc=tx.mcc)),
         (
             category_for_provider(tx.provider_category),
-            f"Categoria della banca «{tx.provider_category}»",
+            coded("reason.provider_category", category=tx.provider_category),
         ),
     ):
         if ref is None:
@@ -576,7 +589,7 @@ def _fallback_category(ctx: _Context, decision: Decision, tx: Transaction) -> No
             decision.category_id, decision.subcategory_id = cat, sub
             if decision.source == ClassificationSource.NONE:
                 decision.source = ClassificationSource.PROVIDER
-                decision.note = note
+                decision.reason, decision.reason_params = reason
             return
 
 
@@ -599,24 +612,24 @@ def _decide(
             if pair[1] == _MANUAL_PAIR
             else ClassificationSource.HEURISTIC
         )
-        d.note = f"Trasferimento tra i tuoi conti ({pair[1]})"
+        d.reason, d.reason_params = _transfer_reason(pair[1])
         return d
     if to_own_account:
         d.kind, d.merchant_id, d.kind_locked = TransactionKind.INTERNAL_TRANSFER, None, True
         d.source = ClassificationSource.HEURISTIC
-        d.note = "La controparte sei tu o un tuo conto"
+        d.reason, d.reason_params = coded("reason.own_counterparty")
         return d
     if funds_paypal:
         d.kind, d.merchant_id, d.kind_locked = TransactionKind.INTERNAL_TRANSFER, None, True
         d.source = ClassificationSource.HEURISTIC
-        d.note = "Pagato con PayPal: la spesa è contata sul conto PayPal"
+        d.reason, d.reason_params = coded("reason.paid_with_paypal")
         return d
     if investment:
         investimenti = ctx.category_by_code.get("investimenti")
         d.kind, d.kind_locked = TransactionKind.INVESTMENT_TRANSFER, True
         d.category_id = investimenti.id if investimenti else None
         d.source = ClassificationSource.HEURISTIC
-        d.note = "Abbinato a un movimento del conto investimenti"
+        d.reason, d.reason_params = coded("reason.investment_match")
         if rule is not None and rule.actions.kind == TransactionKind.INVESTMENT_TRANSFER:
             _apply_rule(ctx, d, rule)
         return d
@@ -693,7 +706,7 @@ def _place_bound(ctx: _Context, d: Decision) -> bool:
     return code not in _NOT_PLACE_BOUND and (code, sub) not in _NOT_PLACE_BOUND_SUBS
 
 
-def _to_travel(ctx: _Context, d: Decision, note: str) -> bool:
+def _to_travel(ctx: _Context, d: Decision, reason: tuple[str, Params]) -> bool:
     viaggi = ctx.category_by_code.get("viaggi")
     if viaggi is None or viaggi.is_archived:
         return False
@@ -703,7 +716,7 @@ def _to_travel(ctx: _Context, d: Decision, note: str) -> bool:
     d.category_id = viaggi.id
     d.subcategory_id = travel_sub.id if travel_sub and not travel_sub.is_archived else None
     d.source, d.rule_id = ClassificationSource.HEURISTIC, None
-    d.note = note
+    d.reason, d.reason_params = reason
     return True
 
 
@@ -714,7 +727,7 @@ def _travel(ctx: _Context, d: Decision, tx: Transaction) -> None:
     location = card_location(tx.description_raw)
     if location is None or not is_away(location, ctx.homes) or not _place_bound(ctx, d):
         return
-    d.away = _to_travel(ctx, d, f"Pagato fuori casa ({location.text})")
+    d.away = _to_travel(ctx, d, coded("reason.travel_away", place=location.text))
 
 
 def _is_card_payment(tx: Transaction) -> bool:
@@ -756,7 +769,7 @@ def _travel_by_day(ctx: _Context, decisions: dict[int, Decision]) -> None:
             or not _place_bound(ctx, d)
         ):
             continue
-        _to_travel(ctx, d, f"Pagato durante un viaggio ({tx.booking_date:%d/%m/%Y})")
+        _to_travel(ctx, d, coded("reason.travel_day", date=tx.booking_date.isoformat()))
 
 
 def _needs_auto_merchant(tx: Transaction, d: Decision) -> bool:
@@ -850,13 +863,15 @@ def _link_refunds(ctx: _Context, decisions: dict[int, Decision], locked: set[int
             d.income_type_id = None
             if d.source in (ClassificationSource.NONE, ClassificationSource.MERCHANT):
                 d.source = ClassificationSource.HEURISTIC
-            d.note = f"Rimborso dell'acquisto del {target.booking_date:%d/%m/%Y}"
+            d.reason, d.reason_params = coded(
+                "reason.refund_of", date=target.booking_date.isoformat()
+            )
             linked += 1
         elif keyword and d.income_type_id is None and refund_type is not None:
             d.income_type_id = refund_type.id
             if d.source == ClassificationSource.NONE:
                 d.source = ClassificationSource.HEURISTIC
-                d.note = "Rimborso (dalla descrizione)"
+                d.reason, d.reason_params = coded("reason.refund_keyword")
     return linked
 
 
@@ -895,22 +910,22 @@ def _income_types(ctx: _Context, decisions: dict[int, Decision]) -> None:
             continue
         text = f"{tx.description_raw} {tx.counterparty_name or ''}"
         if tx.id in salary_ids:
-            code, note = IncomeType.SALARY, "Entrata mensile ricorrente dallo stesso ordinante"
+            code, reason = IncomeType.SALARY, "reason.salary_recurring"
         elif (tx.provider_category or "").casefold() == "cashback":
-            code, note = IncomeType.CASHBACK, "Categoria della banca «cashback»"
+            code, reason = IncomeType.CASHBACK, "reason.cashback_provider"
         elif _DIVIDEND_RE.search(text):
-            code, note = IncomeType.DIVIDEND, "Dividendo (dalla descrizione)"
+            code, reason = IncomeType.DIVIDEND, "reason.dividend_keyword"
         elif tx.counterparty_name or _TRANSFER_IN_RE.search(text):
-            code, note = IncomeType.TRANSFER_RECEIVED, "Bonifico ricevuto"
+            code, reason = IncomeType.TRANSFER_RECEIVED, "reason.transfer_received"
         else:
-            code, note = IncomeType.OTHER, None
+            code, reason = IncomeType.OTHER, None
         income_type = by_code.get(code)
         if income_type is None:
             continue
         d.income_type_id = income_type.id
-        if d.source == ClassificationSource.NONE and note is not None:
+        if d.source == ClassificationSource.NONE and reason is not None:
             d.source = ClassificationSource.HEURISTIC
-            d.note = note
+            d.reason, d.reason_params = coded(reason)
 
 
 def _apply_overrides(ctx: _Context, tx: Transaction, d: Decision) -> None:
@@ -943,7 +958,7 @@ def _apply_overrides(ctx: _Context, tx: Transaction, d: Decision) -> None:
         d.merchant_id = value if value in ctx.merchants else None
     d.source = ClassificationSource.MANUAL
     d.rule_id = None
-    d.note = "Correzione manuale"
+    d.reason, d.reason_params = coded("reason.manual")
 
 
 # --- Esecuzione --------------------------------------------------------------------------------
@@ -1033,7 +1048,9 @@ def _write(
                 continue
             values = {f: getattr(d, f) for f in _WRITTEN_FIELDS}
             values["classification_source"] = d.source
-            values["classification_note"] = d.note
+            values["classification_reason"] = d.reason
+            values["classification_params"] = d.reason_params if d.reason else None
+            values["classification_note"] = None
             dirty = False
             for key, value in values.items():
                 if getattr(tx, key) != value:

@@ -260,7 +260,7 @@ def test_payments_and_unknown_paths_are_refused_before_any_request() -> None:
             ("POST", "/accounts/aaaaaaaa-0000/transactions"),
             ("GET", "/application"),
         ):
-            with pytest.raises(EnableBankingError, match="non consentito"):
+            with pytest.raises(EnableBankingError, match=r"bank\.endpoint_forbidden"):
                 c._request(method, path)
 
 
@@ -328,11 +328,11 @@ def test_transactions_follow_continuation_key() -> None:
 @pytest.mark.parametrize(
     ("status", "path", "error", "message"),
     [
-        (401, f"/accounts/{UID_A}/balances", ConsentExpiredError, "rinnovato"),
-        (403, f"/accounts/{UID_A}/balances", ConsentExpiredError, "negato"),
-        (401, "/aspsps", EnableBankingError, "non autorizzata"),
-        (429, f"/accounts/{UID_A}/balances", EnableBankingError, "4|poche letture"),
-        (500, "/aspsps", EnableBankingError, "Errore 500"),
+        (401, f"/accounts/{UID_A}/balances", ConsentExpiredError, r"bank\.consent_revoked"),
+        (403, f"/accounts/{UID_A}/balances", ConsentExpiredError, r"bank\.access_denied"),
+        (401, "/aspsps", EnableBankingError, r"bank\.app_unauthorized"),
+        (429, f"/accounts/{UID_A}/balances", EnableBankingError, r"bank\.rate_limited"),
+        (500, "/aspsps", EnableBankingError, r"bank\.http_error.*500"),
     ],
 )
 def test_errors_are_readable_and_masked(
@@ -354,13 +354,13 @@ def test_endpoint_key() -> None:
 
 def test_load_credentials(tmp_path: Path) -> None:
     env = tmp_path / "enablebanking.env"
-    with pytest.raises(EnableBankingError, match="non trovato"):
+    with pytest.raises(EnableBankingError, match=r"bank\.credentials_missing"):
         load_credentials(env)
     env.write_text("EB_ENV=sandbox\n", encoding="utf-8")
     with pytest.raises(EnableBankingError, match="EB_APPLICATION_ID"):
         load_credentials(env)
     env.write_text(f"EB_APPLICATION_ID={APP_ID}\nEB_KEY_FILE=../fuori.pem\n", encoding="utf-8")
-    with pytest.raises(EnableBankingError, match="non trovata"):
+    with pytest.raises(EnableBankingError, match=r"bank\.private_key_missing"):
         load_credentials(env)  # il percorso resta nella cartella dei segreti
     (tmp_path / "fuori.pem").write_text(PEM, encoding="utf-8")
     creds = load_credentials(env)
@@ -428,7 +428,7 @@ def test_transactions_sign_status_and_counterparty() -> None:
 
 
 def test_unknown_account_is_refused() -> None:
-    with pytest.raises(EnableBankingError, match="consenso"):
+    with pytest.raises(EnableBankingError, match=r"bank\.account_not_in_consent"):
         _connector().get_balances("altro")
 
 
@@ -468,12 +468,12 @@ def test_state_is_encrypted_and_expires(
     until = datetime.fromisoformat(auth["valid_until"])
     assert timedelta(days=179) < until - datetime.now(UTC) <= timedelta(days=180)
 
-    with pytest.raises(setup.AuthorizationError, match="scaduto o non valido"):
+    with pytest.raises(setup.AuthorizationError, match=r"bank\.flow_expired"):
         setup.complete_authorization(db, code="c", state="manomesso")
     monkeypatch.setattr(setup, "STATE_TTL_SECONDS", -1)
-    with pytest.raises(setup.AuthorizationError, match="scaduto"):
+    with pytest.raises(setup.AuthorizationError, match=r"bank\.flow_expired"):
         setup.complete_authorization(db, code="c", state=auth["state"])
-    with pytest.raises(setup.AuthorizationError, match="non disponibile"):
+    with pytest.raises(setup.AuthorizationError, match=r"bank\.unavailable"):
         setup.start_authorization(aspsp_name="Altra banca", country="IT")
 
 
@@ -516,7 +516,10 @@ def test_banks_flow_end_to_end(
         "/api/banks/callback", json={"state": auth_state, "error": "access_denied"}
     )
     assert refused.status_code == 400
-    assert "access_denied" in refused.json()["detail"]
+    assert refused.json()["detail"] == {
+        "code": "bank.provider_error",
+        "params": {"message": "access_denied"},
+    }
 
     done = client.post("/api/banks/callback", json={"state": auth_state, "code": "ok"})
     assert done.status_code == 200, done.text
@@ -613,7 +616,7 @@ def test_expired_consent_marks_source_expired(
     db.commit()
     response = client.post(f"/api/sources/{source_id}/sync")
     assert response.status_code == 409
-    assert "rinnovalo" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "bank.consent_expired"
     db.refresh(source)
     assert source.status == "expired"
 

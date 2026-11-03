@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 
 from app.api.deps import DbSession
 from app.auth.service import is_configured, resolve_session
 from app.core.config import get_settings
+from app.core.messages import http_error
 
 COOKIE_NAME = "fd_session"
 _UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -25,7 +26,7 @@ def check_origin(request: Request) -> None:
     allowed = set(get_settings().cors_origins)
     if origin in allowed or urlparse(origin).netloc == request.headers.get("host"):
         return
-    raise HTTPException(status.HTTP_403_FORBIDDEN, "Richiesta da un'origine non ammessa")
+    raise http_error(status.HTTP_403_FORBIDDEN, "auth.foreign_origin")
 
 
 def require_auth(request: Request, session: DbSession) -> None:
@@ -33,11 +34,8 @@ def require_auth(request: Request, session: DbSession) -> None:
         return
     check_origin(request)
     if not is_configured(session):
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Accesso attivo ma non configurato: esegui `python -m app.auth.cli setup`",
-        )
+        raise http_error(status.HTTP_503_SERVICE_UNAVAILABLE, "auth.not_configured_setup")
     found = resolve_session(session, request.cookies.get(COOKIE_NAME))
     session.commit()  # ultimo uso aggiornato o sessione scaduta eliminata
     if found is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Accesso richiesto")
+        raise http_error(status.HTTP_401_UNAUTHORIZED, "auth.required")

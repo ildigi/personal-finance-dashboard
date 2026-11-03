@@ -1,5 +1,6 @@
 import type { Messages } from "../types";
 import { overview } from "./en/overview";
+import { messages } from "./en/messages";
 import { pages } from "./en/pages";
 import { rules } from "./en/rules";
 import { recurring } from "./en/recurring";
@@ -354,6 +355,7 @@ export const en = {
     transactionsShort: "{{n}} txns",
   },
   ...overview,
+  ...messages,
   ...pages,
   ...rules,
   ...recurring,

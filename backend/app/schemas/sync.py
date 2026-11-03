@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
+
+from pydantic import Field
 
 from app.models.enums import SyncJob, SyncStatus
 from app.schemas.common import OrmModel
@@ -14,6 +17,8 @@ class SyncJobRead(OrmModel):
     updated: int
     details: dict[str, int]
     error: str | None
+    error_code: str | None = None
+    error_params: dict[str, Any] = Field(default_factory=dict)
 
 
 class SyncSummaryRead(OrmModel):
@@ -40,3 +45,5 @@ class SyncLogRead(OrmModel):
     items_created: int | None
     items_updated: int | None
     error_message: str | None
+    error_code: str | None
+    error_params: dict[str, Any] | None

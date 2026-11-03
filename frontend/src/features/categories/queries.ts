@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, unwrap, type Schemas } from "@/api/client";
+import { api, detailOf, unwrap, type Schemas } from "@/api/client";
 import { i18n } from "@/i18n";
 import { invalidateClassification } from "@/features/rules/queries";
 
@@ -49,8 +49,7 @@ export function useDeleteCategory() {
       params: { path: { category_id: id } },
     });
     if (!response.ok) {
-      const detail = (error as { detail?: unknown } | undefined)?.detail;
-      throw new Error(typeof detail === "string" ? detail : i18n.t("errors.deleteFailed"));
+      throw new Error(detailOf(error) ?? i18n.t("errors.deleteFailed"));
     }
   });
 }
@@ -122,8 +121,7 @@ export function useDeleteSubcategory() {
         params: { path: { subcategory_id: id } },
       });
       if (!response.ok) {
-        const detail = (error as { detail?: unknown } | undefined)?.detail;
-        throw new Error(typeof detail === "string" ? detail : i18n.t("errors.deleteFailed"));
+        throw new Error(detailOf(error) ?? i18n.t("errors.deleteFailed"));
       }
     },
   );
