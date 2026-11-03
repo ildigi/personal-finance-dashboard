@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 /** Scelta dell'orizzonte di un grafico (es. 6 / 12 mesi). */
 export function MonthsToggle({
@@ -11,7 +12,11 @@ export function MonthsToggle({
   options: number[];
 }) {
   return (
-    <div role="radiogroup" aria-label="Mesi mostrati" className="flex rounded-lg border p-0.5">
+    <div
+      role="radiogroup"
+      aria-label={i18n.t("analytics.monthsShown")}
+      className="flex rounded-lg border p-0.5"
+    >
       {options.map((n) => (
         <button
           key={n}
@@ -28,7 +33,7 @@ export function MonthsToggle({
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {n} mesi
+          {i18n.t("analytics.months", { n })}
         </button>
       ))}
     </div>

@@ -1,5 +1,6 @@
 import { Search, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import type { TransactionFilters } from "../filters";
-import { KIND_LABELS, STATUS_LABELS, type TransactionKind } from "../labels";
+import { TRANSACTION_KINDS, kindLabel, statusLabel, type TransactionKind } from "../labels";
 import { accountLabel, type Lookups } from "../lookups";
 
 const ALL = "all";
@@ -58,6 +59,7 @@ function FilterSelect({
 }
 
 export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, lookups }: Props) {
+  const { t } = useTranslation();
   // La ricerca parte dopo una breve pausa nella digitazione.
   const [query, setQuery] = useState(filters.q);
   // Se il filtro cambia da fuori (es. "Azzera"), il campo si allinea; senza toccare
@@ -90,8 +92,8 @@ export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, 
             onChange={(event) => {
               setQuery(event.target.value);
             }}
-            placeholder="Cerca descrizione, controparte, note…"
-            aria-label="Cerca nei movimenti"
+            placeholder={t("transactions.filters.searchPlaceholder")}
+            aria-label={t("transactions.filters.searchLabel")}
             className="h-9 bg-card pl-9"
           />
         </div>
@@ -110,7 +112,7 @@ export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, 
               filters.uncategorized && "border-primary/50 bg-primary/10 text-primary",
             )}
           >
-            Da classificare
+            {t("transactions.unclassified")}
           </Button>
           {/* Sempre presente (nascosto se non serve), così comparendo non sposta i filtri. */}
           <Button
@@ -123,20 +125,20 @@ export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, 
             tabIndex={activeCount === 0 ? -1 : undefined}
           >
             <X aria-hidden />
-            Azzera ({activeCount})
+            {t("transactions.filters.reset", { n: activeCount })}
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <FilterSelect
-          label="Conto"
+          label={t("transactions.filters.account")}
           value={filters.account ? String(filters.account) : ALL}
           onChange={(v) => {
             setFilter("account", v === ALL ? null : Number(v));
           }}
         >
-          <SelectItem value={ALL}>Tutti i conti</SelectItem>
+          <SelectItem value={ALL}>{t("transactions.filters.allAccounts")}</SelectItem>
           <SelectSeparator />
           {lookups.accounts
             .filter((a) => a.type !== "broker")
@@ -148,29 +150,29 @@ export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, 
         </FilterSelect>
 
         <FilterSelect
-          label="Tipo"
+          label={t("transactions.filters.kind")}
           value={filters.kind ?? ALL}
           onChange={(v) => {
             setFilter("kind", v === ALL ? null : (v as TransactionKind));
           }}
         >
-          <SelectItem value={ALL}>Tutti i tipi</SelectItem>
+          <SelectItem value={ALL}>{t("transactions.filters.allKinds")}</SelectItem>
           <SelectSeparator />
-          {(Object.keys(KIND_LABELS) as TransactionKind[]).map((kind) => (
+          {TRANSACTION_KINDS.map((kind) => (
             <SelectItem key={kind} value={kind}>
-              {KIND_LABELS[kind]}
+              {kindLabel(kind)}
             </SelectItem>
           ))}
         </FilterSelect>
 
         <FilterSelect
-          label="Categoria"
+          label={t("transactions.filters.category")}
           value={filters.category ? String(filters.category) : ALL}
           onChange={(v) => {
             setFilter("category", v === ALL ? null : Number(v));
           }}
         >
-          <SelectItem value={ALL}>Tutte le categorie</SelectItem>
+          <SelectItem value={ALL}>{t("transactions.filters.allCategories")}</SelectItem>
           <SelectSeparator />
           {lookups.categories.map((c) => (
             <SelectItem key={c.id} value={String(c.id)}>
@@ -180,16 +182,16 @@ export function TransactionFiltersBar({ filters, setFilter, reset, activeCount, 
         </FilterSelect>
 
         <FilterSelect
-          label="Stato"
+          label={t("transactions.filters.status")}
           value={filters.status ?? ALL}
           onChange={(v) => {
             setFilter("status", v === ALL ? null : (v as "booked" | "pending"));
           }}
         >
-          <SelectItem value={ALL}>Tutti gli stati</SelectItem>
+          <SelectItem value={ALL}>{t("transactions.filters.allStatuses")}</SelectItem>
           <SelectSeparator />
-          <SelectItem value="booked">{STATUS_LABELS.booked}</SelectItem>
-          <SelectItem value="pending">{STATUS_LABELS.pending}</SelectItem>
+          <SelectItem value="booked">{statusLabel("booked")}</SelectItem>
+          <SelectItem value="pending">{statusLabel("pending")}</SelectItem>
         </FilterSelect>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { KIND_LABELS, type TransactionKind } from "../labels";
+import { TRANSACTION_KINDS, kindLabel, type TransactionKind } from "../labels";
 import type { Lookups } from "../lookups";
 import { useUpdateTransaction, type TransactionDetail, type TransactionUpdate } from "../queries";
 import { CategoryPicker } from "./CategoryPicker";
@@ -24,6 +25,7 @@ const NONE = "none";
  * come correzione manuale; poi si propone di applicarla ai movimenti simili.
  */
 export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; lookups: Lookups }) {
+  const { t } = useTranslation();
   const update = useUpdateTransaction();
   const [corrected, setCorrected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
           setCorrected(true);
         },
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Correzione non riuscita");
+          setError(err instanceof ApiError ? err.message : t("transactions.editor.failed"));
         },
       },
     );
@@ -48,12 +50,12 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
   return (
     <section aria-labelledby="classification-heading" className="space-y-3">
       <h3 id="classification-heading" className="text-sm font-medium">
-        Classificazione
+        {t("transactions.editor.title")}
       </h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="tx-kind" className="text-xs text-muted-foreground">
-            Tipo
+            {t("transactions.filters.kind")}
           </Label>
           <Select
             value={tx.kind}
@@ -66,9 +68,9 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(KIND_LABELS) as TransactionKind[]).map((kind) => (
+              {TRANSACTION_KINDS.map((kind) => (
                 <SelectItem key={kind} value={kind}>
-                  {KIND_LABELS[kind]}
+                  {kindLabel(kind)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -78,13 +80,13 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
         {hasCategory && (
           <div className="space-y-1.5">
             <Label htmlFor="tx-category" className="text-xs text-muted-foreground">
-              Categoria
+              {t("transactions.filters.category")}
             </Label>
             <CategoryPicker
               id="tx-category"
               categories={lookups.categories}
               value={{ categoryId: tx.category_id, subcategoryId: tx.subcategory_id }}
-              noneLabel="Da classificare"
+              noneLabel={t("transactions.unclassified")}
               onChange={(choice) => {
                 save({ category_id: choice.categoryId, subcategory_id: choice.subcategoryId });
               }}
@@ -95,7 +97,7 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
         {isIncome && (
           <div className="space-y-1.5">
             <Label htmlFor="tx-income" className="text-xs text-muted-foreground">
-              Tipologia di entrata
+              {t("transactions.editor.incomeType")}
             </Label>
             <Select
               value={tx.income_type_id !== null ? String(tx.income_type_id) : NONE}
@@ -108,7 +110,7 @@ export function ClassificationEditor({ tx, lookups }: { tx: TransactionDetail; l
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Nessuna</SelectItem>
+                <SelectItem value={NONE}>{t("transactions.editor.none")}</SelectItem>
                 <SelectSeparator />
                 {lookups.incomeTypes.map((i) => (
                   <SelectItem key={i.id} value={String(i.id)}>

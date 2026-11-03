@@ -1,4 +1,5 @@
 import { CircleAlert, CircleCheck, TriangleAlert, type LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,12 +27,11 @@ const ICONS: Record<Alert["level"], LucideIcon> = {
   warning: TriangleAlert,
 };
 
-function plural(n: number, one: string, many: string): string {
-  return `${formatCount(n)} ${n === 1 ? one : many}`;
-}
-
 /** Tutto quello che chiede un'azione, in un posto solo: prima i problemi, poi gli avvisi. */
 export function AlertsCard({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  /** Conteggio per il plurale e numero formattato nella frase. */
+  const n = (count: number) => ({ count, n: formatCount(count) });
   const sources = useSources();
   const budgets = useBudgets();
   const recurring = useRecurring();
@@ -44,9 +44,9 @@ export function AlertsCard({ className }: { className?: string }) {
       alerts.push({
         key: `sync-${String(s.id)}`,
         level: "critical",
-        text: `Ultima sincronizzazione di ${s.display_name} non riuscita`,
+        text: t("alerts.syncFailed", { name: s.display_name }),
         to: "/impostazioni",
-        action: "Vedi",
+        action: t("alerts.actions.view"),
       });
     }
     if (s.provider !== "enablebanking") continue;
@@ -55,17 +55,17 @@ export function AlertsCard({ className }: { className?: string }) {
       alerts.push({
         key: `consent-${String(s.id)}`,
         level: "critical",
-        text: `Consenso di ${s.institution} scaduto: i movimenti nuovi non arrivano`,
+        text: t("alerts.consentExpired", { bank: s.institution }),
         to: "/impostazioni",
-        action: "Rinnova",
+        action: t("alerts.actions.renew"),
       });
     } else if (days !== null && days <= CONSENT_WARNING_DAYS) {
       alerts.push({
         key: `consent-${String(s.id)}`,
         level: "warning",
-        text: `Consenso di ${s.institution} in scadenza tra ${plural(days, "giorno", "giorni")}`,
+        text: t("alerts.consentExpiring", { bank: s.institution, ...n(days) }),
         to: "/impostazioni",
-        action: "Rinnova",
+        action: t("alerts.actions.renew"),
       });
     }
   }
@@ -74,18 +74,18 @@ export function AlertsCard({ className }: { className?: string }) {
     alerts.push({
       key: "budget-over",
       level: "critical",
-      text: `${plural(b.over_count, "budget superato", "budget superati")} questo mese`,
+      text: t("alerts.budgetOver", n(b.over_count)),
       to: "/budget",
-      action: "Budget",
+      action: t("alerts.actions.budget"),
     });
   }
   if (b && b.warning_count > b.over_count) {
     alerts.push({
       key: "budget-warning",
       level: "warning",
-      text: `${plural(b.warning_count - b.over_count, "budget vicino", "budget vicini")} alla soglia`,
+      text: t("alerts.budgetWarning", n(b.warning_count - b.over_count)),
       to: "/budget",
-      action: "Budget",
+      action: t("alerts.actions.budget"),
     });
   }
   const r = recurring.data?.summary;
@@ -93,18 +93,18 @@ export function AlertsCard({ className }: { className?: string }) {
     alerts.push({
       key: "recurring-late",
       level: "warning",
-      text: `${plural(r.late_count, "addebito ricorrente", "addebiti ricorrenti")} in ritardo`,
+      text: t("alerts.recurringLate", n(r.late_count)),
       to: "/ricorrenze",
-      action: "Ricorrenze",
+      action: t("alerts.actions.recurring"),
     });
   }
   if (r && r.suggested_count > 0) {
     alerts.push({
       key: "recurring-suggested",
       level: "warning",
-      text: `${plural(r.suggested_count, "ricorrenza", "ricorrenze")} da confermare`,
+      text: t("alerts.recurringSuggested", n(r.suggested_count)),
       to: "/ricorrenze",
-      action: "Conferma",
+      action: t("alerts.actions.confirm"),
     });
   }
   const unclassified = expenses.data?.unclassified_count ?? 0;
@@ -112,9 +112,9 @@ export function AlertsCard({ className }: { className?: string }) {
     alerts.push({
       key: "unclassified",
       level: "warning",
-      text: `${plural(unclassified, "spesa", "spese")} del mese da classificare`,
+      text: t("alerts.unclassified", n(unclassified)),
       to: transactionsUrl({ uncategorized: true }),
-      action: "Classifica",
+      action: t("alerts.actions.classify"),
     });
   }
   alerts.sort((x, y) => Number(x.level === "warning") - Number(y.level === "warning"));
@@ -122,8 +122,8 @@ export function AlertsCard({ className }: { className?: string }) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Da sistemare</CardTitle>
-        <CardDescription>Consensi, sincronizzazioni, budget e classificazione</CardDescription>
+        <CardTitle>{t("alerts.title")}</CardTitle>
+        <CardDescription>{t("alerts.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -134,7 +134,7 @@ export function AlertsCard({ className }: { className?: string }) {
         ) : alerts.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <CircleCheck aria-hidden className="size-4 text-status-good" />
-            Tutto in ordine: niente da sistemare.
+            {t("alerts.allGood")}
           </p>
         ) : (
           <ul className="divide-y">

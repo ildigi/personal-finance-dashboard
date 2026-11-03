@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import type { CategoryColors } from "../colors";
 import type { CategoryTotal } from "../queries";
+import { i18n } from "@/i18n";
 
 /** Variazione rispetto al periodo precedente, in parole e con freccia (mai solo colore). */
 export function Delta({ current, previous }: { current: number; previous: number }) {
@@ -47,9 +48,9 @@ export function CategoryBreakdown({
   return (
     <div>
       <div className="hidden grid-cols-[minmax(0,1fr)_7rem_9.5rem] gap-3 border-b px-2 pb-2 text-xs text-muted-foreground sm:grid">
-        <span>Categoria</span>
-        <span className="text-right">Speso</span>
-        <span className="text-right">vs {previousLabel}</span>
+        <span>{i18n.t("analytics.category")}</span>
+        <span className="text-right">{i18n.t("analytics.spent")}</span>
+        <span className="text-right">{i18n.t("analytics.versus", { label: previousLabel })}</span>
       </div>
       <ul className="divide-y">
         {categories.map((c) => {
@@ -85,7 +86,7 @@ export function CategoryBreakdown({
                   )}
                   <span className="truncate text-sm font-medium">{c.name}</span>
                   <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                    {formatCount(c.count)} mov.
+                    {i18n.t("analytics.transactionsShort", { n: formatCount(c.count) })}
                   </span>
                   <ChevronRight
                     aria-hidden
@@ -130,7 +131,7 @@ export function CategoryBreakdown({
                       <span className="truncate">
                         {s.name}
                         <span className="ml-2 text-xs text-muted-foreground">
-                          {formatCount(s.count)} mov.
+                          {i18n.t("analytics.transactionsShort", { n: formatCount(s.count) })}
                         </span>
                       </span>
                       <Money value={s.total_eur} className="num" />
@@ -141,8 +142,8 @@ export function CategoryBreakdown({
                     className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-primary hover:underline"
                   >
                     {c.category_id === null
-                      ? "Vedi i movimenti da classificare"
-                      : `Vedi i movimenti di ${c.name}`}
+                      ? i18n.t("analytics.seeUnclassified")
+                      : i18n.t("analytics.seeCategory", { name: c.name })}
                     <ChevronRight aria-hidden className="size-3.5" />
                   </Link>
                 </div>

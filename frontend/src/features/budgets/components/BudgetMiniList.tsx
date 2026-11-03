@@ -1,4 +1,5 @@
 import { CircleAlert, OctagonAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { CategoryIcon } from "@/components/common/CategoryIcon";
@@ -17,6 +18,7 @@ const TRACK = {
 
 /** Budget in forma compatta (Panoramica): i più a rischio per primi. */
 export function BudgetMiniList({ items, limit = 5 }: { items: BudgetStatus[]; limit?: number }) {
+  const { t } = useTranslation();
   return (
     <ul className="space-y-3.5">
       {items.slice(0, limit).map((b) => {
@@ -30,7 +32,9 @@ export function BudgetMiniList({ items, limit = 5 }: { items: BudgetStatus[]; li
                   <span className="truncate font-medium group-hover:underline">{b.name}</span>
                   {Icon && (
                     <Icon
-                      aria-label={b.level === "over" ? "Budget superato" : "Oltre la soglia"}
+                      aria-label={
+                        b.level === "over" ? t("budgetMini.over") : t("budgetMini.warning")
+                      }
                       className={cn(
                         "size-3.5 shrink-0",
                         b.level === "over" ? "text-status-critical" : "text-status-serious",
@@ -45,11 +49,14 @@ export function BudgetMiniList({ items, limit = 5 }: { items: BudgetStatus[]; li
               </div>
               <div
                 role="meter"
-                aria-label={`Speso del budget ${b.name}`}
+                aria-label={t("budgetMini.meter", { name: b.name })}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(b.used_pct)}
-                aria-valuetext={`${formatMoney(b.spent_eur)} su ${formatMoney(b.amount)}`}
+                aria-valuetext={t("budgetMini.meterValue", {
+                  spent: formatMoney(b.spent_eur),
+                  amount: formatMoney(b.amount),
+                })}
                 className={cn("h-1.5 overflow-hidden rounded-full", TRACK[b.level])}
               >
                 <div

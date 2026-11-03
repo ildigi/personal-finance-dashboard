@@ -10,9 +10,11 @@ import { useMemo } from "react";
 import { Money } from "@/components/common/Money";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
+import { i18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 import type { TransactionFilters } from "../filters";
+import { statusLabel } from "../labels";
 import { accountLabel, type Lookups } from "../lookups";
 import type { Transaction } from "../queries";
 import { CategoryLabel } from "./CategoryLabel";
@@ -48,7 +50,7 @@ function SortHeader({
         align === "right" && "flex-row-reverse",
         active && "text-foreground",
       )}
-      aria-label={`Ordina per ${label.toLowerCase()}`}
+      aria-label={i18n.t("transactions.table.sortBy", { label: label.toLowerCase() })}
     >
       {label}
       <Icon aria-hidden className={cn("size-3.5", !active && "opacity-50")} />
@@ -123,7 +125,7 @@ export function TransactionTable({
             onChange={() => {
               onToggleAll(ids, !allSelected);
             }}
-            label="Seleziona tutti i movimenti caricati"
+            label={i18n.t("transactions.table.selectAll")}
           />
         ),
         cell: ({ row }) => (
@@ -132,18 +134,25 @@ export function TransactionTable({
             onChange={() => {
               onToggle(row.original.id);
             }}
-            label={`Seleziona ${row.original.description_clean}`}
+            label={i18n.t("transactions.table.select", { name: row.original.description_clean })}
           />
         ),
       }),
       column.accessor("booking_date", {
-        header: () => <SortHeader label="Data" field="date" sort={sort} onSort={onSort} />,
+        header: () => (
+          <SortHeader
+            label={i18n.t("transactions.table.date")}
+            field="date"
+            sort={sort}
+            onSort={onSort}
+          />
+        ),
         cell: (info) => (
           <span className="num text-muted-foreground">{formatDate(info.getValue(), "short")}</span>
         ),
       }),
       column.accessor("description_clean", {
-        header: "Descrizione",
+        header: () => i18n.t("transactions.table.description"),
         cell: ({ row }) => (
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -152,12 +161,12 @@ export function TransactionTable({
               </span>
               {row.original.status === "pending" && (
                 <Badge variant="outline" className="shrink-0 text-[10px] text-muted-foreground">
-                  In sospeso
+                  {statusLabel("pending")}
                 </Badge>
               )}
               {row.original.is_manual && (
                 <Badge variant="secondary" className="shrink-0 text-[10px]">
-                  Manuale
+                  {i18n.t("transactions.table.manual")}
                 </Badge>
               )}
             </div>
@@ -172,7 +181,7 @@ export function TransactionTable({
         ),
       }),
       column.accessor("account_id", {
-        header: "Conto",
+        header: () => i18n.t("transactions.account"),
         cell: (info) => (
           <span className="truncate text-muted-foreground">
             {accountLabel(lookups.accountById.get(info.getValue()))}
@@ -180,7 +189,7 @@ export function TransactionTable({
         ),
       }),
       column.accessor("category_id", {
-        header: "Categoria",
+        header: () => i18n.t("transactions.filters.category"),
         cell: ({ row }) => (
           <CategoryLabel
             categoryId={row.original.category_id}
@@ -193,7 +202,13 @@ export function TransactionTable({
       }),
       column.accessor("amount", {
         header: () => (
-          <SortHeader label="Importo" field="amount" sort={sort} onSort={onSort} align="right" />
+          <SortHeader
+            label={i18n.t("transactions.table.amount")}
+            field="amount"
+            sort={sort}
+            onSort={onSort}
+            align="right"
+          />
         ),
         cell: ({ row }) => (
           <div className="text-right">
@@ -276,7 +291,7 @@ export function TransactionTable({
                 onOpen(row.original.id);
               }
             }}
-            aria-label={`Apri il dettaglio di ${row.original.description_clean}`}
+            aria-label={i18n.t("transactions.table.open", { name: row.original.description_clean })}
             aria-selected={selected.has(row.original.id)}
             className={cn(
               "cursor-pointer border-b last:border-0 hover:bg-accent/50 focus-visible:bg-accent/60 focus-visible:outline-none",

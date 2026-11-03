@@ -1,4 +1,5 @@
 import { ArrowDownLeft, ArrowUpRight, Landmark, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Money } from "@/components/common/Money";
@@ -27,6 +28,7 @@ function useRecentNetWorth() {
 
 /** Le quattro risposte della Panoramica: quanto ho, quanto spendo, quanto entra, quanto rendo. */
 export function OverviewTiles() {
+  const { t } = useTranslation();
   const range = resolvePeriod("this_month");
   const networth = useRecentNetWorth();
   const expenses = useExpenses(range);
@@ -42,52 +44,62 @@ export function OverviewTiles() {
 
   return (
     <section
-      aria-label="Indicatori principali"
+      aria-label={t("overview.tilesLabel")}
       className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4"
     >
       <StatTile
-        label="Patrimonio netto"
+        label={t("overview.tiles.netWorth")}
         icon={Landmark}
         value={nw ? <Money value={nw.total_eur} /> : undefined}
         delta={nw ? <ChangeNote change={nw.changes.find((c) => c.days === 30)} /> : undefined}
-        pendingNote={networth.isError ? "Non disponibile" : "Caricamento…"}
+        pendingNote={
+          networth.isError ? t("overview.tiles.unavailable") : t("overview.tiles.loading")
+        }
       />
       <StatTile
-        label="Spese del mese"
+        label={t("overview.tiles.expenses")}
         icon={ArrowUpRight}
         value={ex ? <Money value={ex.total_eur} /> : undefined}
         delta={
           ex?.delta_pct != null
-            ? `${formatPercent(ex.delta_pct / 100, { signed: true })} vs stesso periodo del mese scorso`
+            ? t("overview.tiles.expensesDelta", {
+                pct: formatPercent(ex.delta_pct / 100, { signed: true }),
+              })
             : ex
-              ? "nessun confronto con il mese scorso"
+              ? t("overview.tiles.expensesNoComparison")
               : undefined
         }
-        pendingNote={expenses.isError ? "Non disponibile" : "Caricamento…"}
+        pendingNote={
+          expenses.isError ? t("overview.tiles.unavailable") : t("overview.tiles.loading")
+        }
       />
       <StatTile
-        label="Entrate del mese"
+        label={t("overview.tiles.income")}
         icon={ArrowDownLeft}
         value={inc ? <Money value={inc.total_eur} /> : undefined}
         delta={
           inc?.savings_rate_pct != null
-            ? `risparmio ${formatPercent(inc.savings_rate_pct / 100)} delle entrate`
+            ? t("overview.tiles.savings", { pct: formatPercent(inc.savings_rate_pct / 100) })
             : inc
-              ? "risparmio non calcolabile senza entrate"
+              ? t("overview.tiles.savingsNone")
               : undefined
         }
-        pendingNote={income.isError ? "Non disponibile" : "Caricamento…"}
+        pendingNote={income.isError ? t("overview.tiles.unavailable") : t("overview.tiles.loading")}
       />
       <StatTile
-        label="Rendimento investimenti"
+        label={t("overview.tiles.returns")}
         icon={TrendingUp}
         value={
           ret?.simple_pct != null
             ? formatPercent(ret.simple_pct / 100, { signed: true })
             : undefined
         }
-        delta={ret?.simple_pct != null ? "sul capitale versato, non annualizzato" : undefined}
-        pendingNote={portfolios.data && !portfolio ? "Nessun conto investimenti" : "Caricamento…"}
+        delta={ret?.simple_pct != null ? t("overview.tiles.returnsNote") : undefined}
+        pendingNote={
+          portfolios.data && !portfolio
+            ? t("overview.tiles.noPortfolio")
+            : t("overview.tiles.loading")
+        }
       />
     </section>
   );
@@ -95,15 +107,16 @@ export function OverviewTiles() {
 
 /** Andamento del patrimonio negli ultimi tre mesi, con il collegamento alla pagina. */
 export function NetWorthTrendCard({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const networth = useRecentNetWorth();
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Patrimonio netto</CardTitle>
-        <CardDescription>Liquidità e investimenti, ultimi 3 mesi</CardDescription>
+        <CardTitle>{t("overview.netWorthCard.title")}</CardTitle>
+        <CardDescription>{t("overview.netWorthCard.description")}</CardDescription>
         <CardAction>
           <Link to="/patrimonio" className="text-xs font-medium text-primary hover:underline">
-            Dettagli
+            {t("overview.netWorthCard.details")}
           </Link>
         </CardAction>
       </CardHeader>

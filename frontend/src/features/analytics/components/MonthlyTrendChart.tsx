@@ -16,6 +16,7 @@ import { formatAxisMoney, formatMoney, formatMonth } from "@/lib/format";
 
 import { OTHER_COLOR, OTHER_KEY, type CategoryColors } from "../colors";
 import type { MonthPoint } from "../queries";
+import { i18n } from "@/i18n";
 
 const AVERAGE_KEY = "media";
 const AVERAGE_WINDOW = 3;
@@ -56,10 +57,10 @@ export function MonthlyTrendChart({
   const series = [
     ...colors.named.map((id) => ({
       key: `c${String(id)}`,
-      label: categoryById.get(id)?.name ?? "Categoria",
+      label: categoryById.get(id)?.name ?? i18n.t("analytics.category"),
       color: colors.colorOf(id),
     })),
-    { key: OTHER_KEY, label: "Altre", color: OTHER_COLOR },
+    { key: OTHER_KEY, label: i18n.t("analytics.others"), color: OTHER_COLOR },
   ];
 
   return (
@@ -67,7 +68,11 @@ export function MonthlyTrendChart({
       <ChartLegend
         items={[
           ...series,
-          { key: AVERAGE_KEY, label: "Media mobile 3 mesi", color: "var(--foreground)" },
+          {
+            key: AVERAGE_KEY,
+            label: i18n.t("analytics.movingAverage"),
+            color: "var(--foreground)",
+          },
         ]}
       />
       <div className="h-72 w-full">
@@ -101,14 +106,14 @@ export function MonthlyTrendChart({
                   .sort((a, b) => b.value - a.value);
                 items.push({
                   key: "total",
-                  label: "Totale",
+                  label: i18n.t("analytics.total"),
                   value: Number(row.total),
                   emphasis: true,
                 });
                 if (row[AVERAGE_KEY] !== undefined) {
                   items.push({
                     key: AVERAGE_KEY,
-                    label: "Media 3 mesi",
+                    label: i18n.t("analytics.average3"),
                     value: Number(row[AVERAGE_KEY]),
                   });
                 }
@@ -143,14 +148,14 @@ export function MonthlyTrendChart({
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-          Tabella dei dati
+          {i18n.t("analytics.dataTable")}
         </summary>
         <div className="mt-2 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b text-left text-muted-foreground">
                 <th scope="col" className="py-1.5 pr-3 font-medium">
-                  Mese
+                  {i18n.t("analytics.month")}
                 </th>
                 {series.map((s) => (
                   <th key={s.key} scope="col" className="py-1.5 pr-3 text-right font-medium">
@@ -158,7 +163,7 @@ export function MonthlyTrendChart({
                   </th>
                 ))}
                 <th scope="col" className="py-1.5 text-right font-medium">
-                  Totale
+                  {i18n.t("analytics.total")}
                 </th>
               </tr>
             </thead>

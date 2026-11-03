@@ -1,4 +1,5 @@
 import { ArrowLeftRight, ChevronRight, Undo2, Unlink } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Money } from "@/components/common/Money";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDismissTransfer } from "@/features/rules/queries";
 import { formatDate } from "@/lib/format";
 
-import { SOURCE_LABELS } from "../labels";
+import { sourceLabel } from "../labels";
 import { accountLabel, type Lookups } from "../lookups";
 import { useTransaction, type TransactionDetail } from "../queries";
 
@@ -57,17 +58,18 @@ export function TransactionLinks({
   lookups: Lookups;
   onOpen: (id: number) => void;
 }) {
+  const { t } = useTranslation();
   const dismiss = useDismissTransfer();
   const pair = tx.transfer_pair_id;
   return (
     <section aria-labelledby="why-heading" className="space-y-3">
       <h3 id="why-heading" className="text-sm font-medium">
-        Perché
+        {t("transactions.links.why")}
       </h3>
       <p className="text-sm">
-        <span className="font-medium">{SOURCE_LABELS[tx.classification_source]}</span>
+        <span className="font-medium">{sourceLabel(tx.classification_source)}</span>
         {tx.classification_note &&
-          tx.classification_note !== SOURCE_LABELS[tx.classification_source] && (
+          tx.classification_note !== sourceLabel(tx.classification_source) && (
             <span className="text-muted-foreground"> · {tx.classification_note}</span>
           )}
       </p>
@@ -76,7 +78,7 @@ export function TransactionLinks({
           to={`/regole#regola-${String(tx.rule_id)}`}
           className="inline-block text-xs font-medium text-primary hover:underline"
         >
-          Vedi la regola
+          {t("transactions.links.seeRule")}
         </Link>
       )}
 
@@ -85,7 +87,7 @@ export function TransactionLinks({
           <LinkedRow
             id={pair}
             icon={ArrowLeftRight}
-            title="L'altro lato del trasferimento"
+            title={t("transactions.links.otherSide")}
             lookups={lookups}
             onOpen={onOpen}
           />
@@ -102,7 +104,7 @@ export function TransactionLinks({
             }}
           >
             <Unlink aria-hidden />
-            Non è un trasferimento
+            {t("transactions.links.notTransfer")}
           </Button>
         </div>
       )}
@@ -110,7 +112,7 @@ export function TransactionLinks({
         <LinkedRow
           id={tx.refund_of_id}
           icon={Undo2}
-          title="Rimborso di questo acquisto"
+          title={t("transactions.links.refundOf")}
           lookups={lookups}
           onOpen={onOpen}
         />

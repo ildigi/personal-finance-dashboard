@@ -5,6 +5,7 @@ import { formatMoney, formatPercent } from "@/lib/format";
 
 import { OTHER_COLOR, OTHER_KEY, type CategoryColors } from "../colors";
 import type { CategoryTotal } from "../queries";
+import { i18n } from "@/i18n";
 
 const MAX_SEGMENTS = 5;
 
@@ -41,7 +42,9 @@ export function CategoryDonut({
       value: Number(c.total_eur),
       color: colors.colorOf(c.category_id),
     })),
-    ...(rest > 0 ? [{ key: OTHER_KEY, label: "Altre", value: rest, color: OTHER_COLOR }] : []),
+    ...(rest > 0
+      ? [{ key: OTHER_KEY, label: i18n.t("analytics.others"), value: rest, color: OTHER_COLOR }]
+      : []),
   ];
   const sum = slices.reduce((acc, s) => acc + s.value, 0);
 
@@ -85,7 +88,7 @@ export function CategoryDonut({
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-xs text-muted-foreground">Spese reali</span>
+          <span className="text-xs text-muted-foreground">{i18n.t("analytics.realExpenses")}</span>
           <span data-sensitive className="text-lg font-semibold tracking-tight">
             {formatMoney(total)}
           </span>

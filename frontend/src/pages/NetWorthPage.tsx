@@ -19,6 +19,7 @@ import {
 import { formatDate, formatPercent } from "@/lib/format";
 import { todayInRome } from "@/lib/period";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 export function NetWorthPage() {
   const [range, setRange] = useState<NetWorthRange>("6m");
@@ -29,8 +30,8 @@ export function NetWorthPage() {
   if (query.isError) {
     return (
       <Card>
-        <EmptyState icon={Landmark} title="Patrimonio non disponibile">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={Landmark} title={i18n.t("networth.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -38,8 +39,8 @@ export function NetWorthPage() {
   if (data?.accounts.length === 0) {
     return (
       <Card>
-        <EmptyState icon={Landmark} title="Nessun conto da sommare">
-          Collega una banca o il broker da Impostazioni: il patrimonio si calcola dai loro saldi.
+        <EmptyState icon={Landmark} title={i18n.t("networth.noAccountsTitle")}>
+          {i18n.t("networth.noAccounts")}
         </EmptyState>
       </Card>
     );
@@ -51,55 +52,54 @@ export function NetWorthPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Conti e investimenti sommati, giorno per giorno. Saldo disponibile delle banche, valore del
-        conto per il broker.
-      </p>
+      <p className="text-sm text-muted-foreground">{i18n.t("networth.intro")}</p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Patrimonio netto"
+          label={i18n.t("networth.netWorth")}
           icon={Landmark}
           value={data ? <Money value={data.total_eur} /> : undefined}
           delta={data ? <ChangeNote change={change30} /> : undefined}
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Liquidità"
+          label={i18n.t("networth.cash")}
           icon={Wallet}
           value={data ? <Money value={data.cash_eur} /> : undefined}
           delta={data ? share(data, "cash") : undefined}
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Investimenti"
+          label={i18n.t("networth.investments")}
           icon={LineChart}
           value={data ? <Money value={data.investments_eur} /> : undefined}
           delta={data ? share(data, "investments") : undefined}
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Ultimo anno"
+          label={i18n.t("networth.lastYear")}
           icon={up ? TrendingUp : TrendingDown}
           value={
             change365?.delta_eur != null ? <Money value={change365.delta_eur} signed /> : undefined
           }
           delta={
             change365?.delta_pct != null
-              ? `${formatPercent(change365.delta_pct / 100, { signed: true })} in 365 giorni`
+              ? i18n.t("networth.in365", {
+                  pct: formatPercent(change365.delta_pct / 100, { signed: true }),
+                })
               : undefined
           }
-          pendingNote={data ? "Servono 12 mesi di dati completi per tutti i conti" : "Caricamento…"}
+          pendingNote={data ? i18n.t("networth.need12") : i18n.t("analytics.loading")}
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Andamento</CardTitle>
+          <CardTitle>{i18n.t("networth.trend")}</CardTitle>
           <CardDescription>
             {data?.complete_from
-              ? `Dati completi per tutti i conti dal ${formatDate(data.complete_from, "long")}`
-              : "Lo storico si completa man mano che le sincronizzazioni salvano i saldi"}
+              ? i18n.t("networth.completeFrom", { date: formatDate(data.complete_from, "long") })
+              : i18n.t("networth.completing")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -117,8 +117,8 @@ export function NetWorthPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Per conto</CardTitle>
-          <CardDescription>Quanto pesa ogni conto sul patrimonio di oggi</CardDescription>
+          <CardTitle>{i18n.t("networth.byAccount")}</CardTitle>
+          <CardDescription>{i18n.t("networth.byAccountDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           {data ? (
@@ -140,7 +140,7 @@ function share(data: NetWorthOverview, kind: NetWorthAccount["kind"]): string | 
   const total = Number(data.total_eur);
   const part = Number(kind === "cash" ? data.cash_eur : data.investments_eur);
   if (total <= 0) return undefined;
-  return `${formatPercent(part / total)} del patrimonio`;
+  return i18n.t("networth.share", { pct: formatPercent(part / total) });
 }
 
 function RangeToggle({
@@ -153,7 +153,7 @@ function RangeToggle({
   return (
     <div
       role="radiogroup"
-      aria-label="Periodo mostrato"
+      aria-label={i18n.t("networth.rangeLabel")}
       className="inline-flex rounded-lg border p-0.5"
     >
       {NETWORTH_RANGES.map((r) => (
@@ -172,7 +172,7 @@ function RangeToggle({
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {r.label}
+          {i18n.t(`networth.ranges.${r.key}`)}
         </button>
       ))}
     </div>
@@ -185,13 +185,19 @@ function CoverageNotes({ accounts }: { accounts: NetWorthAccount[] }) {
     .filter((a) => a.history_from)
     .map((a) =>
       a.kind === "investments"
-        ? `${a.institution}: valore reale dal ${formatDate(a.history_from ?? "", "long")}; prima è stimato con il capitale versato.`
-        : `${a.institution}: storico dal ${formatDate(a.history_from ?? "", "long")}; prima mancano i dati della banca.`,
+        ? i18n.t("networth.coverageInvestments", {
+            institution: a.institution,
+            date: formatDate(a.history_from ?? "", "long"),
+          })
+        : i18n.t("networth.coverageCash", {
+            institution: a.institution,
+            date: formatDate(a.history_from ?? "", "long"),
+          }),
     );
   if (notes.length === 0) return null;
   return (
     <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
-      <p className="mb-1 font-medium text-foreground">Le zone grigie del grafico</p>
+      <p className="mb-1 font-medium text-foreground">{i18n.t("networth.greyZones")}</p>
       <ul className="list-disc space-y-0.5 pl-4">
         {notes.map((n) => (
           <li key={n}>{n}</li>
@@ -228,8 +234,12 @@ function AccountShare({ account }: { account: NetWorthAccount }) {
         </span>
       </div>
       <p className="truncate text-xs text-muted-foreground">
-        {account.institution} · {account.kind === "investments" ? "investimenti" : "liquidità"}
-        {account.as_of && ` · saldo al ${formatDate(account.as_of, "short")}`}
+        {account.institution} ·{" "}
+        {account.kind === "investments"
+          ? i18n.t("networth.kindInvestments")
+          : i18n.t("networth.kindCash")}
+        {account.as_of &&
+          ` · ${i18n.t("networth.balanceAsOf", { date: formatDate(account.as_of, "short") })}`}
       </p>
     </li>
   );

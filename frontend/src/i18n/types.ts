@@ -1,6 +1,6 @@
 import type { it } from "./locales/it";
 
-type Widen<T> = { readonly [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
+export type Widen<T> = { readonly [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
 
 /**
  * Forma dei messaggi, ricavata dall'italiano (il riferimento). `en.ts` la rispetta con

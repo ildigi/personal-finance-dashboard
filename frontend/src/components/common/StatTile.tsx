@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 interface StatTileProps {
   label: string;
@@ -50,7 +51,7 @@ export function StatTile({
             — —
           </div>
           {pendingNote && <p className="mt-1.5 text-xs text-muted-foreground">{pendingNote}</p>}
-          <span className="sr-only">Dato non ancora disponibile</span>
+          <span className="sr-only">{i18n.t("statTile.pending")}</span>
         </div>
       ) : (
         <div>

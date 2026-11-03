@@ -1,4 +1,4 @@
-import { KIND_LABELS } from "@/features/transactions/labels";
+import { kindLabel } from "@/features/transactions/labels";
 import { accountLabel, type Lookups } from "@/features/transactions/lookups";
 import { formatMoney } from "@/lib/format";
 
@@ -42,7 +42,7 @@ export function describeActions(a: RuleActions, lookups: Lookups): string[] {
       sub ? `${category?.name ?? "?"} › ${sub.name}` : (category?.name ?? "categoria rimossa"),
     );
   }
-  if (a.kind) parts.push(`tipo ${KIND_LABELS[a.kind]}`);
+  if (a.kind) parts.push(`tipo ${kindLabel(a.kind)}`);
   if (a.income_type_id != null) {
     parts.push(lookups.incomeTypeById.get(a.income_type_id)?.label ?? "tipologia rimossa");
   }

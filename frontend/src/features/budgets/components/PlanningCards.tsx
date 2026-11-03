@@ -1,4 +1,5 @@
 import { CalendarClock, PiggyBank } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import {
@@ -30,6 +31,7 @@ function MoreLink({ to, children }: { to: string; children: string }) {
 
 /** Panoramica: i budget del mese, i più a rischio per primi. */
 export function BudgetOverviewCard({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const budgets = useBudgets();
   const data = budgets.data;
   const alerts = data ? data.warning_count + data.over_count : 0;
@@ -39,29 +41,29 @@ export function BudgetOverviewCard({ className }: { className?: string }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PiggyBank aria-hidden className="size-4 text-muted-foreground" />
-          Budget del mese
+          {t("planningCards.budgets.title")}
         </CardTitle>
         <CardDescription>
           {!data
-            ? "Speso contro budget"
+            ? t("planningCards.budgets.fallback")
             : alerts > 0
-              ? `${formatCount(alerts)} oltre la soglia di avviso`
+              ? t("planningCards.budgets.alerts", { n: formatCount(alerts) })
               : atRisk > 0
-                ? `Sotto le soglie, ma ${formatCount(atRisk)} a rischio a fine mese`
+                ? t("planningCards.budgets.atRisk", { n: formatCount(atRisk) })
                 : data.items.length > 0
-                  ? "Tutto sotto le soglie"
-                  : "Nessun budget impostato"}
+                  ? t("planningCards.budgets.allBelow")
+                  : t("planningCards.budgets.none")}
         </CardDescription>
-        <MoreLink to="/budget">Budget</MoreLink>
+        <MoreLink to="/budget">{t("planningCards.budgets.more")}</MoreLink>
       </CardHeader>
       <CardContent>
         {!data ? (
           <Skeleton className="h-32 w-full" />
         ) : data.items.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
-            Imposta un limite mensile solo sulle categorie che vuoi tenere d'occhio.{" "}
+            {t("planningCards.budgets.emptyHint")}{" "}
             <Link to="/budget" className="text-foreground underline-offset-4 hover:underline">
-              Crea un budget
+              {t("planningCards.budgets.create")}
             </Link>
           </p>
         ) : (
@@ -74,6 +76,7 @@ export function BudgetOverviewCard({ className }: { className?: string }) {
 
 /** Panoramica: prossimi addebiti ricorrenti (confermati). */
 export function UpcomingChargesCard({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const lookups = useLookups();
   const upcoming = useUpcoming({ days: 14, direction: "out" });
   return (
@@ -81,10 +84,10 @@ export function UpcomingChargesCard({ className }: { className?: string }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarClock aria-hidden className="size-4 text-muted-foreground" />
-          Prossimi addebiti
+          {t("planningCards.upcoming.title")}
         </CardTitle>
-        <CardDescription>Ricorrenze confermate, prossimi 14 giorni</CardDescription>
-        <MoreLink to="/ricorrenze">Ricorrenze</MoreLink>
+        <CardDescription>{t("planningCards.upcoming.description")}</CardDescription>
+        <MoreLink to="/ricorrenze">{t("planningCards.upcoming.more")}</MoreLink>
       </CardHeader>
       <CardContent>
         {upcoming.data ? (
@@ -92,7 +95,7 @@ export function UpcomingChargesCard({ className }: { className?: string }) {
             items={upcoming.data}
             lookups={lookups}
             limit={6}
-            emptyText="Nessun addebito confermato in arrivo"
+            emptyText={t("planningCards.upcoming.empty")}
           />
         ) : (
           <Skeleton className="h-32 w-full" />

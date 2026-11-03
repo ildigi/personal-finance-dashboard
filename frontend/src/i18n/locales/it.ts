@@ -1,3 +1,8 @@
+import { overview } from "./it/overview";
+import { networth } from "./it/networth";
+import { analytics } from "./it/analytics";
+import { transactions } from "./it/transactions";
+
 /**
  * Testi dell'interfaccia in italiano: il riferimento per la forma dei messaggi (`Messages`).
  * Plurali con i suffissi di i18next (`_one`, `_other`). Glossario: SPEC §18.
@@ -344,4 +349,8 @@ export const it = {
       "Unire «{{from}}» in «{{to}}»? I movimenti e le varianti del nome passano a «{{to}}».",
     transactionsShort: "{{n}} mov.",
   },
+  ...overview,
+  ...networth,
+  ...analytics,
+  ...transactions,
 } as const;

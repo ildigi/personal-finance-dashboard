@@ -1,25 +1,23 @@
 import type { Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 
 export type TransactionKind = Schemas["TransactionKind"];
 export type ClassificationSource = Schemas["ClassificationSource"];
 
-export const KIND_LABELS: Record<TransactionKind, string> = {
-  expense: "Spesa",
-  income: "Entrata",
-  internal_transfer: "Trasferimento interno",
-  investment_transfer: "Investimento",
-  refund: "Rimborso",
-  fee: "Commissione",
-  other: "Altro",
-};
+export const TRANSACTION_KINDS: TransactionKind[] = [
+  "expense",
+  "income",
+  "internal_transfer",
+  "investment_transfer",
+  "refund",
+  "fee",
+  "other",
+];
 
-export const SOURCE_LABELS: Record<ClassificationSource, string> = {
-  manual: "Correzione manuale",
-  rule: "Regola",
-  merchant: "Merchant",
-  provider: "Categoria della banca",
-  heuristic: "Riconoscimento automatico",
-  none: "Non ancora classificato",
-};
+export const kindLabel = (kind: TransactionKind): string => i18n.t(`transactions.kind.${kind}`);
 
-export const STATUS_LABELS = { booked: "Contabilizzato", pending: "In sospeso" } as const;
+export const sourceLabel = (source: ClassificationSource): string =>
+  i18n.t(`transactions.source.${source}`);
+
+export const statusLabel = (status: "booked" | "pending"): string =>
+  i18n.t(`transactions.status.${status}`);

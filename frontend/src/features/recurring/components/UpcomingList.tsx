@@ -1,4 +1,5 @@
 import { Clock, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Money } from "@/components/common/Money";
@@ -18,7 +19,7 @@ export function UpcomingList({
   items,
   lookups,
   limit,
-  emptyText = "Nessun addebito atteso",
+  emptyText,
   className,
 }: {
   items: UpcomingCharge[];
@@ -27,10 +28,15 @@ export function UpcomingList({
   emptyText?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const today = todayInRome();
   const shown = limit ? items.slice(0, limit) : items;
   if (shown.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {emptyText ?? t("upcomingList.empty")}
+      </p>
+    );
   }
   return (
     <ul className={cn("divide-y", className)}>
@@ -62,12 +68,13 @@ export function UpcomingList({
               />
               {item.overdue && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium">
-                  <Clock aria-hidden className="size-3 text-status-serious" /> In ritardo
+                  <Clock aria-hidden className="size-3 text-status-serious" />{" "}
+                  {t("upcomingList.late")}
                 </span>
               )}
               {item.status === "suggested" && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Sparkles aria-hidden className="size-3" /> Da confermare
+                  <Sparkles aria-hidden className="size-3" /> {t("upcomingList.toConfirm")}
                 </span>
               )}
             </div>

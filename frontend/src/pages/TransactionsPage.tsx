@@ -1,5 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, ListFilter, Plus, Receipt, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { EmptyState } from "@/components/common/EmptyState";
 import { Money } from "@/components/common/Money";
@@ -33,14 +34,23 @@ function Totals({
   outflow: string;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const items = [
-    { label: "Movimenti", icon: Receipt, value: <span>{formatCount(count)}</span> },
     {
-      label: "Entrate",
+      label: t("transactions.page.totals.count"),
+      icon: Receipt,
+      value: <span>{formatCount(count)}</span>,
+    },
+    {
+      label: t("transactions.page.totals.inflow"),
       icon: ArrowDownLeft,
       value: <Money value={inflow} signed tone="auto" />,
     },
-    { label: "Uscite", icon: ArrowUpRight, value: <Money value={outflow} signed /> },
+    {
+      label: t("transactions.page.totals.outflow"),
+      icon: ArrowUpRight,
+      value: <Money value={outflow} signed />,
+    },
   ];
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -64,6 +74,7 @@ function Totals({
 }
 
 export function TransactionsPage() {
+  const { t } = useTranslation();
   const [period] = usePeriod();
   const range = resolvePeriod(period);
   const { filters, setFilter, reset, activeCount } = useTransactionFilters();
@@ -111,7 +122,7 @@ export function TransactionsPage() {
           className="self-start sm:self-auto"
         >
           <Plus aria-hidden />
-          Nuovo movimento
+          {t("transactions.page.newTransaction")}
         </Button>
       </div>
 
@@ -154,27 +165,27 @@ export function TransactionsPage() {
             ))}
           </div>
         ) : query.isError ? (
-          <EmptyState icon={Wallet} title="Movimenti non disponibili">
-            Il backend non risponde. Avvialo e riprova.
+          <EmptyState icon={Wallet} title={t("transactions.page.errorTitle")}>
+            {t("transactions.page.errorText")}
           </EmptyState>
         ) : rows.length === 0 ? (
           activeCount > 0 ? (
             <EmptyState
               icon={ListFilter}
-              title="Nessun movimento con questi filtri"
+              title={t("transactions.page.noMatchTitle")}
               action={
                 <Button variant="outline" onClick={reset}>
-                  Azzera i filtri
+                  {t("transactions.page.resetFilters")}
                 </Button>
               }
             >
-              Prova a togliere qualche filtro o a scegliere un periodo più ampio.
+              {t("transactions.page.noMatchText")}
             </EmptyState>
           ) : (
-            <EmptyState icon={Receipt} title="Nessun movimento nel periodo">
+            <EmptyState icon={Receipt} title={t("transactions.page.emptyTitle")}>
               {noAccounts
-                ? "Carica i dati di prova dalle Impostazioni, oppure collega i conti nelle prossime fasi."
-                : "Scegli un periodo più ampio dal selettore in alto."}
+                ? t("transactions.page.emptyNoAccounts")
+                : t("transactions.page.emptyHint")}
             </EmptyState>
           )
         ) : isDesktop ? (
@@ -197,7 +208,10 @@ export function TransactionsPage() {
         {rows.length > 0 && first && (
           <div className="flex flex-col items-center gap-2 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
             <span>
-              {formatCount(rows.length)} di {formatCount(first.total)} movimenti
+              {t("transactions.page.shown", {
+                shown: formatCount(rows.length),
+                total: formatCount(first.total),
+              })}
             </span>
             {query.hasNextPage && (
               <Button
@@ -206,7 +220,9 @@ export function TransactionsPage() {
                 onClick={() => void query.fetchNextPage()}
                 disabled={query.isFetchingNextPage}
               >
-                {query.isFetchingNextPage ? "Caricamento…" : "Carica altri"}
+                {query.isFetchingNextPage
+                  ? t("transactions.page.loading")
+                  : t("transactions.page.loadMore")}
               </Button>
             )}
           </div>

@@ -29,6 +29,7 @@ import { formatCount } from "@/lib/format";
 import { formatRange, periodLabel, resolvePeriod } from "@/lib/period";
 import { usePeriod } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 export function ExpensesPage() {
   const [period] = usePeriod();
@@ -51,8 +52,8 @@ export function ExpensesPage() {
   if (expenses.isError) {
     return (
       <Card>
-        <EmptyState icon={Wallet} title="Spese non disponibili">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={Wallet} title={i18n.t("expenses.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -62,7 +63,7 @@ export function ExpensesPage() {
   const previous = data?.previous_period;
   const previousLabel = previous
     ? formatRange({ from: previous.date_from, to: previous.date_to })
-    : "periodo precedente";
+    : i18n.t("expenses.previousPeriod");
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -76,53 +77,56 @@ export function ExpensesPage() {
             className="inline-flex items-center gap-1.5 self-start rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <CircleDashed aria-hidden className="size-3.5" />
-            {formatCount(data.unclassified_count)} movimenti da classificare
+            {i18n.t("expenses.unclassified", {
+              count: data.unclassified_count,
+              n: formatCount(data.unclassified_count),
+            })}
           </Link>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Spese reali"
+          label={i18n.t("analytics.realExpenses")}
           icon={Wallet}
           value={data ? <Money value={data.total_eur} /> : undefined}
           delta={
             data ? (
               <span className="flex flex-wrap items-center gap-1">
                 <Delta current={total} previous={Number(data.previous_total_eur)} />
-                <span>vs {previousLabel}</span>
+                <span>{i18n.t("analytics.versus", { label: previousLabel })}</span>
               </span>
             ) : undefined
           }
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Media mensile"
+          label={i18n.t("analytics.averages.title")}
           icon={ChartPie}
           value={data?.averages.m3 ? <Money value={data.averages.m3} /> : undefined}
           delta={
             data ? (
               <span>
-                ultimi 3 mesi interi
+                {i18n.t("analytics.averages.last3")}
                 {data.averages.m6 && (
                   <>
                     {" "}
-                    · 6 mesi <Money value={data.averages.m6} />
+                    · {i18n.t("analytics.averages.m6")} <Money value={data.averages.m6} />
                   </>
                 )}
                 {data.averages.m12 && (
                   <>
                     {" "}
-                    · 12 mesi <Money value={data.averages.m12} />
+                    · {i18n.t("analytics.averages.m12")} <Money value={data.averages.m12} />
                   </>
                 )}
               </span>
             ) : undefined
           }
-          pendingNote={data ? "Serve almeno un mese intero di dati" : "Caricamento…"}
+          pendingNote={data ? i18n.t("analytics.averages.needMonth") : i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Abbonamenti al mese"
+          label={i18n.t("expenses.subscriptions")}
           icon={Repeat}
           value={
             data?.subscriptions_monthly_eur ? (
@@ -132,29 +136,29 @@ export function ExpensesPage() {
           delta={
             data?.subscriptions_source === "recurring" ? (
               <Link to="/ricorrenze" className="hover:text-foreground hover:underline">
-                dalle ricorrenze confermate
+                {i18n.t("expenses.fromRecurring")}
               </Link>
             ) : (
-              "media degli ultimi 3 mesi"
+              i18n.t("expenses.average3Months")
             )
           }
-          pendingNote={data ? "Nessun abbonamento negli ultimi mesi" : "Caricamento…"}
+          pendingNote={data ? i18n.t("expenses.noSubscriptions") : i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Spostati e investiti"
+          label={i18n.t("expenses.invested")}
           icon={TrendingUp}
           value={data ? <Money value={data.invested_eur} /> : undefined}
-          delta="versamenti netti a Trading 212, non sono spese"
-          pendingNote="Caricamento…"
+          delta={i18n.t("expenses.investedNote")}
+          pendingNote={i18n.t("analytics.loading")}
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Per categoria</CardTitle>
+            <CardTitle>{i18n.t("expenses.byCategory")}</CardTitle>
             <CardDescription>
-              Confronto con {previousLabel} (stessi giorni). Tocca una categoria per il dettaglio.
+              {i18n.t("expenses.byCategoryDescription", { previous: previousLabel })}
             </CardDescription>
           </CardHeader>
           <CardContent className={cn(expenses.isFetching && "opacity-60 transition-opacity")}>
@@ -165,7 +169,7 @@ export function ExpensesPage() {
                 ))}
               </div>
             ) : data.categories.length === 0 ? (
-              <EmptyState icon={PiggyBank} title="Nessuna spesa nel periodo" className="py-6" />
+              <EmptyState icon={PiggyBank} title={i18n.t("expenses.noExpenses")} className="py-6" />
             ) : (
               <CategoryBreakdown
                 categories={data.categories}
@@ -178,8 +182,8 @@ export function ExpensesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Composizione</CardTitle>
-            <CardDescription>Le categorie principali del periodo</CardDescription>
+            <CardTitle>{i18n.t("expenses.composition")}</CardTitle>
+            <CardDescription>{i18n.t("expenses.compositionDescription")}</CardDescription>
           </CardHeader>
           <CardContent className={cn(expenses.isFetching && "opacity-60 transition-opacity")}>
             {!data || !monthly.data ? (
@@ -188,7 +192,7 @@ export function ExpensesPage() {
               <CategoryDonut categories={data.categories} colors={colors} total={total} />
             ) : (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                Nessuna spesa nel periodo
+                {i18n.t("expenses.noExpenses")}
               </p>
             )}
           </CardContent>
@@ -198,8 +202,8 @@ export function ExpensesPage() {
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <CardTitle>Andamento mensile</CardTitle>
-            <CardDescription>Spese reali per mese e categoria, con la media mobile</CardDescription>
+            <CardTitle>{i18n.t("expenses.trend")}</CardTitle>
+            <CardDescription>{i18n.t("expenses.trendDescription")}</CardDescription>
           </div>
           <MonthsToggle value={months} onChange={setMonths} options={[6, 12]} />
         </CardHeader>
@@ -219,8 +223,8 @@ export function ExpensesPage() {
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Merchant</CardTitle>
-            <CardDescription>Dove spendi di più nel periodo</CardDescription>
+            <CardTitle>{i18n.t("expenses.merchants")}</CardTitle>
+            <CardDescription>{i18n.t("expenses.merchantsDescription")}</CardDescription>
           </CardHeader>
           <CardContent className={cn(merchants.isFetching && "opacity-60 transition-opacity")}>
             {merchants.data ? (
@@ -232,14 +236,14 @@ export function ExpensesPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Prossimi addebiti</CardTitle>
-            <CardDescription>Spese ricorrenti nei prossimi 30 giorni</CardDescription>
+            <CardTitle>{i18n.t("expenses.upcoming")}</CardTitle>
+            <CardDescription>{i18n.t("expenses.upcomingDescription")}</CardDescription>
             <CardAction>
               <Link
                 to="/ricorrenze"
                 className="text-xs text-muted-foreground hover:text-foreground hover:underline"
               >
-                Ricorrenze
+                {i18n.t("expenses.recurringLink")}
               </Link>
             </CardAction>
           </CardHeader>
@@ -249,7 +253,7 @@ export function ExpensesPage() {
                 items={upcoming.data.filter((u) => u.kind !== "investment_transfer")}
                 lookups={lookups}
                 limit={8}
-                emptyText="Nessun addebito ricorrente atteso"
+                emptyText={i18n.t("expenses.upcomingEmpty")}
               />
             ) : (
               <Skeleton className="h-60 w-full" />

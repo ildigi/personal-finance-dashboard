@@ -24,10 +24,10 @@ export function useNetWorth(since: string | null) {
 }
 
 export const NETWORTH_RANGES = [
-  { key: "3m", label: "3 mesi", months: 3 },
-  { key: "6m", label: "6 mesi", months: 6 },
-  { key: "1y", label: "1 anno", months: 12 },
-  { key: "all", label: "Tutto", months: null },
+  { key: "3m", months: 3 },
+  { key: "6m", months: 6 },
+  { key: "1y", months: 12 },
+  { key: "all", months: null },
 ] as const;
 
 export type NetWorthRange = (typeof NETWORTH_RANGES)[number]["key"];

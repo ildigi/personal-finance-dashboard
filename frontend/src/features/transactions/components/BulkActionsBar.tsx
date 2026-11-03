@@ -1,5 +1,6 @@
 import { Tag, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { formatCount } from "@/lib/format";
 
-import { KIND_LABELS, type TransactionKind } from "../labels";
+import { TRANSACTION_KINDS, kindLabel, type TransactionKind } from "../labels";
 import type { Lookups } from "../lookups";
 import { useBulkUpdate, useCreateTag, useTags, type BulkUpdate } from "../queries";
 import { CategoryPicker } from "./CategoryPicker";
@@ -34,6 +35,7 @@ export function BulkActionsBar({
   lookups: Lookups;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   const bulk = useBulkUpdate();
   const tags = useTags();
   const createTag = useCreateTag();
@@ -45,10 +47,10 @@ export function BulkActionsBar({
       { ids: [...selected], ...change },
       {
         onSuccess: (result) => {
-          setMessage(`${label}: ${formatCount(result.updated)} movimenti aggiornati`);
+          setMessage(t("transactions.bulk.updated", { label, n: formatCount(result.updated) }));
         },
         onError: (error) => {
-          setMessage(error instanceof ApiError ? error.message : "Modifica non riuscita");
+          setMessage(error instanceof ApiError ? error.message : t("transactions.bulk.failed"));
         },
       },
     );
@@ -57,15 +59,17 @@ export function BulkActionsBar({
   return (
     <div
       role="region"
-      aria-label="Azioni sui movimenti selezionati"
+      aria-label={t("transactions.bulk.region")}
       // Fluttua sopra la pagina: comparendo non sposta la tabella.
       className="fixed right-4 bottom-4 left-4 z-30 mx-auto flex max-w-5xl flex-col gap-2 rounded-xl border border-primary/30 bg-card/95 p-2.5 shadow-lg backdrop-blur sm:flex-row sm:items-center lg:left-64"
     >
       <div className="flex items-center justify-between gap-2 sm:justify-start">
-        <span className="px-1.5 text-sm font-medium">{formatCount(selected.size)} selezionati</span>
+        <span className="px-1.5 text-sm font-medium">
+          {t("transactions.bulk.selected", { n: formatCount(selected.size) })}
+        </span>
         <Button variant="ghost" size="sm" onClick={onClear} className="h-8">
           <X aria-hidden />
-          Deseleziona
+          {t("transactions.bulk.deselect")}
         </Button>
       </div>
       <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
@@ -73,34 +77,31 @@ export function BulkActionsBar({
           categories={lookups.categories}
           value={{ categoryId: null, subcategoryId: null }}
           allowNone={false}
-          label="Imposta la categoria dei selezionati"
+          label={t("transactions.bulk.setCategory")}
           className="h-8"
           onChange={(choice) => {
             apply(
               { category_id: choice.categoryId, subcategory_id: choice.subcategoryId },
-              "Categoria",
+              t("transactions.bulk.categoryDone"),
             );
           }}
         />
         <Select
           value={PLACEHOLDER}
           onValueChange={(v) => {
-            apply({ kind: v as TransactionKind }, "Tipo");
+            apply({ kind: v as TransactionKind }, t("transactions.bulk.kindDone"));
           }}
         >
-          <SelectTrigger
-            aria-label="Imposta il tipo dei selezionati"
-            className="h-8 w-full bg-card"
-          >
+          <SelectTrigger aria-label={t("transactions.bulk.setKind")} className="h-8 w-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={PLACEHOLDER} disabled>
-              Cambia tipo…
+              {t("transactions.bulk.changeKind")}
             </SelectItem>
-            {(Object.keys(KIND_LABELS) as TransactionKind[]).map((kind) => (
+            {TRANSACTION_KINDS.map((kind) => (
               <SelectItem key={kind} value={kind}>
-                {KIND_LABELS[kind]}
+                {kindLabel(kind)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -109,26 +110,30 @@ export function BulkActionsBar({
           value={PLACEHOLDER}
           onValueChange={(v) => {
             if (v === NEW_TAG) {
-              const name = window.prompt("Nome del nuovo tag")?.trim();
+              const name = window.prompt(t("transactions.bulk.newTagPrompt"))?.trim();
               if (!name) return;
               createTag.mutate(name, {
                 onSuccess: (tag) => {
-                  apply({ add_tag_ids: [tag.id] }, `Tag «${tag.name}»`);
+                  apply(
+                    { add_tag_ids: [tag.id] },
+                    t("transactions.bulk.tagDone", { name: tag.name }),
+                  );
                 },
               });
               return;
             }
             const tag = tags.data?.find((t) => String(t.id) === v);
-            if (tag) apply({ add_tag_ids: [tag.id] }, `Tag «${tag.name}»`);
+            if (tag)
+              apply({ add_tag_ids: [tag.id] }, t("transactions.bulk.tagDone", { name: tag.name }));
           }}
         >
-          <SelectTrigger aria-label="Aggiungi un tag ai selezionati" className="h-8 w-full bg-card">
+          <SelectTrigger aria-label={t("transactions.bulk.addTag")} className="h-8 w-full bg-card">
             <Tag aria-hidden className="text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={PLACEHOLDER} disabled>
-              Aggiungi tag…
+              {t("transactions.bulk.addTagPlaceholder")}
             </SelectItem>
             {(tags.data ?? []).map((t) => (
               <SelectItem key={t.id} value={String(t.id)}>
@@ -136,7 +141,7 @@ export function BulkActionsBar({
               </SelectItem>
             ))}
             {(tags.data ?? []).length > 0 && <SelectSeparator />}
-            <SelectItem value={NEW_TAG}>Nuovo tag…</SelectItem>
+            <SelectItem value={NEW_TAG}>{t("transactions.bulk.newTag")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -144,7 +149,7 @@ export function BulkActionsBar({
         aria-live="polite"
         className="min-h-4 px-1.5 text-xs text-muted-foreground sm:w-48 sm:truncate"
       >
-        {bulk.isPending ? "Aggiornamento…" : message}
+        {bulk.isPending ? t("transactions.bulk.updating") : message}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Braces, RotateCcw, Trash2, Wand2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Money } from "@/components/common/Money";
@@ -16,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatDateTime, maskIban } from "@/lib/format";
 
-import { KIND_LABELS, STATUS_LABELS } from "../labels";
+import { kindLabel, statusLabel } from "../labels";
 import { accountLabel, type Lookups } from "../lookups";
 import {
   useDeleteTransaction,
@@ -37,18 +38,23 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const OVERRIDE_FIELDS: Record<string, string> = {
-  kind: "Tipo",
-  category_id: "Categoria",
-  subcategory_id: "Sottocategoria",
-  income_type_id: "Tipologia di entrata",
-  merchant_id: "Merchant",
-  notes: "Note",
-  transfer_pair_id: "Abbinamento del trasferimento",
-  refund_of_id: "Collegamento del rimborso",
-};
+/** Campi con un nome in `transactions.detail.overrides.fields`; gli altri restano col codice. */
+const OVERRIDE_FIELDS = [
+  "kind",
+  "category_id",
+  "subcategory_id",
+  "income_type_id",
+  "merchant_id",
+  "notes",
+  "transfer_pair_id",
+  "refund_of_id",
+] as const;
+
+const isNamedField = (field: string): field is (typeof OVERRIDE_FIELDS)[number] =>
+  (OVERRIDE_FIELDS as readonly string[]).includes(field);
 
 function Corrections({ tx }: { tx: TransactionDetail }) {
+  const { t } = useTranslation();
   const reset = useResetClassification();
   // Le note non sono una classificazione: restano anche dopo il ripristino.
   const resettable =
@@ -57,16 +63,17 @@ function Corrections({ tx }: { tx: TransactionDetail }) {
   if (tx.overrides.length === 0 && !resettable) return null;
   return (
     <section className="space-y-2">
-      <h3 className="text-sm font-medium">Correzioni manuali</h3>
-      <p className="text-xs text-muted-foreground">
-        Restano valide anche dopo le prossime sincronizzazioni. Riscegliere il valore di prima
-        annulla la correzione.
-      </p>
+      <h3 className="text-sm font-medium">{t("transactions.detail.overrides.title")}</h3>
+      <p className="text-xs text-muted-foreground">{t("transactions.detail.overrides.hint")}</p>
       {tx.overrides.length > 0 && (
         <ul className="space-y-1 text-sm">
           {tx.overrides.map((o) => (
             <li key={o.field} className="flex justify-between gap-3">
-              <span>{OVERRIDE_FIELDS[o.field] ?? o.field}</span>
+              <span>
+                {isNamedField(o.field)
+                  ? t(`transactions.detail.overrides.fields.${o.field}`)
+                  : o.field}
+              </span>
               <span className="text-muted-foreground">{formatDateTime(o.updated_at)}</span>
             </li>
           ))}
@@ -82,12 +89,14 @@ function Corrections({ tx }: { tx: TransactionDetail }) {
           }}
         >
           <RotateCcw aria-hidden />
-          {reset.isPending ? "Ripristino…" : "Ripristina la classificazione automatica"}
+          {reset.isPending
+            ? t("transactions.detail.overrides.resetting")
+            : t("transactions.detail.overrides.reset")}
         </Button>
       )}
       {reset.isError && (
         <p role="alert" className="text-xs text-destructive">
-          Ripristino non riuscito
+          {t("transactions.detail.overrides.resetFailed")}
         </p>
       )}
     </section>
@@ -95,13 +104,14 @@ function Corrections({ tx }: { tx: TransactionDetail }) {
 }
 
 function NotesEditor({ tx }: { tx: TransactionDetail }) {
+  const { t } = useTranslation();
   const update = useUpdateTransaction();
   const [draft, setDraft] = useState(tx.notes ?? "");
   const changed = draft.trim() !== (tx.notes ?? "");
   return (
     <section className="space-y-2">
       <label htmlFor="tx-notes" className="text-sm font-medium">
-        Note
+        {t("transactions.detail.notes.label")}
       </label>
       <Textarea
         id="tx-notes"
@@ -111,7 +121,7 @@ function NotesEditor({ tx }: { tx: TransactionDetail }) {
         }}
         rows={2}
         maxLength={2000}
-        placeholder="Aggiungi una nota (resta anche dopo le sincronizzazioni)"
+        placeholder={t("transactions.detail.notes.placeholder")}
         className="bg-card"
       />
       <div className="flex justify-end">
@@ -123,7 +133,9 @@ function NotesEditor({ tx }: { tx: TransactionDetail }) {
             update.mutate({ id: tx.id, body: { notes: draft.trim() || null } });
           }}
         >
-          {update.isPending ? "Salvataggio…" : "Salva nota"}
+          {update.isPending
+            ? t("transactions.detail.notes.saving")
+            : t("transactions.detail.notes.save")}
         </Button>
       </div>
     </section>
@@ -141,6 +153,7 @@ export function TransactionDetailSheet({
   onClose: () => void;
   onOpen: (id: number) => void;
 }) {
+  const { t } = useTranslation();
   const { data: tx, isPending } = useTransaction(id);
   const remove = useDeleteTransaction();
 
@@ -153,7 +166,7 @@ export function TransactionDetailSheet({
     >
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto bg-card sm:max-w-md">
         <SheetHeader className="border-b pb-4">
-          <SheetDescription>Dettaglio movimento</SheetDescription>
+          <SheetDescription>{t("transactions.detail.title")}</SheetDescription>
           {isPending || !tx ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-40" />
@@ -166,9 +179,11 @@ export function TransactionDetailSheet({
               </SheetTitle>
               <p className="text-sm font-medium">{tx.merchant_name ?? tx.description_clean}</p>
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <Badge variant="secondary">{KIND_LABELS[tx.kind]}</Badge>
-                <Badge variant="outline">{STATUS_LABELS[tx.status]}</Badge>
-                {tx.is_manual && <Badge variant="outline">Inserito a mano</Badge>}
+                <Badge variant="secondary">{kindLabel(tx.kind)}</Badge>
+                <Badge variant="outline">{statusLabel(tx.status)}</Badge>
+                {tx.is_manual && (
+                  <Badge variant="outline">{t("transactions.detail.manualBadge")}</Badge>
+                )}
               </div>
             </>
           )}
@@ -179,39 +194,50 @@ export function TransactionDetailSheet({
             <ClassificationEditor tx={tx} lookups={lookups} />
             <TransactionLinks tx={tx} lookups={lookups} onOpen={onOpen} />
             <dl className="divide-y">
-              <Row label="Data contabile">{formatDate(tx.booking_date, "long")}</Row>
+              <Row label={t("transactions.detail.bookingDate")}>
+                {formatDate(tx.booking_date, "long")}
+              </Row>
               {tx.value_date && tx.value_date !== tx.booking_date && (
-                <Row label="Data valuta">{formatDate(tx.value_date)}</Row>
+                <Row label={t("transactions.detail.valueDate")}>{formatDate(tx.value_date)}</Row>
               )}
-              <Row label="Conto">{accountLabel(lookups.accountById.get(tx.account_id))}</Row>
-              {tx.merchant_name && <Row label="Merchant">{tx.merchant_name}</Row>}
-              {tx.counterparty_name && <Row label="Controparte">{tx.counterparty_name}</Row>}
+              <Row label={t("transactions.account")}>
+                {accountLabel(lookups.accountById.get(tx.account_id))}
+              </Row>
+              {tx.merchant_name && (
+                <Row label={t("transactions.source.merchant")}>{tx.merchant_name}</Row>
+              )}
+              {tx.counterparty_name && (
+                <Row label={t("transactions.detail.counterparty")}>{tx.counterparty_name}</Row>
+              )}
               {tx.counterparty_iban && (
-                <Row label="IBAN controparte">
+                <Row label={t("transactions.detail.counterpartyIban")}>
                   <span data-sensitive className="num">
                     {maskIban(tx.counterparty_iban)}
                   </span>
                 </Row>
               )}
               {tx.original_amount && tx.original_currency && (
-                <Row label="Importo originale">
+                <Row label={t("transactions.detail.originalAmount")}>
                   <Money value={tx.original_amount} currency={tx.original_currency} />
                   {tx.fx_rate && (
-                    <span className="text-muted-foreground"> · cambio {tx.fx_rate}</span>
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      {t("transactions.detail.fxRate", { rate: tx.fx_rate })}
+                    </span>
                   )}
                 </Row>
               )}
-              <Row label="Descrizione banca">
+              <Row label={t("transactions.detail.bankDescription")}>
                 <span className="text-muted-foreground">{tx.description_raw}</span>
               </Row>
               {(tx.provider_category ?? tx.mcc) && (
-                <Row label="Dati del provider">
+                <Row label={t("transactions.detail.providerData")}>
                   <span className="text-muted-foreground">
                     {[tx.provider_category, tx.mcc && `MCC ${tx.mcc}`].filter(Boolean).join(" · ")}
                   </span>
                 </Row>
               )}
-              <Row label="Registrato">{formatDateTime(tx.created_at)}</Row>
+              <Row label={t("transactions.detail.recorded")}>{formatDateTime(tx.created_at)}</Row>
             </dl>
 
             <NotesEditor tx={tx} />
@@ -222,7 +248,7 @@ export function TransactionDetailSheet({
               <details className="group rounded-xl border">
                 <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-medium select-none">
                   <Braces aria-hidden className="size-4 text-muted-foreground" />
-                  Dato originale del provider
+                  {t("transactions.detail.raw")}
                 </summary>
                 <pre
                   data-sensitive
@@ -237,7 +263,7 @@ export function TransactionDetailSheet({
               <Button variant="outline" className="w-full" asChild>
                 <Link to={`/regole?da=${String(tx.id)}`}>
                   <Wand2 aria-hidden />
-                  Crea una regola da questo movimento
+                  {t("transactions.detail.createRule")}
                 </Link>
               </Button>
             )}
@@ -248,13 +274,13 @@ export function TransactionDetailSheet({
                 className="w-full text-destructive hover:text-destructive"
                 disabled={remove.isPending}
                 onClick={() => {
-                  if (window.confirm("Eliminare questo movimento inserito a mano?")) {
+                  if (window.confirm(t("transactions.detail.deleteConfirm"))) {
                     remove.mutate(tx.id, { onSuccess: onClose });
                   }
                 }}
               >
                 <Trash2 aria-hidden />
-                Elimina movimento
+                {t("transactions.detail.delete")}
               </Button>
             )}
           </div>

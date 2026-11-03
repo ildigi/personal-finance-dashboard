@@ -7,6 +7,7 @@ import { describeClassification, type Lookups } from "@/features/transactions/lo
 import { formatCount, formatDate } from "@/lib/format";
 
 import type { MerchantTotal } from "../queries";
+import { i18n } from "@/i18n";
 
 /** Classifica dei merchant: spesa, frequenza, importo medio, ultimo acquisto. */
 export function MerchantRanking({ rows, lookups }: { rows: MerchantTotal[]; lookups: Lookups }) {
@@ -14,7 +15,7 @@ export function MerchantRanking({ rows, lookups }: { rows: MerchantTotal[]; look
     return (
       <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
         <Store aria-hidden className="size-4" />
-        Nessun merchant con spese nel periodo
+        {i18n.t("analytics.merchants.empty")}
       </p>
     );
   }
@@ -24,19 +25,19 @@ export function MerchantRanking({ rows, lookups }: { rows: MerchantTotal[]; look
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
             <th scope="col" className="py-2 pr-3 font-medium">
-              Merchant
+              {i18n.t("analytics.merchants.merchant")}
             </th>
             <th scope="col" className="py-2 pr-3 text-right font-medium">
-              Totale
+              {i18n.t("analytics.total")}
             </th>
             <th scope="col" className="hidden py-2 pr-3 text-right font-medium sm:table-cell">
-              Volte
+              {i18n.t("analytics.merchants.times")}
             </th>
             <th scope="col" className="hidden py-2 pr-3 text-right font-medium sm:table-cell">
-              Media
+              {i18n.t("analytics.merchants.average")}
             </th>
             <th scope="col" className="hidden py-2 text-right font-medium md:table-cell">
-              Ultimo
+              {i18n.t("analytics.merchants.last")}
             </th>
           </tr>
         </thead>

@@ -6,6 +6,7 @@ import { formatDayHeading } from "@/lib/format";
 import { todayInRome } from "@/lib/period";
 import { cn } from "@/lib/utils";
 
+import { statusLabel } from "../labels";
 import { accountLabel, describeClassification, type Lookups } from "../lookups";
 import type { Transaction } from "../queries";
 
@@ -92,7 +93,9 @@ export function TransactionList({
                         className="num block text-sm font-medium"
                       />
                       {tx.status === "pending" && (
-                        <span className="text-[11px] text-muted-foreground">In sospeso</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {statusLabel("pending")}
+                        </span>
                       )}
                     </span>
                   </button>

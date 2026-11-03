@@ -15,6 +15,7 @@ import type { Lookups } from "@/features/transactions/lookups";
 import { useUpdateTransaction } from "@/features/transactions/queries";
 import { formatDate } from "@/lib/format";
 import type { DateRange } from "@/lib/period";
+import { i18n } from "@/i18n";
 
 const NONE = "none";
 
@@ -45,7 +46,7 @@ export function IncomeList({ range, lookups }: { range: DateRange; lookups: Look
     return (
       <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
         <Inbox aria-hidden className="size-4" />
-        Nessuna entrata nel periodo
+        {i18n.t("analytics.incomeList.empty")}
       </p>
     );
   }
@@ -81,13 +82,13 @@ export function IncomeList({ range, lookups }: { range: DateRange; lookups: Look
             }}
           >
             <SelectTrigger
-              aria-label={`Tipologia di ${tx.description_clean}`}
+              aria-label={i18n.t("analytics.incomeList.typeOf", { name: tx.description_clean })}
               className="col-span-2 h-8 w-full bg-card text-xs sm:col-span-1"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>Senza tipologia</SelectItem>
+              <SelectItem value={NONE}>{i18n.t("analytics.incomeList.noType")}</SelectItem>
               {lookups.incomeTypes.map((i) => (
                 <SelectItem key={i.id} value={String(i.id)}>
                   {i.label}

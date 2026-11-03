@@ -1,5 +1,6 @@
 import { Coins, HandCoins, PiggyBank, Scale, Wallet } from "lucide-react";
 import { useState } from "react";
+import { Trans } from "react-i18next";
 import { Link } from "react-router";
 
 import { EmptyState } from "@/components/common/EmptyState";
@@ -20,6 +21,7 @@ import { formatCount, formatPercent } from "@/lib/format";
 import { formatRange, periodLabel, resolvePeriod } from "@/lib/period";
 import { usePeriod } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
+import { i18n } from "@/i18n";
 
 /** Sotto −100% (es. a inizio mese, prima dello stipendio) il tasso non dice nulla. */
 const MIN_MEANINGFUL_RATE = -100;
@@ -27,7 +29,7 @@ const MIN_MEANINGFUL_RATE = -100;
 function TypeBreakdown({ data }: { data: IncomeSummary }) {
   const total = Number(data.total_eur);
   if (data.by_type.length === 0) {
-    return <p className="py-6 text-sm text-muted-foreground">Nessuna entrata nel periodo</p>;
+    return <p className="py-6 text-sm text-muted-foreground">{i18n.t("income.noIncome")}</p>;
   }
   const max = Math.max(...data.by_type.map((t) => Number(t.total_eur)), 1);
   return (
@@ -85,8 +87,8 @@ export function IncomePage() {
   if (income.isError) {
     return (
       <Card>
-        <EmptyState icon={Wallet} title="Entrate non disponibili">
-          Il backend non risponde. Avvialo e riprova.
+        <EmptyState icon={Wallet} title={i18n.t("income.unavailable")}>
+          {i18n.t("analytics.backendDown")}
         </EmptyState>
       </Card>
     );
@@ -105,7 +107,7 @@ export function IncomePage() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatTile
-          label="Entrate"
+          label={i18n.t("analytics.income")}
           icon={HandCoins}
           value={data ? <Money value={data.total_eur} /> : undefined}
           delta={
@@ -115,14 +117,14 @@ export function IncomePage() {
                   current={Number(data.total_eur)}
                   previous={Number(data.previous_total_eur)}
                 />
-                <span>vs {previousLabel}</span>
+                <span>{i18n.t("analytics.versus", { label: previousLabel })}</span>
               </span>
             ) : undefined
           }
-          pendingNote="Caricamento…"
+          pendingNote={i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Tasso di risparmio"
+          label={i18n.t("income.savingsRate")}
           icon={PiggyBank}
           value={
             savingsRate !== null && savingsRate >= MIN_MEANINGFUL_RATE
@@ -132,50 +134,55 @@ export function IncomePage() {
           delta={
             data ? (
               <span>
-                risparmiati <Money value={data.savings_eur} signed /> su spese reali di{" "}
-                <Money value={data.expenses_eur} />
+                <Trans
+                  i18nKey="income.saved"
+                  components={{
+                    saved: <Money value={data.savings_eur} signed />,
+                    spent: <Money value={data.expenses_eur} />,
+                  }}
+                />
               </span>
             ) : undefined
           }
           pendingNote={
             !data
-              ? "Caricamento…"
+              ? i18n.t("analytics.loading")
               : savingsRate === null
-                ? "Nessuna entrata nel periodo"
-                : "Spese oltre il doppio delle entrate: periodo troppo corto per un tasso sensato"
+                ? i18n.t("income.noIncome")
+                : i18n.t("income.tooShort")
           }
         />
         <StatTile
-          label="Media mensile"
+          label={i18n.t("analytics.averages.title")}
           icon={Scale}
           value={data?.averages.m3 ? <Money value={data.averages.m3} /> : undefined}
           delta={
             data ? (
               <span>
-                ultimi 3 mesi interi
+                {i18n.t("analytics.averages.last3")}
                 {data.averages.m6 && (
                   <>
                     {" "}
-                    · 6 mesi <Money value={data.averages.m6} />
+                    · {i18n.t("analytics.averages.m6")} <Money value={data.averages.m6} />
                   </>
                 )}
                 {data.averages.m12 && (
                   <>
                     {" "}
-                    · 12 mesi <Money value={data.averages.m12} />
+                    · {i18n.t("analytics.averages.m12")} <Money value={data.averages.m12} />
                   </>
                 )}
               </span>
             ) : undefined
           }
-          pendingNote={data ? "Serve almeno un mese intero di dati" : "Caricamento…"}
+          pendingNote={data ? i18n.t("analytics.averages.needMonth") : i18n.t("analytics.loading")}
         />
         <StatTile
-          label="Dividendi"
+          label={i18n.t("income.dividends")}
           icon={Coins}
           value={data ? <Money value={data.dividends_eur} /> : undefined}
-          delta="restano negli investimenti, mostrati a parte"
-          pendingNote="Caricamento…"
+          delta={i18n.t("income.dividendsNote")}
+          pendingNote={i18n.t("analytics.loading")}
         />
       </div>
 
@@ -183,8 +190,8 @@ export function IncomePage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
             <div className="space-y-1.5">
-              <CardTitle>Entrate e spese</CardTitle>
-              <CardDescription>Mese per mese, con il saldo nel dettaglio</CardDescription>
+              <CardTitle>{i18n.t("income.versusExpenses")}</CardTitle>
+              <CardDescription>{i18n.t("income.versusExpensesDescription")}</CardDescription>
             </div>
             <MonthsToggle value={months} onChange={setMonths} options={[6, 12]} />
           </CardHeader>
@@ -199,8 +206,8 @@ export function IncomePage() {
         <div className="space-y-4 lg:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Per tipologia</CardTitle>
-              <CardDescription>Da dove arrivano le entrate del periodo</CardDescription>
+              <CardTitle>{i18n.t("income.byType")}</CardTitle>
+              <CardDescription>{i18n.t("income.byTypeDescription")}</CardDescription>
             </CardHeader>
             <CardContent className={cn(income.isFetching && "opacity-60 transition-opacity")}>
               {data ? <TypeBreakdown data={data} /> : <Skeleton className="h-48 w-full" />}
@@ -208,15 +215,15 @@ export function IncomePage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Entrate attese</CardTitle>
-              <CardDescription>Entrate ricorrenti nei prossimi 35 giorni</CardDescription>
+              <CardTitle>{i18n.t("income.expected")}</CardTitle>
+              <CardDescription>{i18n.t("income.expectedDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {expected.data ? (
                 <UpcomingList
                   items={expected.data}
                   lookups={lookups}
-                  emptyText="Nessuna entrata ricorrente attesa"
+                  emptyText={i18n.t("income.expectedEmpty")}
                 />
               ) : (
                 <Skeleton className="h-24 w-full" />
@@ -228,10 +235,8 @@ export function IncomePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Entrate del periodo</CardTitle>
-          <CardDescription>
-            Correggi la tipologia se serve: la correzione resta anche dopo le sincronizzazioni.
-          </CardDescription>
+          <CardTitle>{i18n.t("income.list")}</CardTitle>
+          <CardDescription>{i18n.t("income.listDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <IncomeList range={range} lookups={lookups} />

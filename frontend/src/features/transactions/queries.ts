@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { i18n } from "@/i18n";
 import { api, unwrap, type Schemas } from "@/api/client";
 import { invalidateClassification } from "@/features/rules/queries";
 import { queryKeys } from "@/features/system/queries";
@@ -93,7 +94,7 @@ export function useDeleteTransaction() {
       const { response } = await api.DELETE("/api/transactions/{transaction_id}", {
         params: { path: { transaction_id: id } },
       });
-      if (!response.ok) throw new Error("Eliminazione non riuscita");
+      if (!response.ok) throw new Error(i18n.t("errors.deleteFailed"));
     },
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: transactionKeys.all });

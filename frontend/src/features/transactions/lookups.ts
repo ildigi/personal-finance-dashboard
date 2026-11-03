@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { Account, Category, IncomeType, Schemas } from "@/api/client";
 import { useAccounts, useCategories, useIncomeTypes } from "@/features/system/queries";
+import { i18n } from "@/i18n";
 
 type Subcategory = Category["subcategories"][number];
 
@@ -34,7 +35,7 @@ export function useLookups() {
 export type Lookups = ReturnType<typeof useLookups>;
 
 export function accountLabel(account: Account | undefined): string {
-  if (!account) return "Conto";
+  if (!account) return i18n.t("transactions.account");
   return `${account.institution} · ${account.name}`;
 }
 
@@ -54,9 +55,9 @@ export function describeClassification(tx: Classified, lookups: Lookups): string
     return sub ? `${category.name} › ${sub.name}` : category.name;
   }
   if (tx.kind === "income" && tx.income_type_id !== null) {
-    return lookups.incomeTypeById.get(tx.income_type_id)?.label ?? "Entrata";
+    return lookups.incomeTypeById.get(tx.income_type_id)?.label ?? i18n.t("transactions.income");
   }
-  if (tx.kind === "internal_transfer") return "Tra i tuoi conti";
-  if (tx.kind === "investment_transfer") return "Investimenti";
-  return "Da classificare";
+  if (tx.kind === "internal_transfer") return i18n.t("transactions.betweenAccounts");
+  if (tx.kind === "investment_transfer") return i18n.t("transactions.investments");
+  return i18n.t("transactions.unclassified");
 }

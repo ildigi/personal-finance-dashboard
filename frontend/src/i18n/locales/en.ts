@@ -1,4 +1,8 @@
 import type { Messages } from "../types";
+import { overview } from "./en/overview";
+import { networth } from "./en/networth";
+import { analytics } from "./en/analytics";
+import { transactions } from "./en/transactions";
 
 /** Interface texts in English. Same keys as `it.ts`; glossary in SPEC §18. */
 export const en = {
@@ -344,4 +348,8 @@ export const en = {
       "Merge “{{from}}” into “{{to}}”? Transactions and name variants move to “{{to}}”.",
     transactionsShort: "{{n}} txns",
   },
+  ...overview,
+  ...networth,
+  ...analytics,
+  ...transactions,
 } as const satisfies Messages;

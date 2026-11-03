@@ -84,20 +84,3 @@ export function findNavItem(pathname: string): NavItem | undefined {
   if (pathname === "/") return ALL_NAV_ITEMS[0];
   return ALL_NAV_ITEMS.find((item) => item.path !== "/" && pathname.startsWith(item.path));
 }
-
-/** Fase della roadmap attualmente in corso (oltre l'ultima = tutte completate). */
-export const CURRENT_PHASE = 11;
-
-export const ROADMAP: { phase: number; title: string }[] = [
-  { phase: 0, title: "Pianificazione e ambiente" },
-  { phase: 1, title: "Struttura e repository" },
-  { phase: 2, title: "Backend e database" },
-  { phase: 3, title: "Interfaccia di base" },
-  { phase: 4, title: "Dati di prova e importazione" },
-  { phase: 5, title: "Classificazione, spese ed entrate" },
-  { phase: 6, title: "Budget e ricorrenze" },
-  { phase: 7, title: "Trading 212" },
-  { phase: 8, title: "Open Banking: CA e Revolut" },
-  { phase: 9, title: "Patrimonio e panoramica" },
-  { phase: 10, title: "Sicurezza e deploy" },
-];

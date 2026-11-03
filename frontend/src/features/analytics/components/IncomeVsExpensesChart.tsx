@@ -4,11 +4,15 @@ import { ChartLegend, ChartTooltipBox } from "@/components/charts/ChartTooltip";
 import { formatAxisMoney, formatMoney, formatMonth } from "@/lib/format";
 
 import type { MonthPoint } from "../queries";
+import { i18n } from "@/i18n";
 
 const SERIES = [
-  { key: "income", label: "Entrate", color: "var(--chart-1)" },
-  { key: "expenses", label: "Spese reali", color: "var(--chart-2)" },
+  { key: "income", color: "var(--chart-1)" },
+  { key: "expenses", color: "var(--chart-2)" },
 ] as const;
+
+const seriesLabel = (key: (typeof SERIES)[number]["key"]): string =>
+  key === "income" ? i18n.t("analytics.income") : i18n.t("analytics.realExpenses");
 
 interface Row {
   month: string;
@@ -19,6 +23,7 @@ interface Row {
 
 /** Entrate e spese reali mese per mese, affiancate; il saldo è nel tooltip e in tabella. */
 export function IncomeVsExpensesChart({ months }: { months: MonthPoint[] }) {
+  const series = SERIES.map((s) => ({ ...s, label: seriesLabel(s.key) }));
   const rows: Row[] = months.map((m) => ({
     month: m.month,
     income: Number(m.income_eur),
@@ -27,7 +32,7 @@ export function IncomeVsExpensesChart({ months }: { months: MonthPoint[] }) {
   }));
   return (
     <div className="space-y-3">
-      <ChartLegend items={[...SERIES]} />
+      <ChartLegend items={series} />
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} margin={{ top: 8, right: 4, bottom: 0, left: 4 }} barGap={2}>
@@ -56,9 +61,14 @@ export function IncomeVsExpensesChart({ months }: { months: MonthPoint[] }) {
                   <ChartTooltipBox
                     title={formatMonth(String(label), "long")}
                     rows={[
-                      { ...SERIES[0], value: row.income },
-                      { ...SERIES[1], value: row.expenses },
-                      { key: "net", label: "Saldo", value: row.net, emphasis: true },
+                      { ...SERIES[0], label: seriesLabel("income"), value: row.income },
+                      { ...SERIES[1], label: seriesLabel("expenses"), value: row.expenses },
+                      {
+                        key: "net",
+                        label: i18n.t("analytics.net"),
+                        value: row.net,
+                        emphasis: true,
+                      },
                     ]}
                   />
                 );
@@ -79,22 +89,22 @@ export function IncomeVsExpensesChart({ months }: { months: MonthPoint[] }) {
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-          Tabella dei dati
+          {i18n.t("analytics.dataTable")}
         </summary>
         <table className="mt-2 w-full text-xs">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
               <th scope="col" className="py-1.5 font-medium">
-                Mese
+                {i18n.t("analytics.month")}
               </th>
               <th scope="col" className="py-1.5 text-right font-medium">
-                Entrate
+                {i18n.t("analytics.income")}
               </th>
               <th scope="col" className="py-1.5 text-right font-medium">
-                Spese reali
+                {i18n.t("analytics.realExpenses")}
               </th>
               <th scope="col" className="py-1.5 text-right font-medium">
-                Saldo
+                {i18n.t("analytics.net")}
               </th>
             </tr>
           </thead>

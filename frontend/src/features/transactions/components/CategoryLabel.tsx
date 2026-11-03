@@ -1,4 +1,5 @@
 import { ArrowLeftRight, CircleDashed, HandCoins, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { CategoryIcon } from "@/components/common/CategoryIcon";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function CategoryLabel({
   lookups: Lookups;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const category = categoryId !== null ? lookups.categoryById.get(categoryId) : undefined;
   if (!category) {
     const income =
@@ -35,9 +37,9 @@ export function CategoryLabel({
     const plain = income
       ? { icon: HandCoins, text: income.label }
       : kind === "internal_transfer"
-        ? { icon: ArrowLeftRight, text: "Tra i tuoi conti" }
+        ? { icon: ArrowLeftRight, text: t("transactions.betweenAccounts") }
         : kind === "investment_transfer"
-          ? { icon: TrendingUp, text: "Investimenti" }
+          ? { icon: TrendingUp, text: t("transactions.investments") }
           : null;
     if (plain) {
       const Icon = plain.icon;
@@ -56,7 +58,7 @@ export function CategoryLabel({
         )}
       >
         <CircleDashed aria-hidden className="size-3" />
-        Da classificare
+        {t("transactions.unclassified")}
       </span>
     );
   }

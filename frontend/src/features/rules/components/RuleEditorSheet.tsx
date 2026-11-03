@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { useMerchants } from "@/features/merchants/queries";
 import { CategoryPicker } from "@/features/transactions/components/CategoryPicker";
-import { KIND_LABELS, type TransactionKind } from "@/features/transactions/labels";
+import { TRANSACTION_KINDS, kindLabel, type TransactionKind } from "@/features/transactions/labels";
 import {
   accountLabel,
   describeClassification,
@@ -511,9 +511,9 @@ function RuleForm({
                 <SelectContent>
                   <SelectItem value={KEEP}>Non cambiare</SelectItem>
                   <SelectSeparator />
-                  {(Object.keys(KIND_LABELS) as TransactionKind[]).map((k) => (
+                  {TRANSACTION_KINDS.map((k) => (
                     <SelectItem key={k} value={k}>
-                      {KIND_LABELS[k]}
+                      {kindLabel(k)}
                     </SelectItem>
                   ))}
                 </SelectContent>

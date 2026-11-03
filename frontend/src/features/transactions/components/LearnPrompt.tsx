@@ -1,5 +1,6 @@
 import { Check, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { useLearn, useLearnSuggestion } from "../queries";
  * Tre scelte: solo questo / anche i passati / crea regola per il futuro.
  */
 export function LearnPrompt({ transactionId }: { transactionId: number }) {
+  const { t } = useTranslation();
   const suggestion = useLearnSuggestion(transactionId, true);
   const learn = useLearn();
   const [done, setDone] = useState<string | null>(null);
@@ -39,11 +41,14 @@ export function LearnPrompt({ transactionId }: { transactionId: number }) {
       { id: transactionId, scope },
       {
         onSuccess: (result) => {
-          const count = `${formatCount(result.updated)} ${result.updated === 1 ? "movimento aggiornato" : "movimenti aggiornati"}`;
+          const updated = t("transactions.learn.updated", {
+            count: result.updated,
+            n: formatCount(result.updated),
+          });
           setDone(
             result.rule
-              ? `Regola creata: «${result.rule.name}». ${count}; varrà anche per i prossimi.`
-              : `${count}.`,
+              ? t("transactions.learn.ruleCreated", { name: result.rule.name, updated })
+              : t("transactions.learn.done", { updated }),
           );
         },
       },
@@ -56,11 +61,20 @@ export function LearnPrompt({ transactionId }: { transactionId: number }) {
       <p className="flex items-start gap-2 text-sm">
         <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
         <span>
-          Applicare <strong className="font-medium">{target}</strong> a tutti i movimenti di{" "}
-          <strong className="font-medium">{data.subject}</strong>
-          {similar > 0
-            ? ` (${formatCount(similar)} ${similar === 1 ? "passato" : "passati"}, e quelli futuri)?`
-            : " in arrivo?"}
+          {similar > 0 ? (
+            <Trans
+              i18nKey="transactions.learn.question"
+              count={similar}
+              values={{ target, subject: data.subject, n: formatCount(similar) }}
+              components={{ strong: <strong className="font-medium" /> }}
+            />
+          ) : (
+            <Trans
+              i18nKey="transactions.learn.questionFuture"
+              values={{ target, subject: data.subject }}
+              components={{ strong: <strong className="font-medium" /> }}
+            />
+          )}
         </span>
       </p>
       <div className="flex flex-wrap gap-2">
@@ -71,7 +85,7 @@ export function LearnPrompt({ transactionId }: { transactionId: number }) {
             setDismissed(true);
           }}
         >
-          Solo questo
+          {t("transactions.learn.onlyThis")}
         </Button>
         {similar > 0 && (
           <Button
@@ -82,7 +96,7 @@ export function LearnPrompt({ transactionId }: { transactionId: number }) {
               run("past");
             }}
           >
-            Anche i passati
+            {t("transactions.learn.past")}
           </Button>
         )}
         <Button
@@ -92,12 +106,12 @@ export function LearnPrompt({ transactionId }: { transactionId: number }) {
             run("rule");
           }}
         >
-          Crea regola per il futuro
+          {t("transactions.learn.rule")}
         </Button>
       </div>
       {learn.isError && (
         <p className="text-xs text-destructive">
-          {learn.error instanceof ApiError ? learn.error.message : "Operazione non riuscita"}
+          {learn.error instanceof ApiError ? learn.error.message : t("transactions.learn.failed")}
         </p>
       )}
     </div>

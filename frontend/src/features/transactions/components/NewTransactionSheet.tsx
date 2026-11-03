@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function NewTransactionSheet({
   lookups: Lookups;
   onCreated: (id: number) => void;
 }) {
+  const { t } = useTranslation();
   const create = useCreateTransaction();
   const accounts = lookups.accounts.filter((a) => a.type !== "broker");
   const defaultAccount =
@@ -90,11 +92,11 @@ export function NewTransactionSheet({
   function onSubmit(event: SyntheticEvent): void {
     event.preventDefault();
     const next: Errors = {};
-    if (!selectedAccount) next.account = "Scegli un conto";
-    if (!date) next.date = "Indica la data";
-    else if (date > todayInRome()) next.date = "La data non può essere nel futuro";
-    if (!parsed) next.amount = "Importo non valido: es. 12,50";
-    if (!description.trim()) next.description = "Scrivi una descrizione";
+    if (!selectedAccount) next.account = t("transactions.new.errors.account");
+    if (!date) next.date = t("transactions.new.errors.date");
+    else if (date > todayInRome()) next.date = t("transactions.new.errors.future");
+    if (!parsed) next.amount = t("transactions.new.errors.amount");
+    if (!description.trim()) next.description = t("transactions.new.errors.description");
     setErrors(next);
     if (Object.keys(next).length > 0 || !parsed) return;
 
@@ -117,7 +119,7 @@ export function NewTransactionSheet({
         },
         onError: (error) => {
           setErrors({
-            form: error instanceof ApiError ? error.message : "Salvataggio non riuscito",
+            form: error instanceof ApiError ? error.message : t("transactions.new.errors.save"),
           });
         },
       },
@@ -134,23 +136,21 @@ export function NewTransactionSheet({
     >
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto bg-card sm:max-w-md">
         <SheetHeader className="border-b">
-          <SheetTitle>Nuovo movimento</SheetTitle>
-          <SheetDescription>
-            Per spese che non arrivano dalla banca, come la carta di credito.
-          </SheetDescription>
+          <SheetTitle>{t("transactions.new.title")}</SheetTitle>
+          <SheetDescription>{t("transactions.new.description")}</SheetDescription>
         </SheetHeader>
 
         <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col">
           <div className="space-y-5 p-4">
             <div
               role="radiogroup"
-              aria-label="Tipo di movimento"
+              aria-label={t("transactions.new.direction")}
               className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
             >
               {(
                 [
-                  ["out", "Uscita"],
-                  ["in", "Entrata"],
+                  ["out", t("transactions.new.out")],
+                  ["in", t("transactions.new.in")],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -174,12 +174,12 @@ export function NewTransactionSheet({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="tx-amount">Importo (€)</Label>
+              <Label htmlFor="tx-amount">{t("transactions.new.amount")}</Label>
               <Input
                 id="tx-amount"
                 inputMode="decimal"
                 autoComplete="off"
-                placeholder="0,00"
+                placeholder={t("transactions.new.amountPlaceholder")}
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -198,16 +198,20 @@ export function NewTransactionSheet({
               >
                 {errors.amount ??
                   (parsed
-                    ? `Verrà registrato come ${formatMoney(direction === "out" ? `-${parsed}` : parsed, "EUR", { signed: true })}`
-                    : "Usa la virgola per i decimali")}
+                    ? t("transactions.new.willBe", {
+                        amount: formatMoney(direction === "out" ? `-${parsed}` : parsed, "EUR", {
+                          signed: true,
+                        }),
+                      })
+                    : t("transactions.new.decimalsHint"))}
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="tx-description">Descrizione</Label>
+              <Label htmlFor="tx-description">{t("transactions.new.descriptionLabel")}</Label>
               <Input
                 id="tx-description"
-                placeholder="Es. Cena da Gino"
+                placeholder={t("transactions.new.descriptionPlaceholder")}
                 value={description}
                 maxLength={500}
                 onChange={(e) => {
@@ -223,7 +227,7 @@ export function NewTransactionSheet({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="tx-date">Data</Label>
+                <Label htmlFor="tx-date">{t("transactions.new.date")}</Label>
                 <Input
                   id="tx-date"
                   type="date"
@@ -237,14 +241,14 @@ export function NewTransactionSheet({
                 {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="tx-account">Conto</Label>
+                <Label htmlFor="tx-account">{t("transactions.account")}</Label>
                 <Select value={selectedAccount} onValueChange={setAccountId}>
                   <SelectTrigger
                     id="tx-account"
                     className="w-full"
                     aria-invalid={Boolean(errors.account)}
                   >
-                    <SelectValue placeholder="Scegli" />
+                    <SelectValue placeholder={t("transactions.new.choose")} />
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map((a) => (
@@ -260,7 +264,7 @@ export function NewTransactionSheet({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="tx-category">Categoria</Label>
+                <Label htmlFor="tx-category">{t("transactions.filters.category")}</Label>
                 <Select
                   value={categoryId}
                   onValueChange={(value) => {
@@ -272,7 +276,7 @@ export function NewTransactionSheet({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>Da classificare</SelectItem>
+                    <SelectItem value={NONE}>{t("transactions.unclassified")}</SelectItem>
                     {lookups.categories.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.name}
@@ -282,7 +286,7 @@ export function NewTransactionSheet({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="tx-subcategory">Sottocategoria</Label>
+                <Label htmlFor="tx-subcategory">{t("transactions.new.subcategory")}</Label>
                 <Select
                   value={subcategoryId}
                   onValueChange={setSubcategoryId}
@@ -292,7 +296,7 @@ export function NewTransactionSheet({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>Nessuna</SelectItem>
+                    <SelectItem value={NONE}>{t("transactions.editor.none")}</SelectItem>
                     {category?.subcategories.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>
                         {s.name}
@@ -304,7 +308,7 @@ export function NewTransactionSheet({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="tx-notes">Note (facoltative)</Label>
+              <Label htmlFor="tx-notes">{t("transactions.new.notes")}</Label>
               <Textarea
                 id="tx-notes"
                 rows={3}
@@ -328,7 +332,7 @@ export function NewTransactionSheet({
 
           <SheetFooter className="mt-auto border-t">
             <Button type="submit" disabled={create.isPending} className="w-full">
-              {create.isPending ? "Salvataggio…" : "Salva movimento"}
+              {create.isPending ? t("transactions.new.saving") : t("transactions.new.save")}
             </Button>
           </SheetFooter>
         </form>

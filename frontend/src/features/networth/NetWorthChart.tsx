@@ -13,11 +13,31 @@ import { ChartLegend, ChartTooltipBox } from "@/components/charts/ChartTooltip";
 import { formatAxisMoney, formatDate, formatMoney, formatMonth } from "@/lib/format";
 
 import { spans, type NetWorthPoint } from "./queries";
+import { i18n } from "@/i18n";
 
+// Etichette lette a ogni uso (getter): seguono la lingua attuale.
 const NETWORTH_SERIES = {
-  cash: { key: "cash", label: "Liquidità", color: "var(--chart-1)" },
-  investments: { key: "investments", label: "Investimenti", color: "var(--chart-3)" },
-  estimated: { key: "estimated", label: "Investimenti (stima)", color: "var(--chart-3)" },
+  cash: {
+    key: "cash",
+    get label() {
+      return i18n.t("networth.cash");
+    },
+    color: "var(--chart-1)",
+  },
+  investments: {
+    key: "investments",
+    get label() {
+      return i18n.t("networth.investments");
+    },
+    color: "var(--chart-3)",
+  },
+  estimated: {
+    key: "estimated",
+    get label() {
+      return i18n.t("networth.estimated");
+    },
+    color: "var(--chart-3)",
+  },
 };
 
 interface Row {
@@ -129,9 +149,9 @@ export function NetWorthChart({
                 const row = payload[0]?.payload as Row | undefined;
                 if (!active || !row) return null;
                 const note = row.partial
-                  ? "Manca qualche conto: il totale è parziale"
+                  ? i18n.t("networth.partial")
                   : row.estimated
-                    ? "Investimenti stimati con il capitale versato"
+                    ? i18n.t("networth.estimatedNote")
                     : null;
                 return (
                   <ChartTooltipBox
@@ -150,7 +170,7 @@ export function NetWorthChart({
                       row.estimated
                         ? { ...NETWORTH_SERIES.estimated, value: row.estimatedInvestments }
                         : { ...NETWORTH_SERIES.investments, value: row.investments },
-                      { key: "total", label: "Patrimonio netto", value: row.total },
+                      { key: "total", label: i18n.t("networth.netWorth"), value: row.total },
                     ]}
                   />
                 );
@@ -213,22 +233,22 @@ function DataTable({ rows }: { rows: Row[] }) {
   return (
     <details className="text-sm">
       <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-        Tabella dei dati
+        {i18n.t("analytics.dataTable")}
       </summary>
       <table className="mt-2 w-full text-xs">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th scope="col" className="py-1.5 font-medium">
-              Giorno
+              {i18n.t("networth.day")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Liquidità
+              {i18n.t("networth.cash")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Investimenti
+              {i18n.t("networth.investments")}
             </th>
             <th scope="col" className="py-1.5 text-right font-medium">
-              Totale
+              {i18n.t("analytics.total")}
             </th>
           </tr>
         </thead>

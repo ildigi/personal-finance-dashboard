@@ -1,6 +1,5 @@
 import {
   Building2,
-  Check,
   CreditCard,
   LineChart,
   PiggyBank,
@@ -8,9 +7,9 @@ import {
   ServerCrash,
   Wallet,
 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 
 import type { Account, Health } from "@/api/client";
-import { CURRENT_PHASE, ROADMAP } from "@/app/navigation";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Money } from "@/components/common/Money";
 import { StatusIndicator, type Status } from "@/components/common/StatusIndicator";
@@ -32,6 +31,7 @@ import {
 import { AlertsCard } from "@/features/overview/AlertsCard";
 import { NetWorthTrendCard, OverviewTiles } from "@/features/overview/OverviewTiles";
 import { useAccounts, useHealth } from "@/features/system/queries";
+import { i18n } from "@/i18n";
 import { formatDate, formatRelative, maskIban } from "@/lib/format";
 import { todayInRome } from "@/lib/period";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,10 @@ function greeting(now: Date = new Date()): string {
       timeZone: "Europe/Rome",
     }).format(now),
   );
-  if (hour < 5) return "Buonanotte";
-  if (hour < 13) return "Buongiorno";
-  if (hour < 18) return "Buon pomeriggio";
-  return "Buonasera";
+  if (hour < 5) return i18n.t("overview.greeting.night");
+  if (hour < 13) return i18n.t("overview.greeting.morning");
+  if (hour < 18) return i18n.t("overview.greeting.afternoon");
+  return i18n.t("overview.greeting.evening");
 }
 
 export function OverviewPage() {
@@ -79,23 +79,21 @@ export function OverviewPage() {
 
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         <AccountsCard className="lg:col-span-2" />
-        <div className="space-y-4 lg:space-y-6">
-          <SystemCard
-            health={health.data}
-            isPending={health.isPending}
-            isError={unreachable}
-            updatedAt={health.dataUpdatedAt}
-            onRefresh={() => void health.refetch()}
-            refreshing={health.isFetching}
-          />
-          <RoadmapCard />
-        </div>
+        <SystemCard
+          health={health.data}
+          isPending={health.isPending}
+          isError={unreachable}
+          updatedAt={health.dataUpdatedAt}
+          onRefresh={() => void health.refetch()}
+          refreshing={health.isFetching}
+        />
       </div>
     </div>
   );
 }
 
 function BackendDownBanner({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
   return (
     <div
       role="alert"
@@ -103,15 +101,16 @@ function BackendDownBanner({ onRetry }: { onRetry: () => void }) {
     >
       <ServerCrash aria-hidden className="size-5 shrink-0 text-status-critical" />
       <div className="flex-1 text-sm">
-        <p className="font-medium">Il backend non risponde</p>
+        <p className="font-medium">{t("overview.backendDown.title")}</p>
         <p className="text-muted-foreground">
-          Avvialo dal task VS Code{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">dev:backend</code> oppure con{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">uv run uvicorn app.main:app</code>.
+          <Trans
+            i18nKey="overview.backendDown.hint"
+            components={{ code: <code className="rounded bg-muted px-1 py-0.5 text-xs" /> }}
+          />
         </p>
       </div>
       <Button variant="outline" size="sm" onClick={onRetry} className="self-start sm:self-auto">
-        <RefreshCw aria-hidden /> Riprova
+        <RefreshCw aria-hidden /> {t("overview.backendDown.retry")}
       </Button>
     </div>
   );
@@ -119,22 +118,24 @@ function BackendDownBanner({ onRetry }: { onRetry: () => void }) {
 
 // --- Conti ------------------------------------------------------------------------------
 
-const ACCOUNT_TYPE: Record<Account["type"], { label: string; icon: typeof Wallet }> = {
-  checking: { label: "Conto corrente", icon: Building2 },
-  savings: { label: "Conto risparmio", icon: PiggyBank },
-  card: { label: "Carta", icon: CreditCard },
-  credit_card: { label: "Carta di credito", icon: CreditCard },
-  broker: { label: "Broker", icon: LineChart },
+/** Etichette in `accountTypes.<tipo>`. */
+const ACCOUNT_ICON: Record<Account["type"], typeof Wallet> = {
+  checking: Building2,
+  savings: PiggyBank,
+  card: CreditCard,
+  credit_card: CreditCard,
+  broker: LineChart,
 };
 
 function AccountsCard({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { data: accounts, isPending, isError } = useAccounts();
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Conti</CardTitle>
-        <CardDescription>Conti e carte collegati alla dashboard</CardDescription>
+        <CardTitle>{t("overview.accounts.title")}</CardTitle>
+        <CardDescription>{t("overview.accounts.description")}</CardDescription>
         {accounts && accounts.length > 0 && (
           <CardAction>
             <Badge variant="secondary">{accounts.length}</Badge>
@@ -156,12 +157,11 @@ function AccountsCard({ className }: { className?: string }) {
           </div>
         ) : isError ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            Impossibile caricare i conti finché il backend non risponde.
+            {t("overview.accounts.error")}
           </p>
         ) : accounts.length === 0 ? (
-          <EmptyState icon={Wallet} title="Nessun conto collegato">
-            I conti di prova arrivano con la Fase 4; Crédit Agricole e Revolut con Open Banking
-            (Fase 8), Trading 212 con la Fase 7.
+          <EmptyState icon={Wallet} title={t("overview.accounts.emptyTitle")}>
+            {t("overview.accounts.empty")}
           </EmptyState>
         ) : (
           <ul className="-mx-2 divide-y">
@@ -176,7 +176,8 @@ function AccountsCard({ className }: { className?: string }) {
 }
 
 function AccountRow({ account }: { account: Account }) {
-  const { label, icon: Icon } = ACCOUNT_TYPE[account.type];
+  const { t } = useTranslation();
+  const Icon = ACCOUNT_ICON[account.type];
   return (
     <li className="flex items-center gap-3 px-2 py-3">
       <span
@@ -188,7 +189,7 @@ function AccountRow({ account }: { account: Account }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{account.name}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {account.institution} · {label}
+          {account.institution} · {t(`accountTypes.${account.type}`)}
           {account.iban && (
             <span data-sensitive className="num">
               {" · "}
@@ -206,8 +207,12 @@ function AccountRow({ account }: { account: Account }) {
           />
           {account.balance_as_of && (
             <div className="text-xs text-muted-foreground">
-              {account.balance_type === "booked" ? "contabile" : "disponibile"} al{" "}
-              {formatDate(account.balance_as_of, "short")}
+              {t(
+                account.balance_type === "booked"
+                  ? "overview.accounts.booked"
+                  : "overview.accounts.available",
+                { date: formatDate(account.balance_as_of, "short") },
+              )}
             </div>
           )}
         </div>
@@ -239,20 +244,35 @@ function SystemCard({
   refreshing,
   onRefresh,
 }: SystemCardProps) {
+  const { t } = useTranslation();
   const rows: { label: string; status: Status; value: string }[] = isError
-    ? [{ label: "Backend", status: "critical", value: "Non raggiungibile" }]
+    ? [
+        {
+          label: t("overview.system.backend"),
+          status: "critical",
+          value: t("overview.system.unreachable"),
+        },
+      ]
     : health
       ? [
-          { label: "Backend", status: "good", value: "Operativo" },
           {
-            label: "Database",
-            status: health.database.ok ? "good" : "critical",
-            value: health.database.ok ? "Connesso" : "Non raggiungibile",
+            label: t("overview.system.backend"),
+            status: "good",
+            value: t("overview.system.operational"),
           },
           {
-            label: "Schema",
+            label: t("overview.system.database"),
+            status: health.database.ok ? "good" : "critical",
+            value: health.database.ok
+              ? t("overview.system.connected")
+              : t("overview.system.unreachable"),
+          },
+          {
+            label: t("overview.system.schema"),
             status: health.database.up_to_date ? "good" : "warning",
-            value: health.database.up_to_date ? "Aggiornato" : "Migrazioni da applicare",
+            value: health.database.up_to_date
+              ? t("overview.system.upToDate")
+              : t("overview.system.migrationsPending"),
           },
         ]
       : [];
@@ -260,14 +280,19 @@ function SystemCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Stato del sistema</CardTitle>
+        <CardTitle>{t("overview.system.title")}</CardTitle>
         <CardDescription>
           {updatedAt > 0
-            ? `Controllato ${formatRelative(new Date(updatedAt))}`
-            : "Controllo in corso…"}
+            ? t("overview.system.checked", { when: formatRelative(new Date(updatedAt)) })
+            : t("overview.system.checking")}
         </CardDescription>
         <CardAction>
-          <Button variant="ghost" size="icon-sm" onClick={onRefresh} aria-label="Ricontrolla">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onRefresh}
+            aria-label={t("overview.system.recheck")}
+          >
             <RefreshCw aria-hidden className={cn(refreshing && "animate-spin")} />
           </Button>
         </CardAction>
@@ -291,9 +316,9 @@ function SystemCard({
             ))}
             {health && (
               <div className="flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
-                <span>Versione {health.version}</span>
+                <span>{t("overview.system.version", { version: health.version })}</span>
                 <span className="num">
-                  {health.environment === "local" ? "Locale" : health.environment}
+                  {health.environment === "local" ? t("overview.system.local") : health.environment}
                   {health.database.migration_current &&
                     ` · ${health.database.migration_current.slice(0, 7)}`}
                 </span>
@@ -301,69 +326,6 @@ function SystemCard({
             )}
           </dl>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// --- Avanzamento ------------------------------------------------------------------------------
-
-function RoadmapCard() {
-  const done = ROADMAP.filter((step) => step.phase < CURRENT_PHASE).length;
-  const progress = Math.round((done / ROADMAP.length) * 100);
-  const upcoming = ROADMAP.filter((step) => step.phase >= CURRENT_PHASE).slice(0, 3);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Avanzamento</CardTitle>
-        <CardDescription>
-          {done} fasi su {ROADMAP.length} completate
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div
-          role="progressbar"
-          aria-valuenow={progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Avanzamento del progetto"
-          className="h-2 overflow-hidden rounded-full bg-primary/15"
-        >
-          <div
-            className="h-full rounded-full bg-primary"
-            style={{ width: `${String(progress)}%` }}
-          />
-        </div>
-        <ol className="space-y-2.5">
-          {upcoming.map((step) => {
-            const current = step.phase === CURRENT_PHASE;
-            return (
-              <li key={step.phase} className="flex items-center gap-3 text-sm">
-                <span
-                  className={cn(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                    current
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {step.phase}
-                </span>
-                <span className={cn("flex-1", !current && "text-muted-foreground")}>
-                  {step.title}
-                </span>
-                {current && <Badge variant="secondary">In corso</Badge>}
-              </li>
-            );
-          })}
-          <li className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="flex size-6 items-center justify-center rounded-full bg-status-good/15 text-status-good">
-              <Check aria-hidden className="size-3.5" />
-            </span>
-            Fasi 0–{CURRENT_PHASE - 1} completate
-          </li>
-        </ol>
       </CardContent>
     </Card>
   );
