@@ -1,15 +1,17 @@
 import { LogOut, ShieldCheck, ShieldOff } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { i18n } from "@/i18n";
 import { formatDateTime } from "@/lib/format";
 
 import { useAuthSessions, useAuthStatus, useLogout } from "./queries";
 
 /** Riconoscibile nell'elenco: browser e sistema, senza dettagli superflui. */
 function device(agent: string | null): string {
-  if (!agent) return "Dispositivo sconosciuto";
+  if (!agent) return i18n.t("access.unknownDevice");
   const browser = agent.includes("Edg/")
     ? "Edge"
     : agent.includes("Chrome/")
@@ -18,7 +20,7 @@ function device(agent: string | null): string {
         ? "Firefox"
         : agent.includes("Safari/")
           ? "Safari"
-          : "Browser";
+          : i18n.t("common.browser");
   const os = agent.includes("Android")
     ? "Android"
     : /iPhone|iPad/.test(agent)
@@ -30,10 +32,11 @@ function device(agent: string | null): string {
           : agent.includes("Linux")
             ? "Linux"
             : "";
-  return os ? `${browser} su ${os}` : browser;
+  return os ? i18n.t("access.deviceOn", { browser, os }) : browser;
 }
 
 export function AccessCard() {
+  const { t } = useTranslation();
   const status = useAuthStatus();
   const enabled = status.data?.enabled === true;
   const sessions = useAuthSessions(enabled && status.data?.authenticated === true);
@@ -43,8 +46,8 @@ export function AccessCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Accesso</CardTitle>
-        <CardDescription>Password e codice dell'app di autenticazione</CardDescription>
+        <CardTitle>{t("access.title")}</CardTitle>
+        <CardDescription>{t("access.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {!status.data ? (
@@ -53,32 +56,30 @@ export function AccessCard() {
           <div className="flex gap-2.5">
             <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p className="text-muted-foreground">
-              Spento: la dashboard è raggiungibile solo da questo computer. Sul server di casa si
-              attiva con{" "}
-              <code className="rounded bg-muted px-1 text-xs whitespace-nowrap">
-                AUTH_ENABLED=true
-              </code>{" "}
-              dopo{" "}
-              <code className="rounded bg-muted px-1 text-xs whitespace-nowrap">
-                python -m app.auth.cli setup
-              </code>
-              .
+              <Trans
+                i18nKey="access.off"
+                components={{
+                  code: <code className="rounded bg-muted px-1 text-xs whitespace-nowrap" />,
+                }}
+              />
             </p>
           </div>
         ) : (
           <>
             <div className="flex gap-2.5">
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-status-good" />
-              <p>Attivo: serve password + codice su ogni dispositivo nuovo.</p>
+              <p>{t("access.on")}</p>
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Sessioni aperte</p>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                {t("access.sessions")}
+              </p>
               <ul className="divide-y rounded-lg border">
                 {(sessions.data ?? []).map((s) => (
                   <li key={s.created_at} className="px-3 py-2">
                     <span className="font-medium">{device(s.user_agent)}</span>
                     <span className="block text-xs text-muted-foreground">
-                      ultimo uso {formatDateTime(s.last_seen_at)}
+                      {t("access.lastUsed", { when: formatDateTime(s.last_seen_at) })}
                     </span>
                   </li>
                 ))}
@@ -93,7 +94,7 @@ export function AccessCard() {
                   logout.mutate();
                 }}
               >
-                <LogOut aria-hidden /> Esci
+                <LogOut aria-hidden /> {t("access.logout")}
               </Button>
               <Button
                 size="sm"
@@ -103,7 +104,7 @@ export function AccessCard() {
                   logoutAll.mutate();
                 }}
               >
-                Esci da tutti i dispositivi
+                {t("access.logoutAll")}
               </Button>
             </div>
           </>

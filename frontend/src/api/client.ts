@@ -6,6 +6,8 @@
 
 import createClient from "openapi-fetch";
 
+import { i18n } from "@/i18n";
+
 import type { components, paths } from "./schema";
 
 export type Schemas = components["schemas"];
@@ -71,12 +73,12 @@ export async function unwrap<T>(
   try {
     result = await request;
   } catch {
-    throw new ApiError(0, "Backend non raggiungibile");
+    throw new ApiError(0, i18n.t("errors.backendUnreachable"));
   }
   const { data, error, response } = result;
   if (data !== undefined && response.ok) return data;
   throw new ApiError(
     response.status,
-    detailOf(error) ?? `Errore ${String(response.status)} dal backend`,
+    detailOf(error) ?? i18n.t("errors.backendStatus", { status: response.status }),
   );
 }

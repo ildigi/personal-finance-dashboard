@@ -12,169 +12,68 @@ import {
   Workflow,
 } from "lucide-react";
 
+import { i18n } from "@/i18n";
+
+/** Chiave della voce: etichetta, etichetta breve e descrizione stanno in `nav.items.<id>`. */
+export type NavId =
+  | "overview"
+  | "transactions"
+  | "expenses"
+  | "income"
+  | "investments"
+  | "netWorth"
+  | "budgets"
+  | "recurring"
+  | "rules"
+  | "settings";
+
 export interface NavItem {
+  id: NavId;
   path: string;
-  label: string;
-  /** Etichetta breve per la barra in basso su telefono. */
-  shortLabel?: string;
   icon: LucideIcon;
-  description: string;
-  /** Fase della roadmap in cui la pagina diventa operativa. */
-  phase: number;
-  /** Cosa mostrerà la pagina (SPEC §14). */
-  planned: string[];
 }
 
 export interface NavGroup {
-  label: string | null;
+  id: "analysis" | "wealth" | "planning" | null;
   items: NavItem[];
 }
 
+export const navLabel = (item: NavItem): string => i18n.t(`nav.items.${item.id}.label`);
+/** Etichetta breve per la barra in basso su telefono. */
+export const navShortLabel = (item: NavItem): string => i18n.t(`nav.items.${item.id}.short`);
+export const navDescription = (item: NavItem): string => i18n.t(`nav.items.${item.id}.description`);
+
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: null,
+    id: null,
+    items: [{ id: "overview", path: "/", icon: LayoutDashboard }],
+  },
+  {
+    id: "analysis",
     items: [
-      {
-        path: "/",
-        label: "Panoramica",
-        shortLabel: "Home",
-        icon: LayoutDashboard,
-        description: "Quanto hai, quanto spendi, quanto rendi.",
-        phase: 9,
-        planned: [
-          "Patrimonio netto e andamento a 12 mesi",
-          "Spese del mese a confronto con il mese precedente",
-          "Entrate, tasso di risparmio, valore del portafoglio",
-          "Budget a rischio, prossimi addebiti, movimenti da classificare",
-        ],
-      },
+      { id: "transactions", path: "/movimenti", icon: ArrowLeftRight },
+      { id: "expenses", path: "/spese", icon: ChartPie },
+      { id: "income", path: "/entrate", icon: Wallet },
     ],
   },
   {
-    label: "Analisi",
+    id: "wealth",
     items: [
-      {
-        path: "/movimenti",
-        label: "Movimenti",
-        icon: ArrowLeftRight,
-        description: "Tutti i movimenti di conti e carte, in un unico elenco.",
-        phase: 4,
-        planned: [
-          "Tabella con ricerca, filtri salvabili e ordinamento",
-          "Modifica di categoria, tipo, tag e note",
-          "Dettaglio con dato originale e motivo della classificazione",
-          "Inserimento manuale (es. carta di credito)",
-        ],
-      },
-      {
-        path: "/spese",
-        label: "Spese",
-        icon: ChartPie,
-        description: "Dove vanno i soldi, per categoria e nel tempo.",
-        phase: 5,
-        planned: [
-          "Spese reali del periodo, separate da “Spostati e investiti”",
-          "Categorie e sottocategorie con drill-down fino ai movimenti",
-          "Mese corrente contro mese precedente, trend 3/6/12 mesi",
-          "Classifica dei merchant e abbonamenti",
-        ],
-      },
-      {
-        path: "/entrate",
-        label: "Entrate",
-        icon: Wallet,
-        description: "Quanto entra, da dove, e quanto ne resta.",
-        phase: 5,
-        planned: [
-          "Entrate per tipologia: stipendio, bonifici, rimborsi, cashback",
-          "Entrate contro spese mese per mese",
-          "Tasso di risparmio e medie a 3/6/12 mesi",
-        ],
-      },
+      { id: "investments", path: "/investimenti", icon: TrendingUp },
+      { id: "netWorth", path: "/patrimonio", icon: Landmark },
     ],
   },
   {
-    label: "Patrimonio",
+    id: "planning",
     items: [
-      {
-        path: "/investimenti",
-        label: "Investimenti",
-        shortLabel: "Invest.",
-        icon: TrendingUp,
-        description: "Portafoglio Trading 212, solo in lettura.",
-        phase: 7,
-        planned: [
-          "Valore attuale, capitale versato, P/L realizzato e non",
-          "Rendimento % e XIRR",
-          "Posizioni, ordini, dividendi, depositi e prelievi",
-        ],
-      },
-      {
-        path: "/patrimonio",
-        label: "Patrimonio netto",
-        shortLabel: "Patrimonio",
-        icon: Landmark,
-        description: "Conti e investimenti sommati, giorno per giorno.",
-        phase: 9,
-        planned: [
-          "Patrimonio attuale e variazione mensile e annuale",
-          "Andamento per conto",
-          "Includi o escludi singoli conti",
-        ],
-      },
-    ],
-  },
-  {
-    label: "Pianificazione",
-    items: [
-      {
-        path: "/budget",
-        label: "Budget",
-        icon: PiggyBank,
-        description: "Limiti mensili solo dove servono.",
-        phase: 6,
-        planned: [
-          "Speso contro budget con proiezione a fine mese",
-          "Avvisi all'80% e al 100%",
-          "Storico del rispetto dei budget",
-        ],
-      },
-      {
-        path: "/ricorrenze",
-        label: "Ricorrenze",
-        icon: Repeat,
-        description: "Abbonamenti e movimenti periodici, con i prossimi addebiti.",
-        phase: 6,
-        planned: [
-          "Abbonamenti, affitto e stipendio riconosciuti in automatico",
-          "Conferma, correggi o rifiuta le proposte",
-          "Prossimi addebiti e spesa ricorrente al mese",
-        ],
-      },
-      {
-        path: "/regole",
-        label: "Regole",
-        icon: Workflow,
-        description: "Come i movimenti vengono classificati in automatico.",
-        phase: 5,
-        planned: [
-          "Regole con priorità, condizioni e azioni",
-          "Anteprima sui movimenti esistenti prima di salvare",
-          "Regole imparate dalle tue correzioni",
-        ],
-      },
+      { id: "budgets", path: "/budget", icon: PiggyBank },
+      { id: "recurring", path: "/ricorrenze", icon: Repeat },
+      { id: "rules", path: "/regole", icon: Workflow },
     ],
   },
 ];
 
-export const SETTINGS_ITEM: NavItem = {
-  path: "/impostazioni",
-  label: "Impostazioni",
-  icon: Settings,
-  description: "Aspetto, privacy, categorie e connessioni.",
-  phase: 3,
-  planned: [],
-};
+export const SETTINGS_ITEM: NavItem = { id: "settings", path: "/impostazioni", icon: Settings };
 
 export const ALL_NAV_ITEMS: NavItem[] = [...NAV_GROUPS.flatMap((g) => g.items), SETTINGS_ITEM];
 

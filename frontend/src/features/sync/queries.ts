@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 import { queryKeys } from "@/features/system/queries";
 import { transactionKeys } from "@/features/transactions/queries";
 
@@ -85,20 +86,22 @@ export function useSetupMockData() {
 /** "12 nuovi, 3 aggiornati" a partire dal riepilogo di una sync. */
 export function describeSummary(summary: SyncSummary): string {
   if (summary.status === "error") {
-    return summary.jobs.find((j) => j.error)?.error ?? "Sincronizzazione non riuscita";
+    return summary.jobs.find((j) => j.error)?.error ?? i18n.t("connections.summary.failed");
   }
   const tx = summary.jobs.find((j) => j.job === "transactions");
   const orders = summary.jobs.find((j) => j.job === "orders");
   if (orders) {
     return orders.created === 0
-      ? "Portafoglio aggiornato"
-      : `Portafoglio aggiornato, ${String(orders.created)} ordini nuovi`;
+      ? i18n.t("connections.summary.portfolioUpdated")
+      : i18n.t("connections.summary.portfolioOrders", { count: orders.created });
   }
   const created = summary.jobs.reduce((n, j) => n + j.created, 0);
   if (tx) {
     return tx.created === 0 && tx.updated === 0
-      ? "Nessun movimento nuovo"
-      : `${String(tx.created)} movimenti nuovi, ${String(tx.updated)} aggiornati`;
+      ? i18n.t("connections.summary.noNewTransactions")
+      : i18n.t("connections.summary.transactions", { count: tx.created, updated: tx.updated });
   }
-  return created === 0 ? "Già aggiornato" : `${String(created)} elementi nuovi`;
+  return created === 0
+    ? i18n.t("connections.summary.upToDate")
+    : i18n.t("connections.summary.items", { count: created });
 }

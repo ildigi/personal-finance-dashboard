@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import { useBudgets } from "@/features/budgets/queries";
 import { useRecurring } from "@/features/recurring/queries";
 
@@ -10,6 +12,7 @@ export interface NavBadge {
 
 /** Contatori accanto alle voci di menu: avvisi dei budget, ricorrenze da confermare. */
 export function useNavBadges(): Map<string, NavBadge> {
+  const { t } = useTranslation();
   const budgets = useBudgets();
   const recurring = useRecurring();
   const badges = new Map<string, NavBadge>();
@@ -17,7 +20,7 @@ export function useNavBadges(): Map<string, NavBadge> {
   if (alerts > 0) {
     badges.set("/budget", {
       count: alerts,
-      label: `${String(alerts)} budget oltre la soglia`,
+      label: t("nav.badges.budgetAlerts", { count: alerts }),
       tone: "alert",
     });
   }
@@ -25,7 +28,7 @@ export function useNavBadges(): Map<string, NavBadge> {
   if (suggested > 0) {
     badges.set("/ricorrenze", {
       count: suggested,
-      label: `${String(suggested)} ricorrenze da confermare`,
+      label: t("nav.badges.recurringSuggested", { count: suggested }),
       tone: "info",
     });
   }

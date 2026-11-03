@@ -1,11 +1,12 @@
 /**
- * Formattazione it-IT di importi, percentuali e date.
+ * Formattazione di importi, percentuali e date nella locale della lingua scelta (en-GB, it-IT).
  *
  * Gli importi arrivano dall'API come stringhe decimali ("-1234.56"): vengono
  * passati così a Intl.NumberFormat (ES2023), senza conversione a float.
  */
 
-export const LOCALE = "it-IT";
+import { currentLanguage, i18n, intlLocale } from "@/i18n";
+
 export const TIME_ZONE = "Europe/Rome";
 
 export type Decimalish = string | number;
@@ -13,10 +14,10 @@ export type Decimalish = string | number;
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
 function moneyFormatter(currency: string, signed: boolean, compact: boolean): Intl.NumberFormat {
-  const key = `${currency}|${String(signed)}|${String(compact)}`;
+  const key = `${intlLocale()}|${currency}|${String(signed)}|${String(compact)}`;
   let formatter = moneyFormatters.get(key);
   if (!formatter) {
-    formatter = new Intl.NumberFormat(LOCALE, {
+    formatter = new Intl.NumberFormat(intlLocale(), {
       style: "currency",
       currency,
       // In it-IT il CLDR non raggruppa sotto le 5 cifre ("1234,56 €"): la SPEC vuole "1.234,56 €".
@@ -57,7 +58,7 @@ export function formatPercent(
   ratio: number,
   { signed = false, digits = 1 }: { signed?: boolean; digits?: number } = {},
 ): string {
-  return new Intl.NumberFormat(LOCALE, {
+  return new Intl.NumberFormat(intlLocale(), {
     style: "percent",
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -66,7 +67,15 @@ export function formatPercent(
 }
 
 export function formatCount(value: number): string {
-  return new Intl.NumberFormat(LOCALE, { useGrouping: "always" }).format(value);
+  return new Intl.NumberFormat(intlLocale(), { useGrouping: "always" }).format(value);
+}
+
+/** Quantità di titoli, fino a 6 decimali: `1234.5` → `1.234,5`. */
+export function formatQuantity(value: Decimalish): string {
+  return new Intl.NumberFormat(intlLocale(), {
+    maximumFractionDigits: 6,
+    useGrouping: "always",
+  }).format(Number(value));
 }
 
 /** Data contabile ("2026-09-10") → "10 set 2026". Nessuno slittamento di fuso. */
@@ -77,14 +86,14 @@ export function formatDate(isoDate: string, style: "short" | "medium" | "long" =
       : style === "long"
         ? { weekday: "long", day: "numeric", month: "long", year: "numeric" }
         : { day: "numeric", month: "short", year: "numeric" };
-  return new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat(intlLocale(), { ...options, timeZone: "UTC" }).format(
     new Date(`${isoDate}T12:00:00Z`),
   );
 }
 
 /** Timestamp UTC dell'API → data e ora a Roma: "5 ott 2026, 14:03". */
 export function formatDateTime(isoTimestamp: string): string {
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(intlLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -96,10 +105,10 @@ export function formatDateTime(isoTimestamp: string): string {
 
 /** "3 minuti fa", "ieri", "tra 2 giorni". */
 export function formatRelative(target: Date, now: Date = new Date()): string {
-  const rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(intlLocale(), { numeric: "auto" });
   const seconds = Math.round((target.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(seconds);
-  if (abs < 45) return "adesso";
+  if (abs < 45) return i18n.t("dates.now");
   if (abs < 3600) return rtf.format(Math.round(seconds / 60), "minute");
   if (abs < 86_400) return rtf.format(Math.round(seconds / 3600), "hour");
   return rtf.format(Math.round(seconds / 86_400), "day");
@@ -114,18 +123,25 @@ export function maskIban(iban: string): string {
 
 /**
  * Importo scritto dall'utente → stringa decimale per l'API, o null se non valido.
- * Accetta "12,50", "12.50", "1.234,56", "1234", "€ 12,5". Sempre positivo: il segno
- * lo decide il tipo (uscita/entrata) scelto nel form.
+ * Accetta "12,50", "12.50", "1.234,56", "1,234.56", "1234", "€ 12,5". Le migliaia senza
+ * decimali seguono la lingua: "1.234" in italiano, "1,234" in inglese. Sempre positivo:
+ * il segno lo decide il tipo (uscita/entrata) scelto nel form.
  */
 export function parseAmountInput(input: string): string | null {
   let value = input.replace(/[\s€]/g, "");
   if (value === "") return null;
+  const grouping = currentLanguage() === "it" ? "." : ",";
   if (value.includes(",") && value.includes(".")) {
-    value = value.replace(/\./g, "").replace(",", ".");
+    // Il separatore che viene per ultimo è quello dei decimali.
+    const decimal = value.lastIndexOf(",") > value.lastIndexOf(".") ? "," : ".";
+    value = value
+      .split(decimal === "," ? "." : ",")
+      .join("")
+      .replace(decimal, ".");
+  } else if (/^\d{1,3}([.,]\d{3})+$/.test(value) && value.includes(grouping)) {
+    value = value.split(grouping).join(""); // "1.234" = milleduecentotrentaquattro
   } else if (value.includes(",")) {
     value = value.replace(",", ".");
-  } else if (/^\d{1,3}(\.\d{3})+$/.test(value)) {
-    value = value.replace(/\./g, ""); // "1.234" = milleduecentotrentaquattro
   }
   if (!/^\d{1,12}(\.\d{1,2})?$/.test(value)) return null;
   const [int = "0", dec = ""] = value.split(".");
@@ -135,12 +151,12 @@ export function parseAmountInput(input: string): string | null {
 
 /** Intestazione di un gruppo di movimenti: "Oggi", "Ieri", "lunedì 14 settembre". */
 export function formatDayHeading(isoDate: string, today: string): string {
-  if (isoDate === today) return "Oggi";
+  if (isoDate === today) return i18n.t("dates.today");
   const yesterday = new Date(`${today}T12:00:00Z`);
   yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  if (isoDate === yesterday.toISOString().slice(0, 10)) return "Ieri";
+  if (isoDate === yesterday.toISOString().slice(0, 10)) return i18n.t("dates.yesterday");
   const sameYear = isoDate.slice(0, 4) === today.slice(0, 4);
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(intlLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -164,19 +180,19 @@ export function formatMonth(month: string, style: "short" | "medium" | "long" = 
       : style === "medium"
         ? { month: "short", year: "numeric" }
         : { month: "long", year: "numeric" };
-  return new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: "UTC" })
+  return new Intl.DateTimeFormat(intlLocale(), { ...options, timeZone: "UTC" })
     .format(date)
     .replace(".", "");
 }
 
 /** Data breve per scadenze: "Oggi", "Domani", "sab 10 ott" (con l'anno se non è quello di oggi). */
 export function formatDueDay(isoDate: string, today: string): string {
-  if (isoDate === today) return "Oggi";
+  if (isoDate === today) return i18n.t("dates.today");
   const tomorrow = new Date(`${today}T12:00:00Z`);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  if (isoDate === tomorrow.toISOString().slice(0, 10)) return "Domani";
+  if (isoDate === tomorrow.toISOString().slice(0, 10)) return i18n.t("dates.tomorrow");
   const sameYear = isoDate.slice(0, 4) === today.slice(0, 4);
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(intlLocale(), {
     weekday: "short",
     day: "numeric",
     month: "short",

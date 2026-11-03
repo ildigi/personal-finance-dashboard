@@ -960,6 +960,109 @@ Vedi **Fase 0** nel §16; il dettaglio operativo viene presentato in chat e rich
 
 ---
 
+## 18. Lingue dell'interfaccia (i18n)
+
+> Approvata il 2026-11-03. Decisione: [ADR 0006](decisions/0006-i18n.md).
+
+**Obiettivo.** Interfaccia in inglese e italiano. Chi apre la demo la usa tutta in inglese; l'installazione con i dati veri, in italiano, resta identica a prima nell'aspetto e nei dati.
+
+**Inventario di partenza (2026-11-03).** Conteggi approssimati (estratti dal sorgente con uno script, ±5%).
+
+| Origine | Testi | Note |
+|---|---|---|
+| Frontend: navigazione, layout, componenti comuni | 107 | di cui ~45 nella pagina "in arrivo" non più raggiungibile |
+| Frontend: pagine | 324 | Panoramica 44, Investimenti 69, Ricorrenze 35, Spese 32, Budget 29, … |
+| Frontend: componenti di dominio | 529 | editor, filtri, card, form (Regole 54, Categorie 51, dettaglio movimento 32, …) |
+| Frontend: grafici | 49 | assi, legende, tooltip, tabelle dei dati |
+| Frontend: tabelle ed elenchi | 49 | movimenti, posizioni, attività, merchant |
+| Frontend: etichette, enum, periodi, date relative | 70 | tipi di movimento, frequenze, periodi, "Oggi/Ieri" |
+| Frontend: messaggi di esito ed errore | 21 | non ci sono toast: esiti di sincronizzazione e salvataggio |
+| Frontend: /privacy e /termini | 42 | |
+| **Totale frontend** | **~1.190** (950 diversi) | 118 con parametri, 18 plurali a mano |
+| Backend: errori delle API | 36 | `HTTPException` |
+| Backend: errori interni che arrivano all'utente | ~75 | validazione, servizi, connettori (finiscono nei log di sync o negli errori) |
+| Backend: "perché" della classificazione | ~25 | `classification_note` (regola, merchant, MCC, trasferimento, viaggio, rimborso, …) |
+| Backend: nomi generati e voci sintetiche | 5 | "Trasferimento di denaro", "Costo del cambio …", "Differenza di cambio a favore", "Da classificare", "Senza sottocategoria" |
+| Backend: riquadro "Da sistemare" | 0 | gli 8 avvisi sono composti dal frontend (già contati sopra) |
+| Seed | 18 categorie, 16 sottocategorie, 9 tipologie di entrata, 26 regole di sistema, 74 merchant | i merchant sono nomi propri (non si traducono); le regole hanno nomi e parole chiave in italiano |
+| Dati demo | ~60 testi | descrizioni dei movimenti (causali bancarie italiane), controparti, nomi dei conti e delle sorgenti "(prova)" |
+| Fuori perimetro | 48 CLI, ~25 log, 80 descrizioni OpenAPI | non sono interfaccia; restano in italiano |
+
+**Glossario obbligatorio** (si cambia solo con l'approvazione del proprietario):
+
+| Italiano | English |
+|---|---|
+| Panoramica | Overview |
+| Movimenti | Transactions |
+| Spese | Expenses |
+| Entrate | Income |
+| Patrimonio netto | Net worth |
+| Investimenti | Investments |
+| Ricorrenze | Recurring payments |
+| Budget | Budgets |
+| Da sistemare | Needs attention |
+| Trasferimento interno / giroconto | Internal transfer |
+| Spese divise | Split expenses |
+| In sospeso | Pending |
+| Contabilizzato | Booked |
+| Saldo disponibile / contabile | Available / Booked balance |
+| Consenso (bancario) | Bank consent |
+| Rendimento sul capitale versato | Return on net deposits |
+| Modalità privacy | Privacy mode |
+| Uscite (categoria: discoteche, cinema, sale giochi) | Going out |
+
+Un test controlla che le voci del glossario presenti nei file di traduzione usino proprio questi termini.
+
+**Vincoli trasversali.** Gli URL non cambiano (`/impostazioni/ritorno-banca` ed `EB_REDIRECT_URL` sono registrati in Enable Banking). I dati dell'utente non si traducono mai. Durante lo sviluppo nessuna sincronizzazione con le banche vere: si usa solo la demo. Nessun segreto nel repository; commit piccoli, uno o più per fase; nessun push senza approvazione. Alla fine di ogni fase: test verdi, nota qui sotto, stop e approvazione.
+
+### Fase I1 — Infrastruttura e selettore di lingua
+- **Output:** i18next + react-i18next; `src/i18n/` con configurazione, tipi (`CustomTypeOptions`) e `locales/it.ts`, `locales/en.ts`; lingua da `fd-language` → lingua del browser → inglese; `lib/format.ts` con locale dinamica (`en-GB` / `it-IT`), formatter in cache per locale; `<html lang>` e titolo della scheda aggiornati; selettore "Lingua" nelle Impostazioni (pannello Aspetto). Pagina di prova: **Impostazioni**.
+- **Controlli:** test di parità delle chiavi (stesse chiavi, nessun valore vuoto, stessi segnaposto); regola `no-literal-string` attiva solo sui file già tradotti, con le eccezioni elencate; test della pagina Impostazioni in entrambe le lingue; test di `format.ts` in entrambe le locale; test della scelta della lingua (salvata, browser, ripiego).
+- **Completamento:** in italiano nulla cambia (stessi test di oggi verdi, screenshot uguali); la pagina Impostazioni è tutta in inglese con `en`.
+
+#### Note di implementazione (Fase I1, 2026-11-03)
+- **Librerie:** i18next 26, react-i18next 17, eslint-plugin-i18next 6 (funziona con ESLint 10). Un solo namespace (`translation`) con chiavi annidate per area: `common`, `nav`, `settings`, `connections`, `banks`, `categories`, `merchants`, ….
+- **Tipi:** `src/i18n/locales/it.ts` è il riferimento (`as const`); `en.ts` lo rispetta con `satisfies Messages`. In `i18next.d.ts` sono attivi `strictKeyChecks` e `strictInterpolationChecks`: chiave sbagliata o parametro dimenticato non compilano.
+- **Lingua:** preferenza `fd-language` (`auto` | `en` | `it`) in `lib/preferences.ts`; nuova scheda **Lingua** in Impostazioni (Automatica, English, Italiano; nomi delle lingue sempre nella lingua stessa) con l'indicazione della lingua del browser. Al cambio di lingua l'app si rimonta (`LanguageBoundary` in `providers.tsx`), così anche gli importi formattati fuori da `t()` cambiano; la cache delle query resta.
+- **Formati:** `lib/format.ts` usa la locale della lingua (`en-GB` / `it-IT`), anche per "Oggi/Ieri/Domani/adesso"; nuovo `formatQuantity` al posto dei due formattatori `it-IT` delle quantità di titoli. `parseAmountInput` capisce sia "1.234,56" sia "1,234.56"; le migliaia senza decimali seguono la lingua ("1.234" in italiano, "1,234" in inglese). I nomi dei paesi nel collegamento di una banca vengono da `Intl.DisplayNames`.
+- **Tradotti:** pagina Impostazioni con tutte le sue schede (Aspetto, Lingua, Privacy, Accesso, Connessioni con banche e Trading 212, Categorie, Merchant, Tipologie di entrata), più la shell (barra laterale, barra in alto, menu su telefono, periodo, stato del backend, titolo della scheda) e i messaggi d'errore generici del client. Le voci del menu hanno un `id` e prendono etichetta, etichetta breve e descrizione da `nav.items.<id>`.
+- **Anticipato dalla fase I2:** tolte la pagina "in arrivo" (`PlannedPage`) e gli elenchi `planned`, irraggiungibili; il riquadro "Avanzamento" resta fino alla fase I2.
+- **Plurali:** dove prima il numero 1 dava frasi sbagliate ("1 ricorrenze da confermare", "scade tra 1 giorni", "1 movimenti nuovi") ora c'è il singolare; per tutti gli altri numeri l'italiano è identico.
+- **Lint:** `i18next/no-literal-string` in modalità `all` sui soli file tradotti (`I18N_FILES` in `eslint.config.js`); eccezioni motivate nella configurazione (classi CSS, `new Error` per chi sviluppa, percorsi dell'API, attributi tecnici, identificatori senza spazi, simboli tipografici, la direttiva `"use client"`).
+- **Test:** 131 (erano 104). Nuovi: parità delle chiavi, traduzioni non vuote, stessi segnaposto e tag, glossario; scelta della lingua; formati in `en-GB`; pagina Impostazioni in entrambe le lingue e cambio di lingua dal selettore. I test esistenti girano in italiano (`tests/setup.ts` sceglie `it`, perché jsdom ha un browser inglese).
+- **Prova a vista:** solo frontend (`pnpm dev --port 5180`, senza backend), cambio di lingua dalle Impostazioni verificato nel browser. Il backend non è stato avviato: `config/.env.example` punta al database `finance` su `127.0.0.1:5432`, lo stesso nome del database vero in locale. Per la verifica della demo (fasi I2–I4) serve un database separato, per esempio `finance_demo`.
+
+### Fase I2 — Tutto il frontend
+- **Output:** una pagina alla volta (Panoramica e "Da sistemare", Movimenti, Spese, Entrate, Patrimonio netto, Investimenti, Budget, Ricorrenze, Regole, Accesso, Ritorno dalla banca, /privacy, /termini, 404), con i componenti che usano; plurali con i18next; grafici (assi, tooltip, tabelle dei dati) con la locale. A fine fase `no-literal-string` vale per tutto `src/`.
+- **Si tolgono invece di tradurli:** la pagina "in arrivo" e gli elenchi `planned` della navigazione, ormai irraggiungibili (tutte le pagine sono pronte), e il riquadro "Avanzamento" della Panoramica con l'elenco delle fasi (`ROADMAP`, `CURRENT_PHASE`).
+- **Controlli:** i test esistenti restano verdi in italiano; i test delle pagine principali (Panoramica, Movimenti, Spese, Entrate, Investimenti, Patrimonio, Budget, Ricorrenze, Regole, Impostazioni) girano in entrambe le lingue.
+- **Completamento:** con `en` nessun testo fisso italiano nel frontend; restano in italiano solo i messaggi che arrivano dal backend (fase I3) e i dati.
+
+### Fase I3 — Backend: codici al posto delle frasi
+- **Output:**
+  - errori API `{"detail": {"code", "params"}}` ed errori di validazione con `PydanticCustomError` (codice in `type`, parametri in `ctx`); il frontend traduce, e mostra il testo grezzo per i codici sconosciuti;
+  - migrazione: `transactions.classification_reason` (testo) + `classification_params` (JSONB); `sync_logs.error_code` + `error_params`; le colonne di testo esistenti restano per lo storico; dopo la prima riclassificazione `classification_note` non serve più e si toglie in una migrazione successiva;
+  - `description_code` nelle risposte dei movimenti, ricavato dai dati esistenti (`fx-adjust-*`, `MONEY_TRANSFER`): le descrizioni salvate non cambiano, quindi impronte anti-doppioni e regola `fx_conversion_cost` restano valide;
+  - analisi: codice al posto di "Da classificare" e "Senza sottocategoria".
+- **Controlli:** test del backend aggiornati ai codici; un test verifica che ogni codice emesso dal backend abbia una traduzione in entrambe le lingue (elenco dei codici esportato nello schema OpenAPI); migrazione avanti e indietro su database di prova; con dati salvati prima della migrazione il dettaglio del movimento e i log di sync mostrano ancora il testo di prima.
+- **Completamento:** con `en` il "perché", gli errori e i log di sync sono in inglese per tutti i dati nuovi; nessuna riga esistente viene riscritta dalla migrazione.
+
+### Fase I4 — Seed e demo in inglese
+- **Output:** `database/seeds/en/` (categorie, sottocategorie, tipologie di entrata, regole di sistema con nomi inglesi; stessi `code`); le regole inglesi riconoscono sia le causali italiane sia quelle inglesi; `SEED_LOCALE` (`en` predefinito | `it`) letto solo su database vuoto e salvato nel database (un database già popolato senza lingua salvata vale `it` per sempre); scenario di prova in inglese (nomi dei conti, sorgenti "(demo)", descrizioni e controparti inventate in inglese, negozi di catene internazionali, stessi importi e date dello scenario italiano; banche e broker invariati).
+- **Controlli:** test del seed in entrambe le lingue (idempotente, stessi codici); test che un database già popolato non cambia con `SEED_LOCALE=en`; test di accuratezza della classificazione anche sullo scenario inglese (soglia 90%); controllo automatico "nessuna parola italiana" su tutte le pagine della demo in inglese, riquadro "Da sistemare" compreso (testo estratto dalle pagine con `scripts/screenshot.mjs`, confronto con un elenco di parole italiane, eccezioni per i nomi propri), con gli screenshot di ogni pagina.
+- **Completamento:** demo in inglese senza parole italiane; demo in italiano e installazione vera invariate.
+
+### Fase I5 — README
+- **Output:** screenshot rifatti con la demo in inglese; una riga sulla scelta della lingua (Impostazioni, lingua del browser, `SEED_LOCALE`).
+- **Completamento:** README coerente con l'app.
+
+### Decisioni sulle domande aperte (2026-11-03)
+- `SEED_LOCALE` predefinito **`en`**, per l'uso internazionale. L'installazione esistente non cambia: il suo database è già popolato, quindi vale `it`.
+- Il riquadro "Avanzamento" della Panoramica si toglie (fase I2).
+- Demo in inglese: negozi di catene internazionali al posto di quelli italiani (Esselunga, Conad, la Feltrinelli, …); restano Crédit Agricole Italia, Revolut e Trading 212, e la città è "Milan".
+
+---
+
 ## Fonti
 - Enable Banking – Accounts API: https://enablebanking.com/accounts-api/
 - Free & Indie Open Banking APIs 2026: https://www.openbankingtracker.com/guides/free-open-banking-apis

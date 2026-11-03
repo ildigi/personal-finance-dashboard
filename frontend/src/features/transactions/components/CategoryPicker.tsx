@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import type { Category } from "@/api/client";
 import { CategoryIcon } from "@/components/common/CategoryIcon";
 import {
@@ -39,9 +41,9 @@ export function CategoryPicker({
   categories,
   value,
   onChange,
-  noneLabel = "Nessuna categoria",
+  noneLabel,
   allowNone = true,
-  label = "Categoria",
+  label,
   className,
   id,
 }: {
@@ -54,6 +56,7 @@ export function CategoryPicker({
   className?: string;
   id?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Select
       value={encode(value)}
@@ -61,13 +64,17 @@ export function CategoryPicker({
         onChange(decode(v));
       }}
     >
-      <SelectTrigger id={id} aria-label={label} className={cn("w-full bg-card", className)}>
-        <SelectValue placeholder="Scegli una categoria" />
+      <SelectTrigger
+        id={id}
+        aria-label={label ?? t("categoryPicker.label")}
+        className={cn("w-full bg-card", className)}
+      >
+        <SelectValue placeholder={t("categoryPicker.placeholder")} />
       </SelectTrigger>
       <SelectContent className="max-h-80">
         {allowNone && (
           <>
-            <SelectItem value={NONE}>{noneLabel}</SelectItem>
+            <SelectItem value={NONE}>{noneLabel ?? t("categoryPicker.none")}</SelectItem>
             <SelectSeparator />
           </>
         )}

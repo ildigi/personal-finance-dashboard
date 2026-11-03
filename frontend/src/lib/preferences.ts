@@ -1,9 +1,17 @@
 /**
- * Preferenze dell'interfaccia salvate in localStorage: tema, modalità privacy,
+ * Preferenze dell'interfaccia salvate in localStorage: tema, modalità privacy, lingua,
  * periodo globale. Solo comodità locali: nessun dato finanziario finisce qui.
  */
 
 import { useSyncExternalStore } from "react";
+
+import { applyLanguage } from "@/i18n";
+import {
+  LANGUAGE_STORAGE_KEY,
+  parseLanguagePreference,
+  resolveLanguage,
+  type LanguagePreference,
+} from "@/i18n/languages";
 
 import { isPeriodPreset, type PeriodPreset } from "./period";
 
@@ -132,3 +140,19 @@ export const investmentScopeStore = createStore<InvestmentScope>(
 
 export const useInvestmentScope = (): [InvestmentScope, (value: InvestmentScope) => void] =>
   useStore(investmentScopeStore);
+
+// --- Lingua ---------------------------------------------------------------------------
+
+export const languageStore = createStore<LanguagePreference>(
+  LANGUAGE_STORAGE_KEY,
+  parseLanguagePreference,
+  (value) => value,
+  (preference) => {
+    applyLanguage(resolveLanguage(preference));
+  },
+);
+
+export const useLanguagePreference = (): [
+  LanguagePreference,
+  (value: LanguagePreference) => void,
+] => useStore(languageStore);

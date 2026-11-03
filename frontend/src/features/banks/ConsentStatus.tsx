@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import { Button } from "@/components/ui/button";
 import type { Source } from "@/features/sync/queries";
 import { formatDate } from "@/lib/format";
@@ -10,6 +12,7 @@ import { CONSENT_WARNING_DAYS, consentDaysLeft, useAuthorizeBank } from "./queri
  * «Rinnova consenso», che riporta all'app della banca per confermare di nuovo.
  */
 export function ConsentStatus({ source }: { source: Source }) {
+  const { t } = useTranslation();
   const authorize = useAuthorizeBank();
   if (source.provider !== "enablebanking") return null;
   const expires = source.consent_expires_at;
@@ -21,12 +24,12 @@ export function ConsentStatus({ source }: { source: Source }) {
     <>
       <span className={cn(warn && "font-medium text-status-warning")}>
         {expired
-          ? "Consenso scaduto: rinnovalo per leggere i movimenti nuovi"
+          ? t("banks.consent.expired")
           : expires
-            ? `consenso fino al ${formatDate(expires.slice(0, 10))}${
-                warn ? ` · scade tra ${String(days)} giorni` : ""
+            ? `${t("banks.consent.until", { date: formatDate(expires.slice(0, 10)) })}${
+                warn && days !== null ? ` · ${t("banks.consent.expiresIn", { count: days })}` : ""
               }`
-            : "consenso da autorizzare"}
+            : t("banks.consent.toAuthorize")}
       </span>
       {warn && (
         <Button
@@ -38,7 +41,7 @@ export function ConsentStatus({ source }: { source: Source }) {
             authorize.mutate({ source_id: source.id });
           }}
         >
-          {authorize.isPending ? "Apertura della banca…" : "Rinnova consenso"}
+          {authorize.isPending ? t("banks.consent.opening") : t("banks.consent.renew")}
         </Button>
       )}
       {authorize.isError && <span className="text-destructive">{authorize.error.message}</span>}

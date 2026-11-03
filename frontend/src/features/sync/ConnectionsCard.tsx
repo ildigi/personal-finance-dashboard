@@ -1,5 +1,6 @@
 import { Database, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 import { StatusIndicator, type Status } from "@/components/common/StatusIndicator";
 import { Button } from "@/components/ui/button";
@@ -22,25 +23,19 @@ import {
   type SyncSummary,
 } from "./queries";
 
-const STATUS: Record<Source["status"], { status: Status; label: string }> = {
-  active: { status: "good", label: "Attiva" },
-  expired: { status: "warning", label: "Consenso scaduto" },
-  error: { status: "critical", label: "Errore" },
-  disabled: { status: "unknown", label: "Disattivata" },
-};
-
-const PROVIDER: Record<Source["provider"], string> = {
-  mock: "Dati di prova",
-  manual: "Inserimento manuale",
-  enablebanking: "Open Banking",
-  trading212: "API ufficiale",
+/** Etichette in `connections.status.<stato>`. */
+const STATUS: Record<Source["status"], Status> = {
+  active: "good",
+  expired: "warning",
+  error: "critical",
+  disabled: "unknown",
 };
 
 function SourceRow({ source }: { source: Source }) {
+  const { t } = useTranslation();
   const sync = useSyncSource();
   const [result, setResult] = useState<SyncSummary | null>(null);
   const canSync = source.provider !== "manual" && source.status !== "disabled";
-  const { status, label } = STATUS[source.status];
 
   return (
     <li className="space-y-2 py-3 first:pt-0 last:pb-0">
@@ -51,10 +46,10 @@ function SourceRow({ source }: { source: Source }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{source.display_name}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {PROVIDER[source.provider]} ·{" "}
+            {t(`connections.provider.${source.provider}`)} ·{" "}
             {source.last_sync_at
-              ? `aggiornata ${formatRelative(new Date(source.last_sync_at))}`
-              : "mai sincronizzata"}
+              ? t("connections.updated", { when: formatRelative(new Date(source.last_sync_at)) })
+              : t("connections.neverSynced")}
           </p>
         </div>
         {canSync && (
@@ -66,15 +61,19 @@ function SourceRow({ source }: { source: Source }) {
               setResult(null);
               sync.mutate(source.id, { onSuccess: setResult });
             }}
-            aria-label={`Sincronizza ${source.display_name}`}
+            aria-label={t("connections.syncSource", { name: source.display_name })}
           >
             <RefreshCw aria-hidden className={cn(sync.isPending && "animate-spin")} />
-            <span className="hidden sm:inline">Sincronizza</span>
+            <span className="hidden sm:inline">{t("connections.sync")}</span>
           </Button>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-12 text-xs text-muted-foreground">
-        <StatusIndicator status={status} label={label} className="text-xs" />
+        <StatusIndicator
+          status={STATUS[source.status]}
+          label={t(`connections.status.${source.status}`)}
+          className="text-xs"
+        />
         <ConsentStatus source={source} />
         <DisconnectBank source={source} />
         {result && (
@@ -90,18 +89,16 @@ function SourceRow({ source }: { source: Source }) {
 
 /** Collegamento del conto Trading 212: la chiave sta nel file dei segreti, mai nel browser. */
 function ConnectTrading212() {
+  const { t } = useTranslation();
   const status = useTrading212Status();
   const connect = useConnectTrading212();
   if (!status.data) return null;
   return (
     <div className="rounded-xl border border-dashed p-4 text-sm">
-      <p className="font-medium">Trading 212</p>
+      <p className="font-medium">{t("connections.trading212.title")}</p>
       {status.data.credentials_found ? (
         <>
-          <p className="mt-1 text-muted-foreground">
-            Chiave API trovata nel file dei segreti. Il collegamento è in sola lettura: la dashboard
-            legge portafoglio, ordini, dividendi e versamenti, senza poter operare.
-          </p>
+          <p className="mt-1 text-muted-foreground">{t("connections.trading212.found")}</p>
           <Button
             className="mt-3"
             size="sm"
@@ -110,7 +107,9 @@ function ConnectTrading212() {
               connect.mutate();
             }}
           >
-            {connect.isPending ? "Collegamento…" : "Collega Trading 212"}
+            {connect.isPending
+              ? t("connections.trading212.connecting")
+              : t("connections.trading212.connect")}
           </Button>
           {connect.data && (
             <p role="status" className="mt-2 text-muted-foreground">
@@ -121,9 +120,10 @@ function ConnectTrading212() {
         </>
       ) : (
         <p className="mt-1 text-muted-foreground">
-          Crea una chiave API di sola lettura nell'app Trading 212 e salvala nel file{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">secrets\trading212.env</code>{" "}
-          dentro la cartella dei dati (vedi la guida nella specifica, §9).
+          <Trans
+            i18nKey="connections.trading212.howTo"
+            components={{ code: <code className="rounded bg-muted px-1 py-0.5 text-xs" /> }}
+          />
         </p>
       )}
     </div>
@@ -132,6 +132,7 @@ function ConnectTrading212() {
 
 /** Connessioni: sorgenti presenti nel database e come collegarne di nuove. */
 export function ConnectionsCard() {
+  const { t } = useTranslation();
   const { data: sources, isPending, isError } = useSources();
   const setup = useSetupMockData();
   const hasMock = sources?.some((s) => s.provider === "mock") ?? false;
@@ -140,8 +141,8 @@ export function ConnectionsCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Connessioni</CardTitle>
-        <CardDescription>Banche e broker, sempre in sola lettura</CardDescription>
+        <CardTitle>{t("connections.title")}</CardTitle>
+        <CardDescription>{t("connections.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {isPending ? (
@@ -150,7 +151,7 @@ export function ConnectionsCard() {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : isError ? (
-          <p className="text-sm text-muted-foreground">Il backend non risponde.</p>
+          <p className="text-sm text-muted-foreground">{t("common.backendNoAnswer")}</p>
         ) : sources.length > 0 ? (
           <ul className="divide-y">
             {sources.map((source) => (
@@ -165,11 +166,8 @@ export function ConnectionsCard() {
 
         {!isPending && !isError && !hasMock && (
           <div className="rounded-xl border border-dashed p-4 text-sm">
-            <p className="font-medium">Dati di prova</p>
-            <p className="mt-1 text-muted-foreground">
-              15 mesi di movimenti verosimili su conti finti, per provare la dashboard prima di
-              collegare i conti veri. Si possono rimuovere in qualsiasi momento.
-            </p>
+            <p className="font-medium">{t("connections.mock.title")}</p>
+            <p className="mt-1 text-muted-foreground">{t("connections.mock.description")}</p>
             <Button
               className="mt-3"
               size="sm"
@@ -178,7 +176,7 @@ export function ConnectionsCard() {
                 setup.mutate();
               }}
             >
-              {setup.isPending ? "Caricamento…" : "Carica i dati di prova"}
+              {setup.isPending ? t("connections.mock.loading") : t("connections.mock.load")}
             </Button>
             {setup.isError && <p className="mt-2 text-destructive">{setup.error.message}</p>}
           </div>

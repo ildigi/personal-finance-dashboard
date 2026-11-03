@@ -1,23 +1,26 @@
+import { useTranslation } from "react-i18next";
+
 import { StatusDot, type Status } from "@/components/common/StatusIndicator";
 import { useHealth } from "@/features/system/queries";
 
 /** Riquadro compatto in fondo alla sidebar: il backend risponde? */
 export function BackendStatus() {
+  const { t } = useTranslation();
   const { data, isError } = useHealth();
 
   let status: Status = "pending";
-  let label = "Connessione…";
+  let label: string = t("backendStatus.connecting");
   if (isError) {
     status = "critical";
-    label = "Backend non raggiungibile";
+    label = t("backendStatus.unreachable");
   } else if (data) {
     status = data.status === "ok" ? "good" : data.status === "degraded" ? "warning" : "critical";
     label =
       data.status === "ok"
-        ? "Backend connesso"
+        ? t("backendStatus.connected")
         : data.status === "degraded"
-          ? "Migrazioni da applicare"
-          : "Database non raggiungibile";
+          ? t("backendStatus.migrationsPending")
+          : t("backendStatus.databaseUnreachable");
   }
 
   return (

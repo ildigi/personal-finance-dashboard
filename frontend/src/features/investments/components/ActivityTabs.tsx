@@ -2,7 +2,7 @@ import { Link2 } from "lucide-react";
 import { useState } from "react";
 
 import { Money } from "@/components/common/Money";
-import { formatCount, formatDate } from "@/lib/format";
+import { formatCount, formatDate, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { InvestmentActivity } from "../queries";
@@ -16,7 +16,6 @@ const FLOW_LABELS: Record<string, string> = {
   fee: "Commissione",
 };
 const PAGE = 15;
-const QTY = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 6, useGrouping: "always" });
 
 function day(iso: string): string {
   return formatDate(iso.slice(0, 10));
@@ -73,8 +72,8 @@ export function ActivityTabs({ activity }: { activity: InvestmentActivity }) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{o.name ?? o.ticker}</span>
                 <span className="text-xs text-muted-foreground">
-                  {day(o.executed_at)} ·{" "}
-                  <span data-sensitive>{QTY.format(Number(o.quantity))}</span> quote
+                  {day(o.executed_at)} · <span data-sensitive>{formatQuantity(o.quantity)}</span>{" "}
+                  quote
                   {o.fees_eur && Number(o.fees_eur) > 0 && (
                     <>
                       {" "}

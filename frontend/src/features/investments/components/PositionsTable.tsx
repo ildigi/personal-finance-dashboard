@@ -3,14 +3,12 @@ import { useState } from "react";
 
 import { Money } from "@/components/common/Money";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { formatMoney, formatPercent } from "@/lib/format";
+import { formatMoney, formatPercent, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { InvestmentPosition } from "../queries";
 
 type SortKey = "weight" | "pl";
-
-const QTY = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 6, useGrouping: "always" });
 
 function priceText(value: string, currency: string): string {
   return formatMoney(value, currency);
@@ -117,7 +115,7 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
                 <WeightBar pct={p.weight_pct} />
               </div>
               <p className="text-xs text-muted-foreground">
-                <span data-sensitive>{QTY.format(Number(p.quantity))}</span> quote · medio{" "}
+                <span data-sensitive>{formatQuantity(p.quantity)}</span> quote · medio{" "}
                 <span data-sensitive>{priceText(p.avg_price, p.instrument_currency)}</span> · ora{" "}
                 {priceText(p.current_price, p.instrument_currency)}
               </p>
@@ -164,7 +162,7 @@ export function PositionsTable({ positions }: { positions: InvestmentPosition[] 
                 <Name position={p} />
               </th>
               <td data-sensitive className="num py-2.5 text-right">
-                {QTY.format(Number(p.quantity))}
+                {formatQuantity(p.quantity)}
               </td>
               <td data-sensitive className="num py-2.5 text-right">
                 {priceText(p.avg_price, p.instrument_currency)}

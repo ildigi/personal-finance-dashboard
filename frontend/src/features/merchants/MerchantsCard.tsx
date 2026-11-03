@@ -1,5 +1,6 @@
 import { Check, Merge, Pencil, Search, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { InlineNameInput } from "@/components/common/InlineNameInput";
@@ -17,9 +18,8 @@ import { cn } from "@/lib/utils";
 
 import { useMergeMerchant, useMerchants, useUpdateMerchant, type Merchant } from "./queries";
 
-const ORIGIN = { seed: "Noto", auto: "Riconosciuto", user: "Tuo" } as const;
-
 function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => void }) {
+  const { t } = useTranslation();
   const [q, setQ] = useState("");
   const results = useMerchants(q.trim(), { limit: 6, usedOnly: false });
   const merge = useMergeMerchant();
@@ -32,8 +32,8 @@ function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => v
           onChange={(event) => {
             setQ(event.target.value);
           }}
-          placeholder={`Unisci «${merchant.name}» in… (cerca)`}
-          aria-label="Cerca il merchant in cui unire"
+          placeholder={t("merchants.mergePlaceholder", { name: merchant.name })}
+          aria-label={t("merchants.mergeSearch")}
           className="h-8 bg-card"
         />
         <Button
@@ -41,7 +41,7 @@ function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => v
           size="icon"
           className="size-8"
           onClick={onDone}
-          aria-label="Annulla"
+          aria-label={t("common.cancel")}
         >
           <X aria-hidden />
         </Button>
@@ -58,7 +58,7 @@ function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => v
                   onClick={() => {
                     if (
                       window.confirm(
-                        `Unire «${merchant.name}» in «${m.name}»? I movimenti e le varianti del nome passano a «${m.name}».`,
+                        t("merchants.mergeConfirm", { from: merchant.name, to: m.name }),
                       )
                     ) {
                       merge.mutate({ id: merchant.id, intoId: m.id }, { onSuccess: onDone });
@@ -68,7 +68,7 @@ function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => v
                 >
                   <span className="truncate">{m.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {formatCount(m.transaction_count)} mov.
+                    {t("merchants.transactionsShort", { n: formatCount(m.transaction_count) })}
                   </span>
                 </button>
               </li>
@@ -83,6 +83,7 @@ function MergeTarget({ merchant, onDone }: { merchant: Merchant; onDone: () => v
 const NAME_BOX = "-mx-1 h-5 rounded-md px-1 text-sm leading-5 font-medium";
 
 function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Lookups }) {
+  const { t } = useTranslation();
   const update = useUpdateMerchant();
   const [merging, setMerging] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -97,7 +98,7 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
             <InlineNameInput
               id={inputId}
               initial={merchant.name}
-              label={`Nuovo nome di ${merchant.name}`}
+              label={t("merchants.renameLabel", { name: merchant.name })}
               className={NAME_BOX}
               onCommit={(value) => {
                 setRenaming(false);
@@ -117,11 +118,14 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
             </Link>
           )}
           <Badge variant="outline" className="shrink-0 text-[10px] text-muted-foreground">
-            {ORIGIN[merchant.origin]}
+            {t(`merchants.origin.${merchant.origin}`)}
           </Badge>
         </div>
         <div className="truncate text-xs text-muted-foreground">
-          {formatCount(merchant.transaction_count)} movimenti · speso{" "}
+          {t("merchants.stats", {
+            count: merchant.transaction_count,
+            n: formatCount(merchant.transaction_count),
+          })}{" "}
           <Money value={merchant.spent_eur} />
         </div>
       </div>
@@ -131,7 +135,11 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
           variant="ghost"
           size="icon"
           className="size-8"
-          aria-label={renaming ? `Salva il nome di ${merchant.name}` : `Rinomina ${merchant.name}`}
+          aria-label={
+            renaming
+              ? t("merchants.saveName", { name: merchant.name })
+              : t("merchants.rename", { name: merchant.name })
+          }
           // In modifica il clic conferma: il campo non deve perdere il focus prima del clic.
           onMouseDown={(event) => {
             if (renaming) event.preventDefault();
@@ -147,7 +155,7 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
           variant="ghost"
           size="icon"
           className="size-8"
-          aria-label={`Unisci ${merchant.name} in un altro merchant`}
+          aria-label={t("merchants.mergeLabel", { name: merchant.name })}
           onClick={() => {
             setMerging(true);
           }}
@@ -161,8 +169,8 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
           categoryId: merchant.default_category_id,
           subcategoryId: merchant.default_subcategory_id,
         }}
-        noneLabel="Nessuna categoria predefinita"
-        label={`Categoria predefinita di ${merchant.name}`}
+        noneLabel={t("merchants.noDefaultCategory")}
+        label={t("merchants.defaultCategoryOf", { name: merchant.name })}
         className="col-span-2 h-8 text-xs md:col-span-1"
         onChange={(choice) => {
           update.mutate({
@@ -191,6 +199,7 @@ function MerchantRow({ merchant, lookups }: { merchant: Merchant; lookups: Looku
  * futuri, dopo regole e correzioni) e unione delle varianti ("AMZN Mktp" → Amazon).
  */
 export function MerchantsCard({ lookups }: { lookups: Lookups }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [q, setQ] = useState("");
   useEffect(() => {
@@ -206,11 +215,8 @@ export function MerchantsCard({ lookups }: { lookups: Lookups }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Merchant</CardTitle>
-        <CardDescription>
-          Per spesa decrescente. La categoria predefinita si applica ai movimenti senza una regola o
-          una correzione.
-        </CardDescription>
+        <CardTitle>{t("merchants.title")}</CardTitle>
+        <CardDescription>{t("merchants.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative">
@@ -224,8 +230,8 @@ export function MerchantsCard({ lookups }: { lookups: Lookups }) {
             onChange={(event) => {
               setInput(event.target.value);
             }}
-            placeholder="Cerca un merchant"
-            aria-label="Cerca un merchant"
+            placeholder={t("merchants.search")}
+            aria-label={t("merchants.search")}
             className="bg-card pl-9"
           />
         </div>
@@ -240,8 +246,10 @@ export function MerchantsCard({ lookups }: { lookups: Lookups }) {
             </ul>
             {data && data.total > data.items.length && (
               <p className="text-xs text-muted-foreground">
-                Mostrati {formatCount(data.items.length)} di {formatCount(data.total)}: cerca per
-                trovare gli altri.
+                {t("merchants.shown", {
+                  shown: formatCount(data.items.length),
+                  total: formatCount(data.total),
+                })}
               </p>
             )}
           </>

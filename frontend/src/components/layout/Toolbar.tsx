@@ -1,4 +1,5 @@
 import { CalendarDays, Eye, EyeOff, Moon, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +15,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   formatRange,
   isPeriodPreset,
-  PERIOD_LABELS,
   PERIOD_PRESETS,
-  PERIOD_SHORT_LABELS,
+  periodLabel,
+  periodShortLabel,
   resolvePeriod,
 } from "@/lib/period";
 import { usePeriod, usePrivacy, useTheme } from "@/lib/preferences";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { THEME_OPTIONS } from "./theme-options";
 
 export function PeriodPicker({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const [period, setPeriod] = usePeriod();
   const range = resolvePeriod(period);
 
@@ -35,17 +37,20 @@ export function PeriodPicker({ className }: { className?: string }) {
           variant="outline"
           size="sm"
           className={cn("h-9 gap-2 bg-card px-2.5 sm:px-3", className)}
-          aria-label={`Periodo: ${PERIOD_LABELS[period]}, ${formatRange(range)}`}
+          aria-label={t("period.ariaLabel", {
+            label: periodLabel(period),
+            range: formatRange(range),
+          })}
         >
           <CalendarDays aria-hidden className="text-muted-foreground" />
-          <span className="font-medium sm:hidden">{PERIOD_SHORT_LABELS[period]}</span>
-          <span className="hidden font-medium sm:inline">{PERIOD_LABELS[period]}</span>
+          <span className="font-medium sm:hidden">{periodShortLabel(period)}</span>
+          <span className="hidden font-medium sm:inline">{periodLabel(period)}</span>
           <span className="hidden text-muted-foreground xl:inline">{formatRange(range)}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-          Periodo di analisi
+          {t("period.heading")}
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={period}
@@ -56,7 +61,7 @@ export function PeriodPicker({ className }: { className?: string }) {
           {PERIOD_PRESETS.map((preset) => (
             <DropdownMenuRadioItem key={preset} value={preset} className="py-2">
               <span className="flex w-full items-baseline justify-between gap-3">
-                <span>{PERIOD_LABELS[preset]}</span>
+                <span>{periodLabel(preset)}</span>
                 <span className="text-xs text-muted-foreground">
                   {formatRange(resolvePeriod(preset))}
                 </span>
@@ -65,17 +70,16 @@ export function PeriodPicker({ className }: { className?: string }) {
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <p className="px-2 py-1.5 text-xs text-muted-foreground">
-          Il periodo vale per tutte le pagine.
-        </p>
+        <p className="px-2 py-1.5 text-xs text-muted-foreground">{t("period.note")}</p>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 export function PrivacyToggle() {
+  const { t } = useTranslation();
   const [privacy, setPrivacy] = usePrivacy();
-  const label = privacy ? "Mostra gli importi" : "Nascondi gli importi";
+  const label = privacy ? t("toolbar.showAmounts") : t("toolbar.hideAmounts");
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -100,18 +104,19 @@ export function PrivacyToggle() {
 }
 
 export function ThemeMenu() {
+  const { t } = useTranslation();
   const [theme, setTheme] = useTheme();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Tema">
+        <Button variant="ghost" size="icon" aria-label={t("theme.label")}>
           <Sun aria-hidden className="dark:hidden" />
           <Moon aria-hidden className="hidden dark:block" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-          Tema
+          {t("theme.label")}
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={theme}
@@ -120,10 +125,10 @@ export function ThemeMenu() {
             if (option) setTheme(option.value);
           }}
         >
-          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+          {THEME_OPTIONS.map(({ value, icon: Icon }) => (
             <DropdownMenuRadioItem key={value} value={value} className="gap-2">
               <Icon aria-hidden className="text-muted-foreground" />
-              {label}
+              {t(`theme.${value}`)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

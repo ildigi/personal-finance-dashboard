@@ -17,7 +17,7 @@ import { useUpcoming } from "@/features/recurring/queries";
 import { transactionsUrl } from "@/features/transactions/filters";
 import { useLookups } from "@/features/transactions/lookups";
 import { formatCount, formatPercent } from "@/lib/format";
-import { formatRange, PERIOD_LABELS, resolvePeriod } from "@/lib/period";
+import { formatRange, periodLabel, resolvePeriod } from "@/lib/period";
 import { usePeriod } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +100,7 @@ export function IncomePage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       <p className="text-sm text-muted-foreground">
-        {PERIOD_LABELS[period]} · {formatRange(range)}
+        {periodLabel(period)} · {formatRange(range)}
       </p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">

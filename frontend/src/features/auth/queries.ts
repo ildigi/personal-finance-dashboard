@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, ApiError, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 
 export type AuthStatus = Schemas["AuthStatus"];
 export type AuthSession = Schemas["SessionRead"];
@@ -32,7 +33,7 @@ async function noContent(request: Promise<{ error?: unknown; response: Response 
   try {
     result = await request;
   } catch {
-    throw new ApiError(0, "Backend non raggiungibile");
+    throw new ApiError(0, i18n.t("errors.backendUnreachable"));
   }
   if (result.response.ok) return;
   const detail =
@@ -41,7 +42,9 @@ async function noContent(request: Promise<{ error?: unknown; response: Response 
       : null;
   throw new ApiError(
     result.response.status,
-    typeof detail === "string" ? detail : `Errore ${String(result.response.status)}`,
+    typeof detail === "string"
+      ? detail
+      : i18n.t("errors.status", { status: result.response.status }),
   );
 }
 

@@ -1,7 +1,8 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router";
 
-import { findNavItem } from "@/app/navigation";
+import { findNavItem, navDescription, navLabel } from "@/app/navigation";
 import { BrandMark } from "@/components/common/BrandMark";
 import { privacyStore } from "@/lib/preferences";
 
@@ -32,14 +33,16 @@ function usePrivacyShortcut(): void {
 }
 
 export function AppShell() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const item = findNavItem(pathname);
   usePrivacyShortcut();
 
   useEffect(() => {
-    document.title = item ? `${item.label} · Finanze` : "Finanze";
+    const app = t("common.appName");
+    document.title = item ? t("common.documentTitle", { page: navLabel(item), app }) : app;
     window.scrollTo({ top: 0 });
-  }, [item]);
+  }, [item, t]);
 
   return (
     <div className="min-h-dvh">
@@ -47,7 +50,7 @@ export function AppShell() {
         href="#contenuto"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
-        Vai al contenuto
+        {t("common.skipToContent")}
       </a>
       <Sidebar />
 
@@ -57,11 +60,11 @@ export function AppShell() {
             <BrandMark className="size-7 lg:hidden" />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-lg font-semibold tracking-tight">
-                {item?.label ?? "Pagina non trovata"}
+                {item ? navLabel(item) : t("common.pageNotFound")}
               </h1>
               {item && (
                 <p className="hidden truncate text-xs text-muted-foreground sm:block">
-                  {item.description}
+                  {navDescription(item)}
                 </p>
               )}
             </div>

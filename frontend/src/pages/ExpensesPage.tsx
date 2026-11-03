@@ -26,7 +26,7 @@ import { useUpcoming } from "@/features/recurring/queries";
 import { transactionsUrl } from "@/features/transactions/filters";
 import { useLookups } from "@/features/transactions/lookups";
 import { formatCount } from "@/lib/format";
-import { formatRange, PERIOD_LABELS, resolvePeriod } from "@/lib/period";
+import { formatRange, periodLabel, resolvePeriod } from "@/lib/period";
 import { usePeriod } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ export function ExpensesPage() {
     <div className="space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {PERIOD_LABELS[period]} · {formatRange(range)}
+          {periodLabel(period)} · {formatRange(range)}
         </p>
         {data && data.unclassified_count > 0 && (
           <Link

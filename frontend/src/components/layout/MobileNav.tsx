@@ -1,9 +1,10 @@
 import { Ellipsis } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 
 import { useNavBadges } from "@/app/nav-badges";
-import { ALL_NAV_ITEMS, MOBILE_PRIMARY_PATHS, type NavItem } from "@/app/navigation";
+import { ALL_NAV_ITEMS, MOBILE_PRIMARY_PATHS, navShortLabel, type NavItem } from "@/app/navigation";
 import {
   Sheet,
   SheetContent,
@@ -47,6 +48,7 @@ function TabIcon({ icon: Icon, active }: { icon: NavItem["icon"]; active: boolea
 
 /** Barra di navigazione in basso, solo su schermi stretti. */
 export function MobileNav() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const moreActive = moreItems.some((item) => pathname.startsWith(item.path));
@@ -57,7 +59,7 @@ export function MobileNav() {
 
   return (
     <nav
-      aria-label="Navigazione rapida"
+      aria-label={t("nav.quick")}
       className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t bg-card/90 backdrop-blur-lg lg:hidden"
     >
       <ul className="mx-auto flex max-w-lg">
@@ -71,7 +73,7 @@ export function MobileNav() {
               {({ isActive }) => (
                 <>
                   <TabIcon icon={item.icon} active={isActive} />
-                  {item.shortLabel ?? item.label}
+                  {navShortLabel(item)}
                 </>
               )}
             </NavLink>
@@ -79,7 +81,7 @@ export function MobileNav() {
         ))}
         <li className="flex flex-1">
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger className={tabClass(moreActive)} aria-label="Altre pagine e preferenze">
+            <SheetTrigger className={tabClass(moreActive)} aria-label={t("nav.moreDescription")}>
               <span className="relative">
                 <TabIcon icon={Ellipsis} active={moreActive} />
                 {moreBadge && (
@@ -92,12 +94,12 @@ export function MobileNav() {
                   />
                 )}
               </span>
-              Altro
+              {t("nav.more")}
             </SheetTrigger>
             <SheetContent side="bottom" className="pb-safe gap-0 rounded-t-2xl bg-card">
               <SheetHeader className="pb-2">
-                <SheetTitle>Altro</SheetTitle>
-                <SheetDescription className="sr-only">Altre pagine e preferenze</SheetDescription>
+                <SheetTitle>{t("nav.more")}</SheetTitle>
+                <SheetDescription className="sr-only">{t("nav.moreDescription")}</SheetDescription>
               </SheetHeader>
               <MoreSheetBody
                 onNavigate={() => {
@@ -113,6 +115,7 @@ export function MobileNav() {
 }
 
 function MoreSheetBody({ onNavigate }: { onNavigate: () => void }) {
+  const { t } = useTranslation();
   const [theme, setTheme] = useTheme();
   const badges = useNavBadges();
   const [privacy, setPrivacy] = usePrivacy();
@@ -138,7 +141,7 @@ function MoreSheetBody({ onNavigate }: { onNavigate: () => void }) {
                 }
               >
                 <Icon aria-hidden className="size-5" />
-                {item.shortLabel ?? item.label}
+                {navShortLabel(item)}
                 {badge && <NavBadgePill badge={badge} className="absolute top-2 right-2" />}
               </NavLink>
             </li>
@@ -147,13 +150,13 @@ function MoreSheetBody({ onNavigate }: { onNavigate: () => void }) {
       </ul>
 
       <div className="space-y-2">
-        <div className="text-xs font-medium text-muted-foreground">Tema</div>
+        <div className="text-xs font-medium text-muted-foreground">{t("theme.label")}</div>
         <div
           role="radiogroup"
-          aria-label="Tema"
+          aria-label={t("theme.label")}
           className="grid grid-cols-3 gap-1 rounded-xl bg-background p-1"
         >
-          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+          {THEME_OPTIONS.map(({ value, icon: Icon }) => (
             <button
               key={value}
               type="button"
@@ -168,7 +171,7 @@ function MoreSheetBody({ onNavigate }: { onNavigate: () => void }) {
               )}
             >
               <Icon aria-hidden className="size-4" />
-              {label}
+              {t(`theme.${value}`)}
             </button>
           ))}
         </div>
@@ -176,12 +179,10 @@ function MoreSheetBody({ onNavigate }: { onNavigate: () => void }) {
 
       <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-background px-4 py-2">
         <span className="text-sm">
-          <span className="font-medium">Modalità privacy</span>
-          <span className="block text-xs text-muted-foreground">
-            Oscura importi e dati sensibili
-          </span>
+          <span className="font-medium">{t("common.privacyMode")}</span>
+          <span className="block text-xs text-muted-foreground">{t("mobileNav.privacyHint")}</span>
         </span>
-        <Switch checked={privacy} onChange={setPrivacy} label="Modalità privacy" />
+        <Switch checked={privacy} onChange={setPrivacy} label={t("common.privacyMode")} />
       </div>
     </div>
   );

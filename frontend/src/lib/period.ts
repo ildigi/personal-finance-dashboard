@@ -3,6 +3,8 @@
  * contabili dell'API) calcolate nel fuso Europe/Rome.
  */
 
+import { i18n } from "@/i18n";
+
 import { formatDate, TIME_ZONE } from "./format";
 
 export const PERIOD_PRESETS = [
@@ -21,24 +23,10 @@ export interface DateRange {
   to: string;
 }
 
-export const PERIOD_LABELS: Record<PeriodPreset, string> = {
-  this_month: "Mese corrente",
-  last_month: "Mese scorso",
-  last_3_months: "Ultimi 3 mesi",
-  last_6_months: "Ultimi 6 mesi",
-  last_12_months: "Ultimi 12 mesi",
-  year_to_date: "Da inizio anno",
-};
+export const periodLabel = (preset: PeriodPreset): string => i18n.t(`period.labels.${preset}`);
 
-/** Etichette brevi per gli schermi stretti. */
-export const PERIOD_SHORT_LABELS: Record<PeriodPreset, string> = {
-  this_month: "Mese",
-  last_month: "Mese prec.",
-  last_3_months: "3 mesi",
-  last_6_months: "6 mesi",
-  last_12_months: "12 mesi",
-  year_to_date: "Anno",
-};
+/** Etichetta breve per gli schermi stretti. */
+export const periodShortLabel = (preset: PeriodPreset): string => i18n.t(`period.short.${preset}`);
 
 export function isPeriodPreset(value: unknown): value is PeriodPreset {
   return typeof value === "string" && (PERIOD_PRESETS as readonly string[]).includes(value);

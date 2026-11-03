@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import type { Source } from "@/features/sync/queries";
@@ -10,6 +11,7 @@ import { useDisconnectBank } from "./queries";
  * scaricati (con le tue correzioni) o eliminarli insieme ai conti.
  */
 export function DisconnectBank({ source }: { source: Source }) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const disconnect = useDisconnectBank();
   if (source.provider !== "enablebanking" || source.status === "disabled") return null;
@@ -24,7 +26,7 @@ export function DisconnectBank({ source }: { source: Source }) {
           setConfirming(true);
         }}
       >
-        Scollega
+        {t("banks.disconnect.button")}
       </Button>
     );
   }
@@ -34,10 +36,12 @@ export function DisconnectBank({ source }: { source: Source }) {
   return (
     <span
       role="group"
-      aria-label={`Scollega ${source.display_name}`}
+      aria-label={t("banks.disconnect.group", { name: source.display_name })}
       className="flex basis-full flex-wrap items-center gap-2 pt-1"
     >
-      <span className="text-foreground">Scollegare {source.display_name}?</span>
+      <span className="text-foreground">
+        {t("banks.disconnect.question", { name: source.display_name })}
+      </span>
       <Button
         size="sm"
         variant="outline"
@@ -47,7 +51,7 @@ export function DisconnectBank({ source }: { source: Source }) {
           run(false);
         }}
       >
-        Tieni i movimenti
+        {t("banks.disconnect.keep")}
       </Button>
       <Button
         size="sm"
@@ -58,7 +62,7 @@ export function DisconnectBank({ source }: { source: Source }) {
           run(true);
         }}
       >
-        Elimina conti e movimenti
+        {t("banks.disconnect.delete")}
       </Button>
       <Button
         size="sm"
@@ -68,7 +72,7 @@ export function DisconnectBank({ source }: { source: Source }) {
           setConfirming(false);
         }}
       >
-        Annulla
+        {t("common.cancel")}
       </Button>
       {disconnect.isError && <span className="text-destructive">{disconnect.error.message}</span>}
     </span>

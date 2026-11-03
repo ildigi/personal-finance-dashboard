@@ -18,7 +18,7 @@ import { useLookups } from "@/features/transactions/lookups";
 import { useTransactions } from "@/features/transactions/queries";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { formatCount } from "@/lib/format";
-import { formatRange, PERIOD_LABELS, resolvePeriod } from "@/lib/period";
+import { formatRange, periodLabel, resolvePeriod } from "@/lib/period";
 import { usePeriod } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +101,7 @@ export function TransactionsPage() {
     <div className="space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {PERIOD_LABELS[period]} · {formatRange(range)}
+          {periodLabel(period)} · {formatRange(range)}
         </p>
         <Button
           onClick={() => {

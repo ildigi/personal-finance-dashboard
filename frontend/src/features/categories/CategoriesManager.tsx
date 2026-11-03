@@ -1,5 +1,6 @@
 import { Archive, ArchiveRestore, Merge, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, useState, type RefObject, type SyntheticEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Category, Schemas } from "@/api/client";
 import { CategoryIcon } from "@/components/common/CategoryIcon";
@@ -35,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { i18n } from "@/i18n";
 import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +99,7 @@ function ConfirmDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       {/* Resta l'ultima conferma anche mentre il dialogo si chiude (niente testo che sparisce). */}
@@ -112,7 +115,7 @@ function ConfirmDialog({
             <AlertDialogDescription>{confirmation.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <Button
               variant="destructive"
               onClick={() => {
@@ -131,19 +134,19 @@ function ConfirmDialog({
 
 // --- Eliminazione di una sottocategoria -------------------------------------------------
 
-const plural = (n: number, one: string, many: string) =>
-  `${formatCount(n)} ${n === 1 ? one : many}`;
+type CountedUse = "transactions" | "overrides" | "rules" | "recurring" | "merchants";
+
+const counted = (key: CountedUse, count: number): string =>
+  i18n.t(`categories.usage.${key}`, { count, n: formatCount(count) });
 
 function usageLines(usage: Usage): string[] {
   const lines: string[] = [];
-  if (usage.transactions) lines.push(plural(usage.transactions, "movimento", "movimenti"));
-  if (usage.overrides)
-    lines.push(plural(usage.overrides, "correzione manuale", "correzioni manuali"));
-  if (usage.rules) lines.push(plural(usage.rules, "regola", "regole"));
-  if (usage.budgets) lines.push("il suo budget");
-  if (usage.recurring) lines.push(plural(usage.recurring, "ricorrenza", "ricorrenze"));
-  if (usage.merchants)
-    lines.push(`${plural(usage.merchants, "merchant", "merchant")} (categoria predefinita)`);
+  if (usage.transactions) lines.push(counted("transactions", usage.transactions));
+  if (usage.overrides) lines.push(counted("overrides", usage.overrides));
+  if (usage.rules) lines.push(counted("rules", usage.rules));
+  if (usage.budgets) lines.push(i18n.t("categories.usage.budget"));
+  if (usage.recurring) lines.push(counted("recurring", usage.recurring));
+  if (usage.merchants) lines.push(counted("merchants", usage.merchants));
   return lines;
 }
 
@@ -164,6 +167,7 @@ function DeleteSubcategoryDialog({
   onOpenChange: (open: boolean) => void;
   onClosed: () => void;
 }) {
+  const { t } = useTranslation();
   const remove = useDeleteSubcategory();
   const [target, setTarget] = useState(NO_SUBCATEGORY);
   const [error, setError] = useState<string | null>(null);
@@ -201,13 +205,13 @@ function DeleteSubcategoryDialog({
         }}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>Eliminare «{sub.name}»?</AlertDialogTitle>
+          <AlertDialogTitle>{t("categories.deleteTitle", { name: sub.name })}</AlertDialogTitle>
           <AlertDialogDescription>
             {usage === undefined
-              ? `Sottocategoria di «${category.name}».`
+              ? t("categories.subcategory.of", { category: category.name })
               : inUse
-                ? `È usata da ${usageLines(usage).join(", ")}. Scegli dove spostarli: nessuna classificazione va persa.`
-                : "Nessun movimento, regola o budget la usa: viene eliminata subito."}
+                ? t("categories.subcategory.inUse", { uses: usageLines(usage).join(", ") })
+                : t("categories.subcategory.unused")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -217,7 +221,7 @@ function DeleteSubcategoryDialog({
           inUse && (
             <div className="space-y-2">
               <label htmlFor={`move-${sub.id}`} className="text-sm font-medium">
-                Sposta su
+                {t("categories.subcategory.moveTo")}
               </label>
               <Select value={target} onValueChange={setTarget}>
                 <SelectTrigger id={`move-${sub.id}`} className="w-full bg-card">
@@ -225,7 +229,7 @@ function DeleteSubcategoryDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_SUBCATEGORY}>
-                    Nessuna sottocategoria (resta in «{category.name}»)
+                    {t("categories.subcategory.none", { category: category.name })}
                   </SelectItem>
                   {siblings.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>
@@ -237,12 +241,15 @@ function DeleteSubcategoryDialog({
               {usage.budgets > 0 && (
                 <p className="text-xs text-muted-foreground">
                   {targetName
-                    ? `Il budget passa a «${targetName}» (se ne ha già uno, gli importi si sommano).`
-                    : `Il budget di «${sub.name}» viene eliminato: la spesa resta nel budget di «${category.name}», se c'è.`}
+                    ? t("categories.subcategory.budgetMoves", { target: targetName })
+                    : t("categories.subcategory.budgetDeleted", {
+                        name: sub.name,
+                        category: category.name,
+                      })}
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Se vuoi solo nasconderla, archiviala: i movimenti passati restano dove sono.
+                {t("categories.subcategory.archiveHint")}
               </p>
             </div>
           )
@@ -254,14 +261,14 @@ function DeleteSubcategoryDialog({
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={remove.isPending}>Annulla</AlertDialogCancel>
+          <AlertDialogCancel disabled={remove.isPending}>{t("common.cancel")}</AlertDialogCancel>
           <Button
             variant="destructive"
             disabled={usage === undefined || remove.isPending}
             onClick={confirm}
           >
             <Trash2 aria-hidden />
-            {inUse ? "Sposta ed elimina" : "Elimina"}
+            {inUse ? t("categories.subcategory.moveAndDelete") : t("common.delete")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -280,6 +287,7 @@ function SubcategoryChip({
   category: Category;
   onError: (m: string) => void;
 }) {
+  const { t } = useTranslation();
   const update = useUpdateSubcategory();
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -299,7 +307,7 @@ function SubcategoryChip({
         {renaming ? (
           <InlineNameInput
             initial={sub.name}
-            label={`Nuovo nome della sottocategoria ${sub.name}`}
+            label={t("categories.subcategory.renameLabel", { name: sub.name })}
             className={cn(CHIP_BOX, "text-foreground")}
             onCommit={(value) => {
               setRenaming(false);
@@ -318,7 +326,7 @@ function SubcategoryChip({
               "text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
               sub.is_archived && "line-through opacity-60",
             )}
-            aria-label={`Azioni per la sottocategoria ${name}`}
+            aria-label={t("categories.subcategory.actions", { name })}
           >
             {name}
           </DropdownMenuTrigger>
@@ -332,7 +340,7 @@ function SubcategoryChip({
             }}
           >
             <Pencil aria-hidden />
-            Rinomina
+            {t("common.rename")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {
@@ -343,7 +351,7 @@ function SubcategoryChip({
             }}
           >
             {sub.is_archived ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
-            {sub.is_archived ? "Ripristina" : "Archivia"}
+            {sub.is_archived ? t("common.restore") : t("common.archive")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -355,7 +363,7 @@ function SubcategoryChip({
             }}
           >
             <Trash2 aria-hidden />
-            Elimina…
+            {t("common.deleteEllipsis")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -385,6 +393,7 @@ function AddSubcategoryChip({
   chip: RefObject<HTMLButtonElement | null>;
   onError: (m: string) => void;
 }) {
+  const { t } = useTranslation();
   const create = useCreateSubcategory();
   return (
     <>
@@ -396,8 +405,8 @@ function AddSubcategoryChip({
       <li>
         {adding ? (
           <InlineNameInput
-            label={`Nome della nuova sottocategoria di ${category.name}`}
-            placeholder="Nuova sottocategoria"
+            label={t("categories.subcategory.newLabel", { name: category.name })}
+            placeholder={t("categories.subcategory.newPlaceholder")}
             leading={<Plus aria-hidden className="mr-1 size-3 shrink-0" />}
             className={cn(CHIP_BOX, "text-foreground")}
             onCommit={(name) => {
@@ -427,8 +436,8 @@ function AddSubcategoryChip({
               CHIP_BOX,
               "border-dashed px-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
             )}
-            aria-label={`Aggiungi una sottocategoria a ${category.name}`}
-            title="Aggiungi una sottocategoria"
+            aria-label={t("categories.subcategory.addLabel", { name: category.name })}
+            title={t("categories.subcategory.addTitle")}
           >
             <Plus aria-hidden className="size-3" />
           </button>
@@ -451,6 +460,7 @@ function CategoryRow({
   onError: (m: string) => void;
   onConfirm: (c: Confirmation) => void;
 }) {
+  const { t } = useTranslation();
   const update = useUpdateCategory();
   const remove = useDeleteCategory();
   const merge = useMergeCategory();
@@ -482,7 +492,7 @@ function CategoryRow({
           {renaming ? (
             <InlineNameInput
               initial={category.name}
-              label={`Nuovo nome della categoria ${category.name}`}
+              label={t("categories.renameLabel", { name: category.name })}
               className={NAME_BOX}
               onCommit={(value) => {
                 setRenaming(false);
@@ -498,21 +508,24 @@ function CategoryRow({
           )}
           {category.excluded_from_spending && (
             <Badge variant="secondary" className="text-[10px]">
-              Fuori dalle spese
+              {t("categories.excluded")}
             </Badge>
           )}
           {category.is_system && (
             <Badge variant="outline" className="text-[10px]">
-              Sistema
+              {t("categories.system")}
             </Badge>
           )}
           {category.is_archived && (
             <Badge variant="outline" className="text-[10px]">
-              Archiviata
+              {t("categories.archived")}
             </Badge>
           )}
         </div>
-        <ul className="mt-1 flex flex-wrap gap-1" aria-label={`Sottocategorie di ${name}`}>
+        <ul
+          className="mt-1 flex flex-wrap gap-1"
+          aria-label={t("categories.subcategoriesOf", { name })}
+        >
           {category.subcategories.map((sub) => (
             <SubcategoryChip key={sub.id} sub={sub} category={category} onError={onError} />
           ))}
@@ -532,7 +545,7 @@ function CategoryRow({
             variant="ghost"
             size="icon"
             className="size-8 shrink-0"
-            aria-label={`Azioni per ${name}`}
+            aria-label={t("categories.actionsFor", { name })}
           >
             <MoreHorizontal aria-hidden />
           </Button>
@@ -546,7 +559,7 @@ function CategoryRow({
             }}
           >
             <Pencil aria-hidden />
-            Rinomina
+            {t("common.rename")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {
@@ -556,35 +569,44 @@ function CategoryRow({
             }}
           >
             <Plus aria-hidden />
-            Aggiungi sottocategoria
+            {t("categories.addSubcategory")}
           </DropdownMenuItem>
           {!category.is_system && (
             <>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger disabled={targets.length === 0}>
                   <Merge aria-hidden />
-                  Unisci in…
+                  {t("categories.mergeInto")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-                  {targets.map((t) => (
+                  {targets.map((target) => (
                     <DropdownMenuItem
-                      key={t.id}
+                      key={target.id}
                       onSelect={() => {
                         menu.after(() => {
                           onConfirm({
-                            title: `Unire «${category.name}» in «${t.name}»?`,
-                            description: `Movimenti, regole, budget e merchant passano a «${t.name}» e «${category.name}» viene eliminata.`,
-                            action: "Unisci",
+                            title: t("categories.mergeTitle", {
+                              from: category.name,
+                              to: target.name,
+                            }),
+                            description: t("categories.mergeDescription", {
+                              from: category.name,
+                              to: target.name,
+                            }),
+                            action: t("categories.merge"),
                             run: () => {
-                              merge.mutate({ id: category.id, intoId: t.id }, { onError: fail });
+                              merge.mutate(
+                                { id: category.id, intoId: target.id },
+                                { onError: fail },
+                              );
                             },
                             returnFocus: actions.current,
                           });
                         });
                       }}
                     >
-                      <CategoryIcon name={t.icon} />
-                      {t.name}
+                      <CategoryIcon name={target.icon} />
+                      {target.name}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuSubContent>
@@ -598,7 +620,7 @@ function CategoryRow({
                 }}
               >
                 {category.is_archived ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
-                {category.is_archived ? "Ripristina" : "Archivia"}
+                {category.is_archived ? t("common.restore") : t("common.archive")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -606,10 +628,9 @@ function CategoryRow({
                 onSelect={() => {
                   menu.after(() => {
                     onConfirm({
-                      title: `Eliminare «${category.name}»?`,
-                      description:
-                        "Si elimina con le sue sottocategorie. Se è in uso non si può: archiviala o uniscila a un'altra.",
-                      action: "Elimina",
+                      title: t("categories.deleteTitle", { name: category.name }),
+                      description: t("categories.deleteDescription"),
+                      action: t("common.delete"),
                       run: () => {
                         remove.mutate(category.id, { onError: fail });
                       },
@@ -619,7 +640,7 @@ function CategoryRow({
                 }}
               >
                 <Trash2 aria-hidden />
-                Elimina…
+                {t("common.deleteEllipsis")}
               </DropdownMenuItem>
             </>
           )}
@@ -631,6 +652,7 @@ function CategoryRow({
 
 /** Categorie e sottocategorie: rinomina, aggiungi, unisci, archivia, elimina (SPEC §11). */
 export function CategoriesManager() {
+  const { t } = useTranslation();
   const { data, isPending, isError } = useAllCategories();
   const create = useCreateCategory();
   const [name, setName] = useState("");
@@ -659,12 +681,8 @@ export function CategoriesManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Categorie di spesa</CardTitle>
-        <CardDescription>
-          Rinomina, aggiungi, unisci, archivia o elimina. Le categorie in uso non si eliminano:
-          archiviale o uniscile a un'altra; eliminando una sottocategoria in uso scegli dove
-          spostarne movimenti e regole.
-        </CardDescription>
+        <CardTitle>{t("categories.title")}</CardTitle>
+        <CardDescription>{t("categories.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={onSubmit} className="flex gap-2">
@@ -674,13 +692,13 @@ export function CategoriesManager() {
               setName(event.target.value);
             }}
             maxLength={100}
-            placeholder="Nuova categoria, es. Casa"
-            aria-label="Nome della nuova categoria"
+            placeholder={t("categories.newPlaceholder")}
+            aria-label={t("categories.newLabel")}
             className="bg-card"
           />
           <Button type="submit" variant="outline" disabled={!name.trim() || create.isPending}>
             <Plus aria-hidden />
-            Aggiungi
+            {t("common.add")}
           </Button>
         </form>
         {error && (
@@ -696,7 +714,7 @@ export function CategoriesManager() {
           </div>
         ) : isError ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            Dati non disponibili: il backend non risponde.
+            {t("common.backendDown")}
           </p>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">

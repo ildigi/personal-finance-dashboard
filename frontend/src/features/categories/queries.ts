@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap, type Schemas } from "@/api/client";
+import { i18n } from "@/i18n";
 import { invalidateClassification } from "@/features/rules/queries";
 
 /** Anche le archiviate: servono solo alla gestione delle categorie. */
@@ -49,7 +50,7 @@ export function useDeleteCategory() {
     });
     if (!response.ok) {
       const detail = (error as { detail?: unknown } | undefined)?.detail;
-      throw new Error(typeof detail === "string" ? detail : "Eliminazione non riuscita");
+      throw new Error(typeof detail === "string" ? detail : i18n.t("errors.deleteFailed"));
     }
   });
 }
@@ -122,7 +123,7 @@ export function useDeleteSubcategory() {
       });
       if (!response.ok) {
         const detail = (error as { detail?: unknown } | undefined)?.detail;
-        throw new Error(typeof detail === "string" ? detail : "Eliminazione non riuscita");
+        throw new Error(typeof detail === "string" ? detail : i18n.t("errors.deleteFailed"));
       }
     },
   );
