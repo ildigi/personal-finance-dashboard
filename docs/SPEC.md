@@ -1038,6 +1038,17 @@ Un test controlla che le voci del glossario presenti nei file di traduzione usin
 - **Controlli:** i test esistenti restano verdi in italiano; i test delle pagine principali (Panoramica, Movimenti, Spese, Entrate, Investimenti, Patrimonio, Budget, Ricorrenze, Regole, Impostazioni) girano in entrambe le lingue.
 - **Completamento:** con `en` nessun testo fisso italiano nel frontend; restano in italiano solo i messaggi che arrivano dal backend (fase I3) e i dati.
 
+#### Note di implementazione (Fase I2, 2026-11-03)
+- **File di traduzione per area:** `locales/it/*.ts` ed `en/*.ts` (`overview`, `transactions`, `analytics`, `networth`, `investments`, `budgets`, `recurring`, `rules`, `pages`), uniti in `it.ts` ed `en.ts`. Ogni parte inglese rispetta la sua parte italiana con `satisfies Widen<typeof it>`.
+- **Etichette come funzioni:** le mappe fisse (tipi di movimento, fonti della classificazione, stati, frequenze, intervalli del patrimonio, serie dei grafici) sono diventate funzioni o getter che leggono la lingua attuale (`kindLabel`, `frequencyLabel`, …).
+- **Tolto** il riquadro "Avanzamento" della Panoramica (`ROADMAP`, `CURRENT_PHASE`). Due testi che citavano le fasi del progetto (conti assenti in Panoramica, movimenti assenti) ora rimandano alle Impostazioni.
+- **Importi negli editor** (budget, ricorrenze, regole): precompilati nel formato della lingua ("12,50" / "12.50"). Data di aggiornamento di privacy e termini formattata con la locale.
+- **Lint su tutto `src/`**, esclusi i file di traduzione, i test e lo schema dell'API. Eccezioni ristrette rispetto alla fase I1: gli identificatori esclusi sono solo quelli minuscoli o in camelCase (le parole con la maiuscola vengono segnalate) e `new Error(...)` non è più un'eccezione, perché questi messaggi arrivano all'interfaccia. Restano escluse, con il motivo nel codice: variabili CSS e proprietà di stile dei grafici, media query, locale tecniche di `Intl`, nomi di browser e sistemi operativi, due errori di programmazione.
+- **Test:** 151 (erano 131). Nuovo `tests/pages-i18n.test.tsx`: le 10 pagine principali in italiano e in inglese, con il titolo preso dalle traduzioni; in inglese il testo della pagina (tolti i dati del backend simulato) non contiene parole italiane frequenti, in italiano sì (il controllo non è a vuoto).
+- **Screenshot:** `scripts/screenshot.mjs --lang en|it` imposta la lingua prima che l'app parta. Lo screenshot "inglese" della fase I1 era stato fatto cambiando la lingua dopo l'avvio ed era rimasto in italiano.
+- **Prova a vista** (solo frontend, senza backend): 13 pagine in inglese, nessuna parola italiana; con il backend spento si vedono stati vuoti e d'errore, non tabelle e grafici con dati (coperti dai test).
+- **Ancora in italiano con `en`**, come previsto: messaggi d'errore del backend, il "perché" della classificazione, nomi delle regole imparate, "Da classificare" e "Senza sottocategoria" nelle analisi (fase I3); categorie, merchant e regole del database (dati).
+
 ### Fase I3 — Backend: codici al posto delle frasi
 - **Output:**
   - errori API `{"detail": {"code", "params"}}` ed errori di validazione con `PydanticCustomError` (codice in `type`, parametri in `ctx`); il frontend traduce, e mostra il testo grezzo per i codici sconosciuti;

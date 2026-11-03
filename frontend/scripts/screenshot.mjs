@@ -2,7 +2,8 @@
 // Serve a verificare l'interfaccia su PC e telefono emulato, in tema chiaro e scuro.
 //
 //   node scripts/screenshot.mjs <nome> [--path /movimenti] [--width 1440] [--height 1000]
-//        [--mobile] [--dark] [--scrollbars] [--eval "codice JS da eseguire prima dello scatto"]
+//        [--mobile] [--dark] [--scrollbars] [--lang en|it]
+//        [--eval "codice JS da eseguire prima dello scatto"]
 //
 // Le immagini finiscono in frontend/.screenshots/ (ignorata da Git). Richiede `pnpm dev`
 // acceso. I messaggi console.error della pagina vengono stampati: utili per misurare.
@@ -23,6 +24,7 @@ const { values, positionals } = parseArgs({
     dark: { type: "boolean", default: false },
     scrollbars: { type: "boolean", default: false },
     eval: { type: "string" },
+    lang: { type: "string" },
     base: { type: "string", default: "https://127.0.0.1:5173" },
   },
 });
@@ -111,6 +113,12 @@ try {
   await send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-color-scheme", value: values.dark ? "dark" : "light" }],
   });
+  if (values.lang) {
+    // Lingua dell'interfaccia scelta prima che l'app parta (la legge all'avvio).
+    await send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `localStorage.setItem("fd-language", ${JSON.stringify(values.lang)});`,
+    });
+  }
   await send("Page.navigate", { url: values.base + pagePath });
   for (let i = 0; i < 100 && !events.some((e) => e.method === "Page.loadEventFired"); i++) {
     await sleep(100);
