@@ -1086,6 +1086,11 @@ Un test controlla che le voci del glossario presenti nei file di traduzione usin
 - **Output:** screenshot rifatti con la demo in inglese; una riga sulla scelta della lingua (Impostazioni, lingua del browser, `SEED_LOCALE`).
 - **Completamento:** README coerente con l'app.
 
+#### Note di implementazione (Fase I5, 2026-11-04)
+- **Screenshot:** i 7 di `docs/screenshots/` rifatti sulla demo inglese (`SEED_LOCALE=en`, interfaccia in inglese, periodo "Last 3 months"), stesse pagine e dimensioni di prima (1440×1000, telefono 390×844 a 2×). `scripts/screenshot.mjs` ha due opzioni nuove: `--set chiave=valore` (preferenza in localStorage prima dell'avvio, es. `fd-period=last_3_months`) e `--out` (cartella di destinazione).
+- **README:** la nota "interfaccia in italiano" diventa "inglese e italiano" (Impostazioni, poi lingua del browser, ripiego inglese); una voce tra le funzioni; `SEED_LOCALE` nella partenza rapida (vale solo su un database vuoto); react-i18next nello stack; conteggio dei test aggiornato (pytest 332, Vitest 159).
+- **Controlli:** `check-language.mjs` di nuovo pulito su 12 pagine; lint e prettier del frontend verdi.
+
 ### Decisioni sulle domande aperte (2026-11-03)
 - `SEED_LOCALE` predefinito **`en`**, per l'uso internazionale. L'installazione esistente non cambia: il suo database è già popolato, quindi vale `it`.
 - Il riquadro "Avanzamento" della Panoramica si toglie (fase I2).

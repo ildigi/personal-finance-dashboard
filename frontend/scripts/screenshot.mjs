@@ -3,15 +3,19 @@
 //
 //   node scripts/screenshot.mjs <nome> [--path /movimenti] [--width 1440] [--height 1000]
 //        [--mobile] [--dark] [--scrollbars] [--lang en|it] [--text]
+//        [--set fd-period=last_3_months] [--out ../docs/screenshots]
 //        [--eval "codice JS da eseguire prima dello scatto"]
 //
-// Le immagini finiscono in frontend/.screenshots/ (ignorata da Git); con --text anche il
-// testo visibile della pagina, in <nome>.txt (lo usa scripts/check-language.mjs). Richiede `pnpm dev`
-// acceso. I messaggi console.error della pagina vengono stampati: utili per misurare.
+// Le immagini finiscono in frontend/.screenshots/ (ignorata da Git; altrove con --out); con
+// --text anche il testo visibile della pagina, in <nome>.txt (lo usa
+// scripts/check-language.mjs). --set (ripetibile) scrive una preferenza in localStorage prima
+// che l'app parta. Richiede `pnpm dev` acceso. I messaggi console.error della pagina vengono
+// stampati: utili per misurare.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 
@@ -27,6 +31,8 @@ const { values, positionals } = parseArgs({
     eval: { type: "string" },
     lang: { type: "string" },
     text: { type: "boolean", default: false },
+    set: { type: "string", multiple: true, default: [] },
+    out: { type: "string" },
     base: { type: "string", default: "https://127.0.0.1:5173" },
   },
 });
@@ -43,7 +49,9 @@ const CHROME_PATHS = [
 const chromePath = CHROME_PATHS.find((p) => existsSync(p));
 if (!chromePath) throw new Error("Chrome non trovato: imposta CHROME_PATH");
 
-const outDir = new URL("../.screenshots/", import.meta.url);
+const outDir = values.out
+  ? pathToFileURL(resolve(values.out) + sep)
+  : new URL("../.screenshots/", import.meta.url);
 mkdirSync(outDir, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), "fd-chrome-"));
 const port = 9300 + Math.floor(Math.random() * 600);
@@ -115,10 +123,17 @@ try {
   await send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-color-scheme", value: values.dark ? "dark" : "light" }],
   });
-  if (values.lang) {
-    // Lingua dell'interfaccia scelta prima che l'app parta (la legge all'avvio).
+  // Preferenze scritte prima che l'app parta (le legge all'avvio): lingua e --set.
+  const storage = values.set.map((pair) => pair.split(/=(.*)/s).slice(0, 2));
+  if (values.lang) storage.push(["fd-language", values.lang]);
+  if (storage.length > 0) {
     await send("Page.addScriptToEvaluateOnNewDocument", {
-      source: `localStorage.setItem("fd-language", ${JSON.stringify(values.lang)});`,
+      source: storage
+        .map(
+          ([key, value]) =>
+            `localStorage.setItem(${JSON.stringify(key)}, ${JSON.stringify(value)});`,
+        )
+        .join("\n"),
     });
   }
   await send("Page.navigate", { url: values.base + pagePath });

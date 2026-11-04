@@ -8,8 +8,9 @@ It connects to real banks through **Open Banking (PSD2)** and to **Trading 212**
 official API, always **read-only**. It ships with a **demo mode** that generates 15+ months of
 realistic fake data, so anyone can run it in a couple of minutes without any credentials.
 
-> The user interface is in Italian (it was built for an Italian user and Italian banks).
-> The design document ([docs/SPEC.md](docs/SPEC.md)) and the code comments are in Italian too.
+> The interface is available in **English and Italian**: pick the language in *Settings*,
+> otherwise the browser language is used (English if it is neither). The design document
+> ([docs/SPEC.md](docs/SPEC.md)) and the code comments are in Italian.
 
 ![Overview](docs/screenshots/overview.png)
 
@@ -44,6 +45,8 @@ The phase-by-phase history (decisions, trade-offs and implementation notes) is p
 - **Net worth** history rebuilt from balances and transactions, with estimated and partial
   days clearly marked.
 - **Privacy mode** (blur all amounts with one key), light/dark theme, mobile layout.
+- **English and Italian** interface (react-i18next with typed keys); the backend sends
+  message codes, never sentences, and your own data (names, notes, rules) is never translated.
 - **Security**: read-only integrations enforced at three levels (provider permissions,
   client allow-lists, no write endpoints), Fernet-encrypted provider sessions, optional
   password + TOTP login, encrypted backups with automatic restore verification, strict CSP,
@@ -109,8 +112,8 @@ flowchart LR
 |---|---|
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, httpx, PyJWT, cryptography |
 | Database | PostgreSQL 18 |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui (Radix), TanStack Query & Table, Recharts, openapi-fetch (types generated from the OpenAPI schema) |
-| Quality | pytest (317 tests), Vitest + Testing Library (104 tests), ruff, mypy (strict), ESLint, Prettier |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui (Radix), TanStack Query & Table, Recharts, react-i18next, openapi-fetch (types generated from the OpenAPI schema) |
+| Quality | pytest (332 tests), Vitest + Testing Library (159 tests), ruff, mypy (strict), ESLint (no hard-coded UI strings), Prettier |
 | Security & ops | gitleaks + pre-commit, Argon2id + TOTP, AES-256-GCM backups, Docker, Tailscale |
 
 ## Quick start (demo)
@@ -118,6 +121,11 @@ flowchart LR
 The backend starts in **demo mode** by default (`DEMO_MODE=true`): on startup it applies the
 database migrations, the seed (categories, merchants, rules) and generates fake accounts and
 transactions up to today. No credentials are needed.
+
+The demo data and the starting categories and rules are in English by default. Set
+`SEED_LOCALE=it` in `backend/.env` before the first start to get them in Italian. The
+language is chosen only on an empty database and then stored there: changing it later does
+not touch existing data. The interface language is separate (*Settings → Language*).
 
 ### Option A — everything in Docker
 
@@ -194,7 +202,7 @@ Everything sensitive (keys, provider credentials, backups, logs) lives in `DATA_
 |---|---|
 | `backend/` | FastAPI app, models, Alembic migrations, connectors, classification engine, tests |
 | `frontend/` | React + TypeScript single-page app |
-| `database/` | Seeds (categories, merchants, rules), database creation scripts, schema notes |
+| `database/` | Seeds in Italian and English (categories, merchants, rules), database creation scripts, schema notes |
 | `config/` | `.env.example` and `db.env.example`: every setting, no real values |
 | `deploy/` | Docker Compose for a home server with real data |
 | `docs/` | Specification, architecture decision records, deployment and security guides |
