@@ -12,6 +12,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.seed import run_seed
 from app.ingestion.mock_setup import ensure_mock_sources
 from app.ingestion.runner import run_sync
 from app.integrations.mock import scenario as sc
@@ -28,11 +29,19 @@ from app.models.enums import ClassificationSource, TransactionKind
 DAY = date(2026, 9, 15)
 
 
+@pytest.fixture(params=["it", "en"])
+def locale(request: pytest.FixtureRequest) -> sc.Locale:
+    """Lo scenario in italiano e quello in inglese (ADR 0006): stessa soglia per entrambi."""
+    return request.param  # type: ignore[no-any-return]
+
+
 @pytest.fixture
-def mock_db(seeded: Session) -> Session:
-    for source in ensure_mock_sources(seeded):
-        assert run_sync(seeded, source, today=DAY).status == "success"
-    return seeded
+def mock_db(db: Session, locale: sc.Locale) -> Session:
+    run_seed(db, locale=locale)
+    db.commit()
+    for source in ensure_mock_sources(db):
+        assert run_sync(db, source, today=DAY).status == "success"
+    return db
 
 
 def _actual_label(db: Session, tx: Transaction) -> str:
@@ -51,9 +60,9 @@ def _actual_label(db: Session, tx: Transaction) -> str:
     return label
 
 
-def _expected(db: Session) -> dict[int, str]:
+def _expected(db: Session, locale: sc.Locale) -> dict[int, str]:
     """id del movimento → etichetta attesa, collegando gli ID esterni dello scenario."""
-    ledger = sc.ledger_for(DAY)
+    ledger = sc.ledger_for(DAY, locale)
     by_external = {
         (account, item.external_id(DAY)): item.expect
         for account, items in ledger.transactions.items()
@@ -68,8 +77,8 @@ def _expected(db: Session) -> dict[int, str]:
     return result
 
 
-def test_mock_accuracy_is_at_least_90_percent(mock_db: Session) -> None:
-    expected = _expected(mock_db)
+def test_mock_accuracy_is_at_least_90_percent(mock_db: Session, locale: sc.Locale) -> None:
+    expected = _expected(mock_db, locale)
     wrong: Counter[tuple[str, str]] = Counter()
     for tx in mock_db.scalars(select(Transaction)):
         actual = _actual_label(mock_db, tx)

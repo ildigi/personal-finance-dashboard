@@ -11,6 +11,9 @@ Proprietà importanti:
   compaiono su entrambi i lati; il saldo della carta di credito viene addebitato sul conto.
 
 Nessun dato reale: nomi di aziende generici, IBAN fittizi costruiti a runtime.
+
+Due lingue (ADR 0006): causali e negozi cambiano con la lingua dei dati (`it`: negozi
+italiani; `en`: catene internazionali); importi, date e classificazione attesa no.
 """
 
 from __future__ import annotations
@@ -22,6 +25,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
+from typing import Literal
+
+Locale = Literal["en", "it"]
 
 EPOCH = date(2025, 7, 1)
 SEED = "finance-dashboard-mock-v1"
@@ -35,6 +41,10 @@ T212 = "t212-invest"
 MONTHS_IT = [
     "GENNAIO", "FEBBRAIO", "MARZO", "APRILE", "MAGGIO", "GIUGNO",
     "LUGLIO", "AGOSTO", "SETTEMBRE", "OTTOBRE", "NOVEMBRE", "DICEMBRE",
+]  # fmt: skip
+MONTHS_EN = [
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
 ]  # fmt: skip
 
 
@@ -177,20 +187,146 @@ def price(ticker: str, day: date) -> Decimal:
 # --- Generazione ----------------------------------------------------------------------------
 
 
-GROCERIES = [
-    ("ESSELUNGA", "5411"),
-    ("CONAD", "5411"),
-    ("LIDL", "5411"),
-    ("CARREFOUR EXPRESS", "5411"),
-]
-BARS = ["BAR MAGENTA", "CAFFE DEL CORSO", "PIZZERIA DA GINO", "BIRRIFICIO LAMBRATE", "SUSHI KO"]
-COFFEE = ["CAFFE SPRINT", "COFFEE CORNER"]
-CLOTHES = ["ZARA", "H&M", "DECATHLON"]
-BOOKS = ["LA FELTRINELLI", "AMAZON.IT"]
-ONLINE = [("AMAZON MKTPLACE", "5999"), ("MEDIAWORLD", "5732"), ("IKEA", "5712")]
+@dataclass(frozen=True)
+class Texts:
+    """Causali e negozi di una lingua. Le liste hanno la stessa lunghezza in ogni lingua:
+    le scelte casuali (stesso seme) cadono sulle stesse posizioni, quindi importi e date
+    non cambiano."""
+
+    months: list[str]
+    salary: str  # {month} {year}
+    thirteenth: str
+    employer: str
+    rent: str  # {month}
+    landlord: str
+    phone: str
+    phone_party: str
+    gym: str
+    gym_party: str
+    deposit: str  # {ref}
+    top_up_out: str
+    pos: str  # {shop} {day}
+    pos_pending: str  # {shop}
+    card_balance: str  # {month} {year}
+    card_statement: str
+    tuition: str
+    university: str
+    barber: str  # {day}
+    barber_pending: str
+    account_fee: str
+    transit: str
+    transit_pending: str
+    train: str
+    train_pending: str
+    card_purchase: str  # {shop}
+    refund: str  # {shop}
+    amazon: str
+    groceries: list[tuple[str, str]]
+    bars: list[str]
+    coffee: list[str]
+    clothes: list[str]
+    books: list[str]
+    online: list[tuple[str, str]]
 
 
-def _generate(as_of: date) -> Ledger:
+TEXTS: dict[Locale, Texts] = {
+    "it": Texts(
+        months=MONTHS_IT,
+        salary="BONIFICO A VOSTRO FAVORE DA ACME S.R.L. CAUS: STIPENDIO {month} {year}",
+        thirteenth="BONIFICO A VOSTRO FAVORE DA ACME S.R.L. CAUS: TREDICESIMA",
+        employer="ACME S.R.L.",
+        rent="BONIFICO A FAVORE DI ROSSI MARIA CAUS: AFFITTO {month}",
+        landlord="ROSSI MARIA",
+        phone="ADDEBITO SEPA DD ILIAD ITALIA SPA",
+        phone_party="ILIAD ITALIA SPA",
+        gym="ADDEBITO SEPA DD VIRGIN ACTIVE ITALIA SPA ABBONAMENTO PALESTRA",
+        gym_party="VIRGIN ACTIVE ITALIA SPA",
+        deposit="BONIFICO A FAVORE DI TRADING 212 UK LTD RIF {ref}",
+        top_up_out="GIROCONTO A FAVORE DI REVOLUT BANK UAB RICARICA",
+        pos="PAGAMENTO POS {shop} MILANO CARTA *4821 DEL {day:%d/%m/%y}",
+        pos_pending="{shop} MILANO",
+        card_balance="ADDEBITO SALDO CARTA DI CREDITO {month} {year}",
+        card_statement="PAGAMENTO SALDO ESTRATTO CONTO",
+        tuition="PAGOPA UNIVERSITA DEGLI STUDI DI MILANO TASSE UNIVERSITARIE",
+        university="UNIVERSITA DEGLI STUDI DI MILANO",
+        barber="PAGAMENTO POS BARBERIA DA TONI MILANO CARTA *4821 DEL {day:%d/%m/%y}",
+        barber_pending="BARBERIA DA TONI",
+        account_fee="CANONE MENSILE CONTO",
+        transit="ATM Milano",
+        transit_pending="ATM MILANO",
+        train="Trenitalia",
+        train_pending="TRENITALIA",
+        card_purchase="{shop} ACQUISTO CARTA *9907",
+        refund="Refund from {shop}",
+        amazon="AMAZON.IT",
+        groceries=[
+            ("ESSELUNGA", "5411"),
+            ("CONAD", "5411"),
+            ("LIDL", "5411"),
+            ("CARREFOUR EXPRESS", "5411"),
+        ],
+        bars=[
+            "BAR MAGENTA",
+            "CAFFE DEL CORSO",
+            "PIZZERIA DA GINO",
+            "BIRRIFICIO LAMBRATE",
+            "SUSHI KO",
+        ],
+        coffee=["CAFFE SPRINT", "COFFEE CORNER"],
+        clothes=["ZARA", "H&M", "DECATHLON"],
+        books=["LA FELTRINELLI", "AMAZON.IT"],
+        online=[("AMAZON MKTPLACE", "5999"), ("MEDIAWORLD", "5732"), ("IKEA", "5712")],
+    ),
+    # Banca italiana con causali in inglese: la demo si legge tutta in inglese. Ricariche e
+    # saldo della carta usano parole che i giroconti riconoscono già ("revolut", "transfer
+    # to"; non "from", che è dei bonifici tra amici): la classificazione dei dati veri non
+    # cambia.
+    "en": Texts(
+        months=MONTHS_EN,
+        salary="SEPA CREDIT TRANSFER FROM ACME LTD REF: SALARY {month} {year}",
+        thirteenth="SEPA CREDIT TRANSFER FROM ACME LTD REF: 13TH MONTH SALARY",
+        employer="ACME LTD",
+        rent="SEPA TRANSFER TO JANE SMITH REF: RENT {month}",
+        landlord="JANE SMITH",
+        phone="SEPA DIRECT DEBIT VODAFONE LTD",
+        phone_party="VODAFONE LTD",
+        gym="SEPA DIRECT DEBIT VIRGIN ACTIVE LTD GYM MEMBERSHIP",
+        gym_party="VIRGIN ACTIVE LTD",
+        deposit="SEPA TRANSFER TO TRADING 212 UK LTD REF {ref}",
+        top_up_out="INTERNAL TRANSFER TO REVOLUT BANK UAB TOP-UP",
+        pos="POS {shop} MILAN {day:%d/%m/%y} ****4821",
+        pos_pending="{shop} MILAN",
+        card_balance="CREDIT CARD BALANCE {month} {year}",
+        card_statement="STATEMENT BALANCE PAYMENT - TRANSFER TO CARD",
+        tuition="UNIVERSITY OF MILAN TUITION FEES",
+        university="UNIVERSITY OF MILAN",
+        barber="POS BARBER SHOP {day:%d/%m/%y} ****4821",
+        barber_pending="BARBER SHOP",
+        account_fee="MONTHLY ACCOUNT FEE",
+        transit="ATM Milan",
+        transit_pending="ATM MILAN",
+        train="Trainline",
+        train_pending="TRAINLINE",
+        card_purchase="{shop} CARD PURCHASE ****9907",
+        refund="Refund from {shop}",
+        amazon="AMAZON.EU",
+        groceries=[
+            ("LIDL", "5411"),
+            ("ALDI", "5411"),
+            ("CARREFOUR EXPRESS", "5411"),
+            ("SPAR", "5411"),
+        ],
+        bars=["THE CORNER PUB", "FIVE GUYS", "PIZZA EXPRESS", "HARD ROCK CAFE", "WAGAMAMA"],
+        coffee=["STARBUCKS", "COSTA COFFEE"],
+        clothes=["ZARA", "H&M", "DECATHLON"],
+        books=["WATERSTONES", "AMAZON.EU"],
+        online=[("AMAZON MKTPLACE", "5999"), ("MEDIAMARKT", "5732"), ("IKEA", "5712")],
+    ),
+}
+
+
+def _generate(as_of: date, locale: Locale) -> Ledger:
+    t_ = TEXTS[locale]
     ledger = Ledger()
     tx = ledger.transactions
     card_by_month: dict[tuple[int, int], Decimal] = defaultdict(Decimal)
@@ -205,30 +341,30 @@ def _generate(as_of: date) -> Ledger:
             amount = money(1500 + r.choice([0, 0, 0, 25.4, -12.8, 61.2]))
             tx[CA_CONTO].append(MockTx(
                 CA_CONTO, day, amount,
-                f"BONIFICO A VOSTRO FAVORE DA ACME S.R.L. CAUS: STIPENDIO {MONTHS_IT[day.month - 1]} {day.year}",
-                counterparty_name="ACME S.R.L.", counterparty_iban=IBAN_ACME, always_booked=True,
+                t_.salary.format(month=t_.months[day.month - 1], year=day.year),
+                counterparty_name=t_.employer, counterparty_iban=IBAN_ACME, always_booked=True,
                 expect="income@salary",
             ))  # fmt: skip
             if day.month == 12:
                 tx[CA_CONTO].append(MockTx(
-                    CA_CONTO, day, money(1500), "BONIFICO A VOSTRO FAVORE DA ACME S.R.L. CAUS: TREDICESIMA",
-                    counterparty_name="ACME S.R.L.", counterparty_iban=IBAN_ACME, always_booked=True,
+                    CA_CONTO, day, money(1500), t_.thirteenth,
+                    counterparty_name=t_.employer, counterparty_iban=IBAN_ACME, always_booked=True,
                     expect="income@salary",
                 ))  # fmt: skip
         if _month_day(day, 1):
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, money(-520), f"BONIFICO A FAVORE DI ROSSI MARIA CAUS: AFFITTO {MONTHS_IT[day.month - 1]}",
-                counterparty_name="ROSSI MARIA", always_booked=True, expect="expense:casa",
+                CA_CONTO, day, money(-520), t_.rent.format(month=t_.months[day.month - 1]),
+                counterparty_name=t_.landlord, always_booked=True, expect="expense:casa",
             ))  # fmt: skip
         if _month_day(day, 10):
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, money(-9.99), "ADDEBITO SEPA DD ILIAD ITALIA SPA", counterparty_name="ILIAD ITALIA SPA",
+                CA_CONTO, day, money(-9.99), t_.phone, counterparty_name=t_.phone_party,
                 always_booked=True, expect="expense:abbonamenti/altri_servizi",
             ))  # fmt: skip
         if _month_day(day, 2):
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, money(-29.90), "ADDEBITO SEPA DD VIRGIN ACTIVE ITALIA SPA ABBONAMENTO PALESTRA",
-                counterparty_name="VIRGIN ACTIVE ITALIA SPA", always_booked=True, expect="expense:sport",
+                CA_CONTO, day, money(-29.90), t_.gym,
+                counterparty_name=t_.gym_party, always_booked=True, expect="expense:sport",
             ))  # fmt: skip
         deposit = None
         if _month_day(day, 5):
@@ -238,7 +374,7 @@ def _generate(as_of: date) -> Ledger:
         if deposit is not None:
             ref = f"T212-{day:%Y%m%d}"
             out = MockTx(
-                CA_CONTO, day, -deposit, f"BONIFICO A FAVORE DI TRADING 212 UK LTD RIF {ref}",
+                CA_CONTO, day, -deposit, t_.deposit.format(ref=ref),
                 counterparty_name="Trading 212 UK Ltd", counterparty_iban=IBAN_T212, always_booked=True,
                 expect="investment_transfer:investimenti",
             )  # fmt: skip
@@ -247,7 +383,7 @@ def _generate(as_of: date) -> Ledger:
         if wd == 0:  # lunedì: ricarica Revolut
             top_up = money(r.choice([50, 60, 60, 70, 70, 80]))
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, -top_up, "GIROCONTO A FAVORE DI REVOLUT BANK UAB RICARICA",
+                CA_CONTO, day, -top_up, t_.top_up_out,
                 counterparty_name="Revolut Bank UAB", counterparty_iban=IBAN_REVOLUT, always_booked=True,
                 expect="internal_transfer",
             ))  # fmt: skip
@@ -257,46 +393,46 @@ def _generate(as_of: date) -> Ledger:
                 category="transfers", always_booked=True, expect="internal_transfer",
             ))  # fmt: skip
         if wd in (1, 5) and r.random() < 0.75:
-            shop, mcc = r.choice(GROCERIES)
+            shop, mcc = r.choice(t_.groceries)
             amount = money(-r.uniform(14, 78))
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, amount, f"PAGAMENTO POS {shop} MILANO CARTA *4821 DEL {day:%d/%m/%y}",
-                pending_description=f"{shop} MILANO", mcc=mcc, expect="expense:spesa",
+                CA_CONTO, day, amount, t_.pos.format(shop=shop, day=day),
+                pending_description=t_.pos_pending.format(shop=shop), mcc=mcc, expect="expense:spesa",
             ))  # fmt: skip
         if _month_day(day, 15):
             prev = day.replace(day=1) - timedelta(days=1)
             total = card_by_month.get((prev.year, prev.month), Decimal(0))
             if total > 0:
                 tx[CA_CONTO].append(MockTx(
-                    CA_CONTO, day, -total, f"ADDEBITO SALDO CARTA DI CREDITO {MONTHS_IT[prev.month - 1]} {prev.year}",
+                    CA_CONTO, day, -total, t_.card_balance.format(month=t_.months[prev.month - 1], year=prev.year),
                     always_booked=True, expect="internal_transfer",
                 ))  # fmt: skip
                 tx[CA_CARTA].append(MockTx(
-                    CA_CARTA, day, total, "PAGAMENTO SALDO ESTRATTO CONTO", always_booked=True,
+                    CA_CARTA, day, total, t_.card_statement, always_booked=True,
                     expect="internal_transfer",
                 ))  # fmt: skip
         if (day.month, day.day) in {(10, 20), (3, 20)}:
             fee = money(456.00 if day.month == 10 else 382.50)
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, -fee, "PAGOPA UNIVERSITA DEGLI STUDI DI MILANO TASSE UNIVERSITARIE",
-                counterparty_name="UNIVERSITA DEGLI STUDI DI MILANO", always_booked=True,
+                CA_CONTO, day, -fee, t_.tuition,
+                counterparty_name=t_.university, always_booked=True,
                 expect="expense:istruzione/tasse_corsi",
             ))  # fmt: skip
         if day.toordinal() % 41 == 7:
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, money(-18.00), f"PAGAMENTO POS BARBERIA DA TONI MILANO CARTA *4821 DEL {day:%d/%m/%y}",
-                pending_description="BARBERIA DA TONI", mcc="7230", expect="expense:cura_persona",
+                CA_CONTO, day, money(-18.00), t_.barber.format(day=day),
+                pending_description=t_.barber_pending, mcc="7230", expect="expense:cura_persona",
             ))  # fmt: skip
         if (day + timedelta(days=1)).day == 1:
             tx[CA_CONTO].append(MockTx(
-                CA_CONTO, day, money(-2.00), "CANONE MENSILE CONTO", always_booked=True,
+                CA_CONTO, day, money(-2.00), t_.account_fee, always_booked=True,
                 expect="fee:altro",
             ))  # fmt: skip
 
         # --- Revolut ------------------------------------------------------------------------
         if day.day == 1:
             tx[REV_EUR].append(MockTx(
-                REV_EUR, day, money(-22.00), "ATM Milano", pending_description="ATM MILANO",
+                REV_EUR, day, money(-22.00), t_.transit, pending_description=t_.transit_pending,
                 category="transport", mcc="4111", expect="expense:trasporti/bus",
             ))  # fmt: skip
             tx[REV_EUR].append(MockTx(
@@ -328,40 +464,40 @@ def _generate(as_of: date) -> Ledger:
             ))  # fmt: skip
         if wd in (4, 5) and r.random() < 0.65:
             tx[REV_EUR].append(MockTx(
-                REV_EUR, day, money(-r.uniform(3.5, 34)), r.choice(BARS), category="restaurants", mcc="5812",
+                REV_EUR, day, money(-r.uniform(3.5, 34)), r.choice(t_.bars), category="restaurants", mcc="5812",
                 expect="expense:ristoranti",
             ))  # fmt: skip
         if wd < 5 and day.month not in (8,) and r.random() < 0.5:
             tx[REV_EUR].append(MockTx(
-                REV_EUR, day, money(-r.choice([1.0, 1.2, 1.5, 2.0, 2.5])), r.choice(COFFEE),
+                REV_EUR, day, money(-r.choice([1.0, 1.2, 1.5, 2.0, 2.5])), r.choice(t_.coffee),
                 category="restaurants", mcc="5814", expect="expense:ristoranti",
             ))  # fmt: skip
         if r.random() < 0.07:
             tx[REV_EUR].append(MockTx(
-                REV_EUR, day, money(-r.choice([9.90, 12.90, 19.90, 34.50])), "Trenitalia",
-                pending_description="TRENITALIA", category="transport", mcc="4112",
+                REV_EUR, day, money(-r.choice([9.90, 12.90, 19.90, 34.50])), t_.train,
+                pending_description=t_.train_pending, category="transport", mcc="4112",
                 expect="expense:trasporti/treno",
             ))  # fmt: skip
         if r.random() < 0.025:
             tx[REV_EUR].append(MockTx(
-                REV_EUR, day, money(-r.uniform(25, 80)), r.choice(CLOTHES), category="shopping", mcc="5651",
+                REV_EUR, day, money(-r.uniform(25, 80)), r.choice(t_.clothes), category="shopping", mcc="5651",
                 expect="expense:vestiti",
             ))  # fmt: skip
         if day.month in (2, 3, 9, 10) and r.random() < 0.05:
-            shop = r.choice(BOOKS)
+            shop = r.choice(t_.books)
             item = MockTx(
                 REV_EUR, day, money(-r.uniform(12, 45)), shop, category="shopping", mcc="5942",
                 expect="expense:istruzione/libri",
             )  # fmt: skip
             tx[REV_EUR].append(item)
-            if shop == "AMAZON.IT":
+            if shop == t_.amazon:
                 amazon_purchases.append(item)
         if day.month == 12 and 8 <= day.day <= 22 and r.random() < 0.3:
             item = MockTx(
                 REV_EUR,
                 day,
                 money(-r.uniform(15, 60)),
-                "AMAZON.IT",
+                t_.amazon,
                 category="shopping",
                 mcc="5942",
                 expect="expense:regali",  # regali di Natale: dai dati non si capisce
@@ -377,10 +513,10 @@ def _generate(as_of: date) -> Ledger:
 
         # --- Carta di credito CA ----------------------------------------------------------------
         if r.random() < 0.09:
-            shop, mcc = r.choice(ONLINE)
+            shop, mcc = r.choice(t_.online)
             amount = money(-r.uniform(15, 120))
             tx[CA_CARTA].append(MockTx(
-                CA_CARTA, day, amount, f"{shop} ACQUISTO CARTA *9907", pending_description=shop, mcc=mcc,
+                CA_CARTA, day, amount, t_.card_purchase.format(shop=shop), pending_description=shop, mcc=mcc,
             ))  # fmt: skip
             card_by_month[(day.year, day.month)] += -amount
 
@@ -391,7 +527,7 @@ def _generate(as_of: date) -> Ledger:
             when = purchase.day + timedelta(days=r.randint(5, 12))
             if when <= as_of:
                 tx[REV_EUR].append(MockTx(
-                    REV_EUR, when, -purchase.amount, "Refund from AMAZON.IT", category="shopping",
+                    REV_EUR, when, -purchase.amount, t_.refund.format(shop=t_.amazon), category="shopping",
                     always_booked=True, expect=purchase.expect.replace("expense", "refund", 1),
                 ))  # fmt: skip
 
@@ -457,8 +593,8 @@ def _generate_broker(ledger: Ledger, as_of: date) -> None:
 
 
 @lru_cache(maxsize=8)
-def ledger_for(as_of: date) -> Ledger:
-    return _generate(as_of)
+def ledger_for(as_of: date, locale: Locale = "it") -> Ledger:
+    return _generate(as_of, locale)
 
 
 def at_noon_utc(day: date) -> datetime:

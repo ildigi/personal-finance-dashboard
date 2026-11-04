@@ -6,11 +6,13 @@ from collections.abc import Callable
 from contextlib import nullcontext
 from datetime import date
 
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.demo import bootstrap_demo
-from app.models import AccountSource, Category, Transaction
+from app.models import Account, AccountSource, Category, Transaction
 from app.models.enums import Provider
 
 DAY = date(2026, 9, 15)
@@ -50,3 +52,21 @@ def test_bootstrap_leaves_real_sources_alone(db: Session) -> None:
     db.commit()
     assert bootstrap_demo(lambda: nullcontext(db)) == 0
     assert _count(db, AccountSource) == 1
+
+
+def test_bootstrap_in_english(
+    db: Session, freeze_today: Callable[[date], None], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Installazione nuova con SEED_LOCALE=en: categorie, sorgenti, conti e causali in inglese."""
+    freeze_today(DAY)
+    monkeypatch.setattr(get_settings(), "seed_locale", "en")
+    assert bootstrap_demo(lambda: nullcontext(db)) == 3
+
+    names = set(db.scalars(select(AccountSource.display_name)))
+    assert names == {"Crédit Agricole Italia (demo)", "Revolut (demo)", "Trading 212 (demo)"}
+    assert db.scalar(select(Category.name).where(Category.code == "spesa")) == "Groceries"
+    accounts = set(db.scalars(select(Account.name)))
+    assert {"Current account", "Credit card", "EUR account"} <= accounts
+    descriptions = set(db.scalars(select(Transaction.description_raw)))
+    assert any(d.startswith("SEPA CREDIT TRANSFER FROM ACME LTD") for d in descriptions)
+    assert not any("BONIFICO" in d or "GIROCONTO" in d for d in descriptions)

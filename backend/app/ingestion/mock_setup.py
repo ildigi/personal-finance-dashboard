@@ -12,20 +12,25 @@ from dataclasses import dataclass
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.db.locale import DataLocale, data_locale
 from app.integrations.registry import MOCK_BROKER
 from app.models import Account, AccountSource, Merchant, Portfolio, Transaction, TransactionRule
 from app.models.enums import MerchantOrigin, Provider, RuleOrigin
 
 MOCK_SOURCES = [
-    ("mock:credit_agricole", "Crédit Agricole Italia", "Crédit Agricole Italia (prova)"),
-    ("mock:revolut", "Revolut", "Revolut (prova)"),
-    (MOCK_BROKER, "Trading 212", "Trading 212 (prova)"),
+    ("mock:credit_agricole", "Crédit Agricole Italia"),
+    ("mock:revolut", "Revolut"),
+    (MOCK_BROKER, "Trading 212"),
 ]
+# Il nome mostrato dice che sono dati di prova, nella lingua dei dati.
+MOCK_SUFFIX: dict[DataLocale, str] = {"it": "prova", "en": "demo"}
 
 
 def ensure_mock_sources(session: Session) -> list[AccountSource]:
+    suffix = MOCK_SUFFIX[data_locale(session)]
     sources = []
-    for ref, institution, name in MOCK_SOURCES:
+    for ref, institution in MOCK_SOURCES:
+        name = f"{institution} ({suffix})"
         source = session.scalar(
             select(AccountSource).where(
                 AccountSource.provider == Provider.MOCK, AccountSource.credentials_ref == ref

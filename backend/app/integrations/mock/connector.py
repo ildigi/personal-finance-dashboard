@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Literal
@@ -21,6 +22,12 @@ from app.integrations.base import (
 from app.integrations.mock import scenario as sc
 
 MockBank = Literal["credit_agricole", "revolut"]
+
+# Nomi dei conti nella lingua dei dati (diventano dati dell'utente alla prima sync).
+ACCOUNT_NAMES: dict[sc.Locale, dict[str, str]] = {
+    "it": {sc.CA_CONTO: "Conto corrente", sc.CA_CARTA: "Carta di credito", sc.REV_EUR: "Conto EUR"},
+    "en": {sc.CA_CONTO: "Current account", sc.CA_CARTA: "Credit card", sc.REV_EUR: "EUR account"},
+}
 
 _ACCOUNTS: dict[MockBank, list[ProviderAccount]] = {
     "credit_agricole": [
@@ -54,19 +61,21 @@ _ACCOUNTS: dict[MockBank, list[ProviderAccount]] = {
 
 
 class MockBankConnector:
-    """Banca finta (Crédit Agricole o Revolut) alla data `as_of`."""
+    """Banca finta (Crédit Agricole o Revolut) alla data `as_of`, nella lingua dei dati."""
 
-    def __init__(self, bank: MockBank, as_of: date) -> None:
+    def __init__(self, bank: MockBank, as_of: date, locale: sc.Locale = "it") -> None:
         self.bank = bank
         self.as_of = as_of
+        self.locale = locale
 
     def list_accounts(self) -> list[ProviderAccount]:
-        return list(_ACCOUNTS[self.bank])
+        names = ACCOUNT_NAMES[self.locale]
+        return [replace(a, name=names[a.external_id]) for a in _ACCOUNTS[self.bank]]
 
     def _own(self, account_external_id: str) -> list[sc.MockTx]:
         if account_external_id not in {a.external_id for a in _ACCOUNTS[self.bank]}:
             raise KeyError(f"Conto sconosciuto per {self.bank}: {account_external_id}")
-        return sc.ledger_for(self.as_of).transactions.get(account_external_id, [])
+        return sc.ledger_for(self.as_of, self.locale).transactions.get(account_external_id, [])
 
     def get_balances(self, account_external_id: str) -> list[ProviderBalance]:
         items = self._own(account_external_id)
@@ -120,12 +129,13 @@ class MockBankConnector:
 class MockBrokerConnector:
     """Trading 212 finto: i versamenti seguono i bonifici partiti dal conto CA."""
 
-    def __init__(self, as_of: date) -> None:
+    def __init__(self, as_of: date, locale: sc.Locale = "it") -> None:
         self.as_of = as_of
+        self.locale = locale
 
     @property
     def _ledger(self) -> sc.Ledger:
-        return sc.ledger_for(self.as_of)
+        return sc.ledger_for(self.as_of, self.locale)
 
     def get_account(self) -> ProviderBrokerAccount:
         return ProviderBrokerAccount(sc.T212, "Trading 212 Invest", "EUR", "Trading 212")

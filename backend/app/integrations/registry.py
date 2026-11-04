@@ -5,8 +5,11 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from sqlalchemy.orm import object_session
+
 from app.core.config import get_settings
 from app.core.messages import AppError
+from app.db.locale import LEGACY_LOCALE, DataLocale, data_locale
 from app.integrations.base import BankConnector, BrokerConnector
 from app.integrations.mock.connector import MockBankConnector, MockBrokerConnector
 from app.integrations.trading212.client import (
@@ -42,13 +45,14 @@ def connector_for(
 ) -> BankConnector | BrokerConnector:
     """`psu_headers`: intestazioni "utente presente" per le banche (sync fatta a mano)."""
     if source.provider == Provider.MOCK:
+        locale = _mock_locale(source)
         if source.credentials_ref == MOCK_BROKER:
-            return MockBrokerConnector(today)
+            return MockBrokerConnector(today, locale)
         bank = MOCK_BANKS.get(source.credentials_ref or "")
         if bank == "credit_agricole":
-            return MockBankConnector("credit_agricole", today)
+            return MockBankConnector("credit_agricole", today, locale)
         if bank == "revolut":
-            return MockBankConnector("revolut", today)
+            return MockBankConnector("revolut", today, locale)
         raise ConnectorUnavailableError("source.unknown_mock", ref=source.credentials_ref)
     if source.provider == Provider.MANUAL:
         raise ConnectorUnavailableError("source.manual_not_syncable")
@@ -62,6 +66,12 @@ def connector_for(
     if source.provider == Provider.ENABLEBANKING:
         return _enablebanking_connector(source, psu_headers)
     raise ConnectorUnavailableError("source.unknown_provider", provider=source.provider)
+
+
+def _mock_locale(source: AccountSource) -> DataLocale:
+    """I dati di prova parlano la lingua dei dati dell'installazione (ADR 0006)."""
+    session = object_session(source)
+    return data_locale(session) if session is not None else LEGACY_LOCALE
 
 
 def _enablebanking_connector(
