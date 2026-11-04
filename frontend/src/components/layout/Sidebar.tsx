@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 
 import { useNavBadges, type NavBadge } from "@/app/nav-badges";
-import { NAV_GROUPS, navLabel, SETTINGS_ITEM, type NavItem } from "@/app/navigation";
+import { NAV_GROUPS, navMenuLabel, SETTINGS_ITEM, type NavItem } from "@/app/navigation";
 import { BrandMark } from "@/components/common/BrandMark";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ function SidebarLink({ item, badge }: { item: NavItem; badge?: NavBadge }) {
                 : "text-muted-foreground group-hover:text-foreground",
             )}
           />
-          <span className="flex-1 truncate">{navLabel(item)}</span>
+          <span className="flex-1 truncate">{navMenuLabel(item)}</span>
           {badge && <NavBadgePill badge={badge} />}
         </>
       )}

@@ -24,7 +24,6 @@ export const transactions = {
     },
     account: "Conto",
     unclassified: "Da classificare",
-    betweenAccounts: "Tra i tuoi conti",
     investments: "Investimenti",
     income: "Entrata",
     page: {

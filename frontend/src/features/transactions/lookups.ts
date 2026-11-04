@@ -82,7 +82,7 @@ export function describeClassification(tx: Classified, lookups: Lookups): string
   if (tx.kind === "income" && tx.income_type_id !== null) {
     return lookups.incomeTypeById.get(tx.income_type_id)?.label ?? i18n.t("transactions.income");
   }
-  if (tx.kind === "internal_transfer") return i18n.t("transactions.betweenAccounts");
+  if (tx.kind === "internal_transfer") return i18n.t("transactions.kind.internal_transfer");
   if (tx.kind === "investment_transfer") return i18n.t("transactions.investments");
   return i18n.t("transactions.unclassified");
 }

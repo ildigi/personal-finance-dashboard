@@ -85,51 +85,61 @@ export const it = {
     items: {
       overview: {
         label: "Panoramica",
+        menu: "Panoramica",
         short: "Home",
         description: "Quanto hai, quanto spendi, quanto rendi.",
       },
       transactions: {
         label: "Movimenti",
+        menu: "Movimenti",
         short: "Movimenti",
         description: "Tutti i movimenti di conti e carte, in un unico elenco.",
       },
       expenses: {
         label: "Spese",
+        menu: "Spese",
         short: "Spese",
         description: "Dove vanno i soldi, per categoria e nel tempo.",
       },
       income: {
         label: "Entrate",
+        menu: "Entrate",
         short: "Entrate",
         description: "Quanto entra, da dove, e quanto ne resta.",
       },
       investments: {
         label: "Investimenti",
+        menu: "Investimenti",
         short: "Invest.",
         description: "Portafoglio Trading 212, solo in lettura.",
       },
       netWorth: {
         label: "Patrimonio netto",
+        menu: "Patrimonio netto",
         short: "Patrimonio",
         description: "Conti e investimenti sommati, giorno per giorno.",
       },
       budgets: {
         label: "Budget",
+        menu: "Budget",
         short: "Budget",
         description: "Limiti mensili solo dove servono.",
       },
       recurring: {
         label: "Ricorrenze",
+        menu: "Ricorrenze",
         short: "Ricorrenze",
         description: "Abbonamenti e movimenti periodici, con i prossimi addebiti.",
       },
       rules: {
         label: "Regole",
+        menu: "Regole",
         short: "Regole",
         description: "Come i movimenti vengono classificati in automatico.",
       },
       settings: {
         label: "Impostazioni",
+        menu: "Impostazioni",
         short: "Impostazioni",
         description: "Aspetto, privacy, categorie e connessioni.",
       },

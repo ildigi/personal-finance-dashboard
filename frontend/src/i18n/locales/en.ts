@@ -83,51 +83,61 @@ export const en = {
     items: {
       overview: {
         label: "Overview",
+        menu: "Overview",
         short: "Home",
         description: "What you own, what you spend, what you earn.",
       },
       transactions: {
         label: "Transactions",
+        menu: "Transactions",
         short: "Transactions",
         description: "Every transaction from your accounts and cards, in one list.",
       },
       expenses: {
         label: "Expenses",
+        menu: "Expenses",
         short: "Expenses",
         description: "Where the money goes, by category and over time.",
       },
       income: {
         label: "Income",
+        menu: "Income",
         short: "Income",
         description: "What comes in, from where, and how much is left.",
       },
       investments: {
         label: "Investments",
+        menu: "Investments",
         short: "Invest.",
         description: "Trading 212 portfolio, read-only.",
       },
       netWorth: {
         label: "Net worth",
+        menu: "Net worth",
         short: "Net worth",
         description: "Accounts and investments added up, day by day.",
       },
       budgets: {
         label: "Budgets",
+        menu: "Budgets",
         short: "Budgets",
         description: "Monthly limits, only where you need them.",
       },
       recurring: {
         label: "Recurring payments",
-        short: "Recurring payments",
+        menu: "Recurring",
+        short: "Recurring",
         description: "Subscriptions and regular payments, with upcoming charges.",
       },
       rules: {
         label: "Rules",
+        menu: "Rules",
         short: "Rules",
         description: "How transactions are classified automatically.",
       },
       settings: {
         label: "Settings",
+        menu: "Settings",
         short: "Settings",
         description: "Appearance, privacy, categories and connections.",
       },

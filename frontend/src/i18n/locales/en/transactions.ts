@@ -26,7 +26,6 @@ export const transactions = {
     },
     account: "Account",
     unclassified: "Unclassified",
-    betweenAccounts: "Between your accounts",
     investments: "Investments",
     income: "Income",
     page: {

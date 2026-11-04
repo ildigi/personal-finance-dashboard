@@ -40,6 +40,8 @@ export interface NavGroup {
 
 export const navLabel = (item: NavItem): string => i18n.t(`nav.items.${item.id}.label`);
 /** Etichetta breve per la barra in basso su telefono. */
+/** Etichetta del menu laterale: corta dove il nome della pagina non ci sta ("Recurring"). */
+export const navMenuLabel = (item: NavItem): string => i18n.t(`nav.items.${item.id}.menu`);
 export const navShortLabel = (item: NavItem): string => i18n.t(`nav.items.${item.id}.short`);
 export const navDescription = (item: NavItem): string => i18n.t(`nav.items.${item.id}.description`);
 

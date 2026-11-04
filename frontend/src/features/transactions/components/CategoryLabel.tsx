@@ -9,7 +9,8 @@ import type { Lookups } from "../lookups";
 
 /**
  * Cosa è un movimento, in breve: "Trasporti › Treno" con icona per le spese,
- * la tipologia per le entrate, "Tra i tuoi conti" per i giroconti, oppure
+ * la tipologia per le entrate, "Trasferimento interno" per i giroconti (lo stesso nome del
+ * tipo, in tutta l'app), oppure
  * "Da classificare" ben visibile.
  */
 export function CategoryLabel({
@@ -37,7 +38,7 @@ export function CategoryLabel({
     const plain = income
       ? { icon: HandCoins, text: income.label }
       : kind === "internal_transfer"
-        ? { icon: ArrowLeftRight, text: t("transactions.betweenAccounts") }
+        ? { icon: ArrowLeftRight, text: t("transactions.kind.internal_transfer") }
         : kind === "investment_transfer"
           ? { icon: TrendingUp, text: t("transactions.investments") }
           : null;
