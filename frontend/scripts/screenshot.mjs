@@ -2,10 +2,11 @@
 // Serve a verificare l'interfaccia su PC e telefono emulato, in tema chiaro e scuro.
 //
 //   node scripts/screenshot.mjs <nome> [--path /movimenti] [--width 1440] [--height 1000]
-//        [--mobile] [--dark] [--scrollbars] [--lang en|it]
+//        [--mobile] [--dark] [--scrollbars] [--lang en|it] [--text]
 //        [--eval "codice JS da eseguire prima dello scatto"]
 //
-// Le immagini finiscono in frontend/.screenshots/ (ignorata da Git). Richiede `pnpm dev`
+// Le immagini finiscono in frontend/.screenshots/ (ignorata da Git); con --text anche il
+// testo visibile della pagina, in <nome>.txt (lo usa scripts/check-language.mjs). Richiede `pnpm dev`
 // acceso. I messaggi console.error della pagina vengono stampati: utili per misurare.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -25,6 +26,7 @@ const { values, positionals } = parseArgs({
     scrollbars: { type: "boolean", default: false },
     eval: { type: "string" },
     lang: { type: "string" },
+    text: { type: "boolean", default: false },
     base: { type: "string", default: "https://127.0.0.1:5173" },
   },
 });
@@ -131,6 +133,19 @@ try {
   const shot = await send("Page.captureScreenshot", { format: "png" });
   const file = new URL(`${name}.png`, outDir);
   writeFileSync(file, Buffer.from(shot.result.data, "base64"));
+  if (values.text) {
+    // Testo visibile più attributi letti dagli screen reader e dai tooltip.
+    const attributes = ["aria-label", "title", "placeholder"];
+    const expression = `[
+      document.title,
+      document.body.innerText,
+      ...[...document.querySelectorAll("[aria-label],[title],[placeholder]")].flatMap((el) =>
+        ${JSON.stringify(attributes)}.map((name) => el.getAttribute(name) ?? ""),
+      ),
+    ].join(String.fromCharCode(10))`;
+    const result = await send("Runtime.evaluate", { expression, returnByValue: true });
+    writeFileSync(new URL(`${name}.txt`, outDir), String(result.result.result.value ?? ""));
+  }
   console.log(file.pathname.replace(/^\/([A-Za-z]:)/, "$1"));
   ws.close();
 } finally {
