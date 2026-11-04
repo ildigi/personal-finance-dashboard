@@ -1,0 +1,201 @@
+# System rules, in English (SEED_LOCALE=en, ADR 0006). Same `code` values as
+# ../rules.yaml; the patterns recognise both Italian and English bank descriptions.
+# Step 4 of the pipeline: after your own rules. The seed only adds missing rules and never
+# touches existing ones (you can switch them off or change their priority on the Rules page).
+#
+# Conditions (all must hold): description_contains, description_regex, merchant (key),
+# counterparty_iban, amount_min / amount_max / amounts (EUR amounts without sign),
+# direction (in | out), mcc.
+# Actions: category / subcategory (seed codes), kind, income_type (code).
+
+rules:
+  # --- Apple: the subcategory depends on the amount -----------------------------------
+  - code: apple_icloud
+    name: Apple · iCloud (€0.99 / €2.99 / €9.99)
+    priority: 10
+    conditions: { merchant: apple, direction: out, amounts: [0.99, 2.99, 9.99] }
+    actions: { category: abbonamenti, subcategory: cloud }
+
+  - code: apple_music
+    name: Apple · Apple Music (€5.99 / €10.99 / €16.99)
+    priority: 20
+    conditions: { merchant: apple, direction: out, amounts: [5.99, 10.99, 16.99] }
+    actions: { category: abbonamenti, subcategory: musica }
+
+  # --- Investments: never real spending -----------------------------------------------
+  - code: trading212_deposit
+    name: Deposits to Trading 212
+    priority: 30
+    conditions: { description_regex: "trading ?212", direction: out }
+    actions: { kind: investment_transfer, category: investimenti }
+
+  - code: trading212_withdrawal
+    name: Withdrawals from Trading 212
+    priority: 31
+    conditions: { description_regex: "trading ?212", direction: in }
+    actions: { kind: investment_transfer, category: investimenti }
+
+  # --- Bank fees and duties ------------------------------------------------------------
+  - code: bank_fees
+    name: Account fees, commissions and stamp duty
+    priority: 40
+    conditions:
+      description_regex: "\\b(canone|commission[ei]|imposta di bollo|spese (tenuta|di gestione) conto|account fee|monthly fee|commissions?|stamp duty|bank charges?)\\b"
+      direction: out
+    actions: { kind: fee, category: altro }
+
+  # --- Education -----------------------------------------------------------------------
+  - code: university_fees
+    name: University fees
+    priority: 50
+    conditions: { description_regex: "\\b(tasse universitarie|universit[aà] degli studi|tuition fees?|university fees?)\\b", direction: out }
+    actions: { category: istruzione, subcategory: tasse_corsi }
+
+  # --- Home ----------------------------------------------------------------------------
+  - code: rent
+    name: Rent
+    priority: 55
+    conditions: { description_regex: "\\b(affitto|canone di locazione|locazione|rent)\\b", direction: out }
+    actions: { category: casa }
+
+  # --- Income --------------------------------------------------------------------------
+  - code: salary_keyword
+    name: Salary (keyword)
+    priority: 60
+    conditions: { description_regex: "\\b(stipendio|emolumenti|tredicesima|quattordicesima|cedolino|salary|payroll|wages)\\b", direction: in }
+    actions: { kind: income, income_type: salary }
+
+  - code: cashback
+    name: Cashback and rewards
+    priority: 61
+    conditions: { description_regex: "\\b(cashback|cash back|reward|rewards)\\b", direction: in }
+    actions: { kind: income, income_type: cashback }
+
+  - code: interest
+    name: Interest
+    priority: 62
+    conditions: { description_regex: "\\b(interessi|interest)\\b", direction: in }
+    actions: { kind: income, income_type: interest }
+
+  # --- Internal transfers, currency exchange, plan fees --------------------------------
+  # Money that stays yours: Revolut top-ups (Apple Pay from another card of yours), the
+  # same top-up seen from the paying account (AFT = account funding), currency exchange.
+  - code: revolut_topup
+    name: Revolut top-up (Apple Pay / card)
+    priority: 20
+    conditions: { description_regex: "\\btop-?up by\\b", direction: in }
+    actions: { kind: internal_transfer }
+
+  - code: card_funding_revolut
+    name: Revolut top-up paid by card
+    priority: 21
+    conditions: { description_regex: "^AFT\\b.*\\brevolut", direction: out }
+    actions: { kind: internal_transfer }
+
+  - code: currency_exchange
+    name: Currency exchange
+    priority: 22
+    conditions: { description_regex: "^exchanged (to|from)\\b" }
+    actions: { kind: internal_transfer }
+
+  - code: plan_fee
+    name: Account plan fee
+    priority: 41
+    conditions: { description_regex: "\\bplan fee\\b", direction: out }
+    actions: { kind: fee, category: altro }
+
+  - code: cash_deposit
+    name: Cash deposit
+    priority: 63
+    conditions: { description_regex: "\\b(versamento (di )?contanti|cash deposit)\\b", direction: in }
+    actions: { kind: income, income_type: cash }
+
+  # Person-to-person transfers on Revolut ("From Jane S", "To Jane S", "Payment from ..."):
+  # split expenses with friends. Your own transfers (counterparty = OWNER_NAMES) and your
+  # rules come first.
+  - code: friends_in
+    name: Split expenses · money received
+    priority: 70
+    conditions: { description_regex: "(?<!refund )\\b(from|payment from)\\s+\\S.*$", direction: in }
+    actions: { kind: refund, category: spese_divise }
+
+  - code: friends_out
+    name: Split expenses · money sent
+    priority: 71
+    conditions: { description_regex: "^(inviato da revolut\\s+|sent from revolut\\s+)?to\\s+\\S.*$", direction: out }
+    actions: { kind: expense, category: spese_divise }
+
+  # --- Shop keywords (after known merchants: the more specific rules win) ---------------
+  - code: keyword_salute
+    name: Pharmacies and health
+    priority: 90
+    conditions:
+      description_regex: "\\b(farmacia|parafarmacia|sanitari[ae]|ambulatorio|poliambulatorio|dentist[ai]|studio dentistico|ottica|ospedale|pharmacy|chemist|dentist|optician|hospital|clinic)\\b"
+      direction: out
+    actions: { category: salute }
+
+  - code: keyword_cartoleria
+    name: Stationers, tobacconists and newsagents
+    priority: 91
+    conditions:
+      description_regex: "\\b(tabacchi|tabaccheria|cartoleria|cartolibreria|edicola|tobacconist|stationery|stationer|newsagent)\\b"
+      direction: out
+    actions: { category: cartoleria }
+
+  - code: keyword_uscite
+    name: Cinemas, clubs and arcades
+    priority: 92
+    conditions:
+      description_regex: "\\b(cinema|cinemas|multisala|discoteca|disco|nightclub|bingo|bowling|teatro|theatre|theater)\\b"
+      direction: out
+    actions: { category: uscite }
+
+  - code: keyword_bar
+    name: Bars, cafés, ice cream and pastry shops
+    priority: 93
+    conditions:
+      description_regex: "\\b(bar|caff[eè]|cafe|coffee|gelateria|gelataria|cremeria|pasticceria|panificio|panetteria|pub|birreria|enoteca|bakery|wine bar)\\b"
+      direction: out
+    actions: { category: ristoranti }
+
+  - code: keyword_ristoranti
+    name: Restaurants, pizzerias and fast food
+    priority: 94
+    conditions:
+      description_regex: "\\b(ristorante|pizzeria|pizza|trattoria|osteria|bistro|burger|burgers|kebab|sushi|paninoteca|piadineria|rosticceria|salumeria|tavola calda|restaurant|diner|grill|takeaway)\\b"
+      direction: out
+    actions: { category: ristoranti }
+
+  - code: keyword_alloggio
+    name: Hotels, B&Bs and hostels
+    priority: 85
+    conditions:
+      description_regex: "\\b(hotel|albergo|b&b|bed and breakfast|ostello|hostel|residence|agriturismo|airbnb|guesthouse|guest house)\\b"
+      direction: out
+    actions: { category: viaggi, subcategory: alloggio }
+
+  - code: keyword_visite
+    name: Museums, monuments and attractions
+    priority: 86
+    conditions:
+      description_regex: "\\b(museo|musei|museum|colosseo|colosseum|castello|castle|basilica|cathedral|pinacoteca|galleria|gallery|acquario|aquarium|zoo)\\b"
+      direction: out
+    actions: { category: viaggi, subcategory: visite }
+
+  - code: keyword_fiori
+    name: Florists
+    priority: 95
+    conditions:
+      description_regex: "\\b(fioreria|fiorista|fiori|garden|florist|flowers)\\b"
+      direction: out
+    actions: { category: regali }
+
+  # Worked out by comparing with the real balance (e.g. PayPal converts dollars at a worse
+  # rate than the ECB and does not send the conversion as a transaction). The description
+  # of these generated rows is stored as "Costo del cambio …" (it is part of their
+  # fingerprint); the interface shows it translated.
+  - code: fx_conversion_cost
+    name: Currency conversion cost (worked out from the balance)
+    priority: 42
+    conditions: { description_regex: "^costo del cambio\\b", direction: out }
+    actions: { kind: fee, category: altro }

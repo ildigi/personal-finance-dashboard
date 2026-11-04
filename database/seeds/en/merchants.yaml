@@ -1,0 +1,120 @@
+# Known merchants, in English (SEED_LOCALE=en, ADR 0006). Same keys and aliases as
+# ../merchants.yaml, plus a few international chains; aliases recognise both Italian and
+# English bank descriptions.
+# `key` is the stable normalised key; `aliases` are the forms the merchant takes in
+# descriptions (whole-word match, ignoring case and punctuation: "AMZN Mktp" and
+# "Amazon.it" both become Amazon).
+# `category` / `subcategory`: codes from the categories seed (default category, step 5 of
+# the pipeline). The seed only adds missing merchants: changes made in the interface stay
+# yours.
+
+merchants:
+  # --- Groceries ---------------------------------------------------------------------------
+  - { key: esselunga, name: Esselunga, aliases: [esselunga], category: spesa }
+  - { key: conad, name: Conad, aliases: [conad], category: spesa }
+  - { key: coop, name: Coop, aliases: [coop, ipercoop, coop lombardia], category: spesa }
+  - { key: lidl, name: Lidl, aliases: [lidl], category: spesa }
+  - { key: aldi, name: Aldi, aliases: [aldi], category: spesa }
+  - { key: eurospin, name: Eurospin, aliases: [eurospin], category: spesa }
+  - { key: carrefour, name: Carrefour, aliases: [carrefour, carrefour express, carrefour market], category: spesa }
+  - { key: pam, name: Pam, aliases: [pam panorama, pam local, pam], category: spesa }
+  - { key: penny, name: Penny Market, aliases: [penny market, penny], category: spesa }
+  - { key: iper, name: Iper, aliases: [iper la grande i, iper], category: spesa }
+  - { key: despar, name: Despar, aliases: [despar, eurospar, interspar], category: spesa }
+  - { key: unes, name: Unes, aliases: [unes, u2 supermercato], category: spesa }
+  - { key: tesco, name: Tesco, aliases: [tesco], category: spesa }
+  - { key: spar, name: Spar, aliases: [spar], category: spesa }
+
+  # --- Subscriptions -----------------------------------------------------------------------
+  # Apple: the subcategory depends on the amount, the system rules decide it.
+  - { key: apple, name: Apple, aliases: [apple com bill, apple com, itunes com] }
+  - { key: openai, name: OpenAI, aliases: [openai, chatgpt], category: abbonamenti, subcategory: software }
+  - { key: anthropic, name: Anthropic, aliases: [anthropic, claude ai], category: abbonamenti, subcategory: software }
+  - { key: netflix, name: Netflix, aliases: [netflix, netflix com], category: abbonamenti, subcategory: altri_servizi }
+  - { key: spotify, name: Spotify, aliases: [spotify], category: abbonamenti, subcategory: altri_servizi }
+  - { key: disney-plus, name: Disney+, aliases: [disney plus, disneyplus], category: abbonamenti, subcategory: altri_servizi }
+  - { key: prime-video, name: Prime Video, aliases: [prime video, amazon prime], category: abbonamenti, subcategory: altri_servizi }
+  - { key: iliad, name: Iliad, aliases: [iliad], category: abbonamenti, subcategory: altri_servizi }
+  - { key: tim, name: TIM, aliases: [telecom italia, tim spa], category: abbonamenti, subcategory: altri_servizi }
+  - { key: vodafone, name: Vodafone, aliases: [vodafone], category: abbonamenti, subcategory: altri_servizi }
+  - { key: windtre, name: WindTre, aliases: [windtre, wind tre], category: abbonamenti, subcategory: altri_servizi }
+  - { key: ho-mobile, name: ho. Mobile, aliases: [ho mobile], category: abbonamenti, subcategory: altri_servizi }
+  - { key: fastweb, name: Fastweb, aliases: [fastweb], category: abbonamenti, subcategory: altri_servizi }
+
+  # --- Sports and gym ----------------------------------------------------------------------
+  - { key: virgin-active, name: Virgin Active, aliases: [virgin active], category: sport }
+  - { key: anytime-fitness, name: Anytime Fitness, aliases: [anytime fitness], category: sport }
+
+  # --- Transport ---------------------------------------------------------------------------
+  # "ATM" alone also means cash machines: the city is needed.
+  - { key: trenitalia, name: Trenitalia, aliases: [trenitalia], category: trasporti, subcategory: treno }
+  - { key: italo, name: Italo, aliases: [italo treno, italo ntv, italotreno], category: trasporti, subcategory: treno }
+  - { key: trenord, name: Trenord, aliases: [trenord], category: trasporti, subcategory: treno }
+  - { key: atm-milano, name: ATM Milan, aliases: [atm milano, atm spa milano, atm mi, atm milan], category: trasporti, subcategory: bus }
+  - { key: atac, name: ATAC Rome, aliases: [atac, atac roma, atac rome], category: trasporti, subcategory: bus }
+  - { key: flixbus, name: FlixBus, aliases: [flixbus], category: trasporti, subcategory: bus }
+  - { key: mycicero, name: MyCicero, aliases: [mycicero], category: trasporti, subcategory: bus }
+  - { key: trainline, name: Trainline, aliases: [trainline, thetrainline], category: trasporti, subcategory: treno }
+
+  # --- Travel ------------------------------------------------------------------------------
+  - { key: ryanair, name: Ryanair, aliases: [ryanair], category: viaggi, subcategory: voli }
+  - { key: easyjet, name: easyJet, aliases: [easyjet], category: viaggi, subcategory: voli }
+  - { key: ita-airways, name: ITA Airways, aliases: [ita airways], category: viaggi, subcategory: voli }
+  - { key: booking, name: Booking.com, aliases: [booking com], category: viaggi, subcategory: alloggio }
+  - { key: airbnb, name: Airbnb, aliases: [airbnb], category: viaggi, subcategory: alloggio }
+
+  # --- Clothing ----------------------------------------------------------------------------
+  - { key: zara, name: Zara, aliases: [zara], category: vestiti }
+  - { key: h-m, name: H&M, aliases: [h m, hm hennes, hennes mauritz], category: vestiti }
+  - { key: uniqlo, name: Uniqlo, aliases: [uniqlo], category: vestiti }
+  - { key: ovs, name: OVS, aliases: [ovs], category: vestiti }
+  - { key: decathlon, name: Decathlon, aliases: [decathlon], category: vestiti }
+  - { key: benetton, name: Benetton, aliases: [benetton, united colors of benetton], category: vestiti }
+
+  # --- Bars and restaurants ----------------------------------------------------------------
+  - { key: mcdonalds, name: McDonald's, aliases: [mcdonald s, mcdonalds, mcd], category: ristoranti }
+  - { key: burger-king, name: Burger King, aliases: [burger king], category: ristoranti }
+  - { key: kfc, name: KFC, aliases: [kfc], category: ristoranti }
+  - { key: old-wild-west, name: Old Wild West, aliases: [old wild west], category: ristoranti }
+  - { key: roadhouse, name: Roadhouse, aliases: [roadhouse], category: ristoranti }
+  - { key: starbucks, name: Starbucks, aliases: [starbucks], category: ristoranti }
+  - { key: autogrill, name: Autogrill, aliases: [autogrill], category: ristoranti }
+  - { key: costa-coffee, name: Costa Coffee, aliases: [costa coffee], category: ristoranti }
+  - { key: pret-a-manger, name: Pret A Manger, aliases: [pret a manger], category: ristoranti }
+  - { key: five-guys, name: Five Guys, aliases: [five guys], category: ristoranti }
+  - { key: wagamama, name: Wagamama, aliases: [wagamama], category: ristoranti }
+  - { key: pizza-express, name: PizzaExpress, aliases: [pizza express, pizzaexpress], category: ristoranti }
+  - { key: hard-rock-cafe, name: Hard Rock Cafe, aliases: [hard rock cafe], category: ristoranti }
+
+  # --- Scooters, bikes and parking ---------------------------------------------------------
+  - { key: dott, name: Dott, aliases: [ridedott, ridedott com], category: trasporti, subcategory: monopattini }
+  - { key: ridemovi, name: RideMovi, aliases: [ridemovi, ridemovi com], category: trasporti, subcategory: monopattini }
+  - { key: lime, name: Lime, aliases: [lime rides, lime ride], category: trasporti, subcategory: monopattini }
+  - { key: bird, name: Bird, aliases: [bird rides], category: trasporti, subcategory: monopattini }
+  - { key: tier, name: TIER, aliases: [tier mobility], category: trasporti, subcategory: monopattini }
+  - { key: bikemi, name: BikeMi, aliases: [bikemi], category: trasporti, subcategory: monopattini }
+  - { key: easypark, name: EasyPark, aliases: [easypark], category: trasporti, subcategory: parcheggi }
+
+  # --- Games -------------------------------------------------------------------------------
+  - { key: steam, name: Steam, aliases: [steam games, steampowered, steam purchase], category: giochi }
+  - { key: playstation, name: PlayStation Store, aliases: [playstation, playstation network, sony interactive], category: giochi }
+  - { key: nintendo, name: Nintendo eShop, aliases: [nintendo], category: giochi }
+
+  # --- Books -------------------------------------------------------------------------------
+  - { key: feltrinelli, name: la Feltrinelli, aliases: [feltrinelli], category: istruzione, subcategory: libri }
+  - { key: mondadori, name: Mondadori Store, aliases: [mondadori], category: istruzione, subcategory: libri }
+  - { key: waterstones, name: Waterstones, aliases: [waterstones], category: istruzione, subcategory: libri }
+
+  # --- Going out ---------------------------------------------------------------------------
+  - { key: deliveroo, name: Deliveroo, aliases: [deliveroo], category: uscite }
+  - { key: glovo, name: Glovo, aliases: [glovo], category: uscite }
+  - { key: just-eat, name: Just Eat, aliases: [just eat, justeat], category: uscite }
+  - { key: uci-cinemas, name: UCI Cinemas, aliases: [uci cinemas, ucicinemas, ucicinemas it], category: uscite }
+  - { key: the-space, name: The Space Cinema, aliases: [the space cinema], category: uscite }
+
+  # --- No default category (all kinds of purchases) ----------------------------------------
+  - { key: amazon, name: Amazon, aliases: [amazon, amzn, amazon mktplace, amazon mktp, amazon it, amazon eu] }
+  - { key: mediamarkt, name: MediaMarkt, aliases: [mediamarkt, media markt, mediaworld, media world] }
+  - { key: ikea, name: IKEA, aliases: [ikea] }
+  - { key: paypal, name: PayPal, aliases: [paypal] }
+  - { key: trading-212, name: Trading 212, aliases: [trading 212, trading212] }

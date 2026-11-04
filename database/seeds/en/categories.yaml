@@ -1,0 +1,128 @@
+# Starting categories and subcategories, in English (SEED_LOCALE=en, ADR 0006).
+# Same `code` values as ../categories.yaml: the code finds categories by code, never by name.
+# `code` is the stable key: the seed never touches rows that already exist, so names,
+# colours and order changed from the interface stay yours.
+# `icon`: name of a lucide icon (used by the frontend).
+
+categories:
+  - code: sport
+    name: Sports and gym
+    kind: expense
+    icon: dumbbell
+
+  - code: vestiti
+    name: Clothing
+    kind: expense
+    icon: shirt
+
+  - code: regali
+    name: Gifts
+    kind: expense
+    icon: gift
+
+  - code: spesa
+    name: Groceries
+    kind: expense
+    icon: shopping-cart
+
+  - code: abbonamenti
+    name: Subscriptions
+    kind: expense
+    icon: repeat
+    subcategories:
+      - { code: software, name: Software and AI }
+      - { code: musica, name: Music }
+      - { code: cloud, name: Cloud and storage }
+      - { code: altri_servizi, name: Other services }
+
+  - code: uscite
+    name: Going out
+    kind: expense
+    icon: party-popper
+
+  # Bars and pubs have their own category; Going out is for clubs, cinema, arcades.
+  - code: ristoranti
+    name: Bars and restaurants
+    kind: expense
+    icon: utensils
+
+  - code: salute
+    name: Health
+    kind: expense
+    icon: heart-pulse
+
+  - code: cartoleria
+    name: Stationery and tobacco
+    kind: expense
+    icon: pencil
+
+  - code: giochi
+    name: Games
+    kind: expense
+    icon: gamepad
+
+  # Transfers between friends to split costs: money received is a refund (it lowers your
+  # spending), money sent is spending. The category total is what you paid on top.
+  - code: spese_divise
+    name: Split expenses
+    kind: expense
+    icon: users
+
+  - code: viaggi
+    name: Travel
+    kind: expense
+    icon: plane
+    # While travelling, spending goes here, split by type.
+    subcategories:
+      - { code: cibo, name: Food }
+      - { code: alloggio, name: Accommodation }
+      - { code: voli, name: Flights }
+      - { code: treni, name: Trains }
+      - { code: bus_metro, name: Bus and metro }
+      - { code: visite, name: Sights and attractions }
+
+  - code: trasporti
+    name: Transport
+    kind: expense
+    icon: bus
+    subcategories:
+      - { code: bus, name: Bus }
+      - { code: treno, name: Train }
+      - { code: monopattini, name: Scooters and bikes }
+      - { code: parcheggi, name: Parking }
+
+  - code: cura_persona
+    name: Personal care
+    kind: expense
+    icon: scissors
+
+  - code: istruzione
+    name: Education
+    kind: expense
+    icon: graduation-cap
+    subcategories:
+      - { code: libri, name: Books }
+      - { code: tasse_corsi, name: Fees and courses }
+
+  # Rent and household costs.
+  - code: casa
+    name: Home
+    kind: expense
+    icon: house
+
+  # Deposits to Trading 212: kind `investment_transfer`, never added to real spending;
+  # they only count in the "Moved and invested" total.
+  - code: investimenti
+    name: Investments
+    kind: investment
+    icon: trending-up
+    is_system: true
+    excluded_from_spending: true
+
+  # Miscellaneous costs (e.g. fees). "Unclassified" is not a category: it is the state of
+  # transactions no step recognised (empty category).
+  - code: altro
+    name: Other
+    kind: expense
+    icon: shapes
+    is_system: true

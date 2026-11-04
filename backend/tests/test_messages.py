@@ -34,9 +34,10 @@ def test_unknown_codes_are_refused() -> None:
 def test_http_error_carries_code_and_params() -> None:
     error = http_error(404, "not_found", id=3)
     assert error.status_code == 404
-    assert error.detail == {"code": "not_found", "params": {"id": 3}}
-    wrapped = http_error(409, AppError("bank.unavailable", bank="CA"))
-    assert wrapped.detail == {"code": "bank.unavailable", "params": {"bank": "CA"}}
+    detail: object = error.detail  # HTTPException lo tipizza come str: qui è un dizionario
+    assert detail == {"code": "not_found", "params": {"id": 3}}
+    wrapped: object = http_error(409, AppError("bank.unavailable", bank="CA")).detail
+    assert wrapped == {"code": "bank.unavailable", "params": {"bank": "CA"}}
 
 
 def test_no_code_is_a_prefix_of_another() -> None:

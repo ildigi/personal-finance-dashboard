@@ -220,3 +220,10 @@ def _no_personal_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     nei test: chi li vuole li imposta da sé."""
     monkeypatch.setattr(get_settings(), "owner_names", [])
     monkeypatch.setattr(get_settings(), "home_places", [])
+
+
+@pytest.fixture(autouse=True)
+def _italian_seed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """I test esistenti sono scritti sui dati in italiano: `SEED_LOCALE` (default `en`) vale
+    `it`; i test della lingua inglese lo cambiano da sé."""
+    monkeypatch.setattr(get_settings(), "seed_locale", "it")

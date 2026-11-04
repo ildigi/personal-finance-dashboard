@@ -4,6 +4,10 @@ e regole di sistema.
 Idempotente: inserisce solo ciò che manca (chiave `code`) e non modifica mai
 righe esistenti, così le personalizzazioni fatte dall'interfaccia restano.
 
+Lingua (ADR 0006): `database/seeds/` in italiano, `database/seeds/en/` in inglese, con gli
+stessi codici. Quale vale lo decide `app.db.locale` (su un database vuoto `SEED_LOCALE`, poi
+quella salvata; un database già popolato senza lingua salvata resta in italiano).
+
 Uso: `uv run python -m app.db.seed` (aggiungere `--test` per il DB dei test).
 """
 
@@ -22,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.classification.text import match_text
 from app.core.config import get_settings
+from app.db.locale import DataLocale, data_locale, is_empty, save_locale, stored_locale
 from app.models import Category, IncomeClassification, Merchant, Subcategory, TransactionRule
 from app.models.enums import CategoryKind, Direction, MerchantOrigin, RuleOrigin, TransactionKind
 from app.schemas.rules import RuleActions, RuleConditions
@@ -300,9 +305,21 @@ def seed_rules(session: Session, data: RulesFile, report: SeedReport) -> None:
     session.flush()
 
 
-def run_seed(session: Session, seeds_dir: Path | None = None) -> SeedReport:
-    """Applica tutti i seed nella sessione data (il commit è a carico del chiamante)."""
-    seeds_dir = seeds_dir or get_settings().seeds_dir
+def locale_dir(seeds_dir: Path, locale: DataLocale) -> Path:
+    return seeds_dir / "en" if locale == "en" else seeds_dir
+
+
+def run_seed(
+    session: Session, seeds_dir: Path | None = None, locale: DataLocale | None = None
+) -> SeedReport:
+    """Applica tutti i seed nella sessione data (il commit è a carico del chiamante).
+
+    `locale`: di solito quella dei dati (`data_locale`); su un database vuoto viene salvata.
+    """
+    locale = locale or data_locale(session)
+    if stored_locale(session) is None and is_empty(session):
+        save_locale(session, locale)
+    seeds_dir = locale_dir(seeds_dir or get_settings().seeds_dir, locale)
     report = SeedReport()
     categories = CategoriesFile.model_validate(_load_yaml(seeds_dir / "categories.yaml"))
     incomes = IncomeClassificationsFile.model_validate(
@@ -325,10 +342,12 @@ def main() -> None:
 
     engine = create_engine(get_settings().db_url(test=args.test))
     with Session(engine) as session, session.begin():
-        report = run_seed(session)
+        locale = data_locale(session)
+        report = run_seed(session, locale=locale)
     engine.dispose()
     print(
-        f"Seed completato: {report.categories} categorie, {report.subcategories} sottocategorie, "
+        f"Seed completato ({locale}): {report.categories} categorie, "
+        f"{report.subcategories} sottocategorie, "
         f"{report.income_classifications} tipologie di entrata, {report.merchants} merchant, "
         f"{report.rules} regole inserite."
     )

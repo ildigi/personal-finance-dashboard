@@ -4,6 +4,9 @@
   `income_classifications.yaml` (tipologie di entrata, SPEC §12), `merchants.yaml` (merchant noti
   con alias e categoria predefinita), `rules.yaml` (regole di sistema). Applicati da
   `uv run python -m app.db.seed` (da `backend/`).
+- `seeds/en/` — gli stessi file in inglese, con gli stessi `code` (ADR 0006). La lingua la sceglie
+  `SEED_LOCALE` (`en` predefinito, `it`) solo su un database vuoto, e resta salvata nella tabella
+  `app_settings`; un database già popolato senza lingua salvata resta in italiano.
 - Lo schema vive nelle migrazioni Alembic in `backend/alembic/versions/`; i modelli in
   `backend/app/models/`. Il modello dati è descritto in [SPEC §10](../docs/SPEC.md).
 

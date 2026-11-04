@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Modalità demo: all'avvio migrazioni, seed e dati di prova inventati (vedi app/demo.py).
     # Con i propri conti: DEMO_MODE=false.
     demo_mode: bool = True
+    # Lingua dei dati iniziali (categorie, regole, demo) di un'installazione NUOVA: vale solo
+    # su un database vuoto e resta salvata nel database (ADR 0006). Un database già popolato
+    # senza lingua salvata resta in italiano.
+    seed_locale: Literal["en", "it"] = "en"
     api_host: str = "127.0.0.1"
     api_port: int = 8000
     cors_origins: Annotated[list[str], NoDecode] = Field(

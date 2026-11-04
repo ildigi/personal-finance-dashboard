@@ -15,12 +15,13 @@ from app.models.investments import (
 )
 from app.models.merchants import Merchant
 from app.models.planning import Budget, RecurringTransaction, TransactionRule
-from app.models.system import FxRate, NetWorthSnapshot, SyncLog
+from app.models.system import AppSetting, FxRate, NetWorthSnapshot, SyncLog
 from app.models.transactions import ManualOverride, Tag, Transaction, TransactionTag
 
 __all__ = [
     "Account",
     "AccountSource",
+    "AppSetting",
     "AuthCredential",
     "AuthSession",
     "Balance",

@@ -25,7 +25,7 @@ def test_all_spec_tables_are_modelled() -> None:
         "balances", "budgets", "recurring_transactions", "income_classifications",
         "portfolios", "positions", "portfolio_cash_snapshots", "investment_orders",
         "investment_cash_flows", "dividends", "sync_logs", "net_worth_snapshots", "fx_rates",
-        "pies", "pie_instruments", "auth_credentials", "auth_sessions",
+        "pies", "pie_instruments", "auth_credentials", "auth_sessions", "app_settings",
     } == EXPECTED_TABLES  # fmt: skip
 
 

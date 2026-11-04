@@ -66,3 +66,13 @@ class FxRate(TimestampMixin, Base):
     currency: Mapped[Currency] = mapped_column(primary_key=True)
     rate_to_eur: Mapped[Rate]
     source: Mapped[str]
+
+
+class AppSetting(TimestampMixin, Base):
+    """Impostazioni dell'installazione salvate nel database, es. `data_locale`: la lingua in
+    cui il seed ha scritto categorie e regole (ADR 0006)."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(primary_key=True)
+    value: Mapped[str]

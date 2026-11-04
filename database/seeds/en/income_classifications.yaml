@@ -1,0 +1,12 @@
+# Income types, in English (SEED_LOCALE=en). Same `code` values as the Italian file.
+
+income_classifications:
+  - { code: salary, label: Salary }
+  - { code: transfer_received, label: Transfer received }
+  - { code: refund, label: Refund }
+  - { code: cashback, label: Cashback }
+  - { code: interest, label: Interest }
+  - { code: dividend, label: Dividends }
+  - { code: cash, label: Cash }
+  - { code: family, label: Family }
+  - { code: other, label: Other }
